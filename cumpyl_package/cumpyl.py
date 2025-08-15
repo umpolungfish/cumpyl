@@ -145,6 +145,11 @@ class BinaryRewriter:
             return "\\x00" * len(data)
         elif encoding == "base64":
             return codecs.encode(data, "base64").decode().strip()
+        elif encoding == "compressed_base64":
+            # Compress the data first, then encode with base64
+            import zlib
+            compressed = zlib.compress(data)
+            return codecs.encode(compressed, "base64").decode().strip()
         else:
             raise ValueError(f"Unsupported encoding: {encoding}")
 
@@ -164,6 +169,11 @@ class BinaryRewriter:
             raise ValueError("Cannot decode null encoding without knowing the original length")
         elif encoding == "base64":
             return codecs.decode(encoded_data.encode(), "base64")
+        elif encoding == "compressed_base64":
+            # Decode base64 first, then decompress
+            import zlib
+            decoded = codecs.decode(encoded_data.encode(), "base64")
+            return zlib.decompress(decoded)
         else:
             raise ValueError(f"Unsupported encoding: {encoding}")
 
@@ -187,6 +197,24 @@ class BinaryRewriter:
 
             # Get the current content
             content = list(section.content)
+            
+            # Check if this is an executable section
+            executable_sections = ['.text', '.code']
+            if section_name in executable_sections:
+                print(f"[!] WARNING: Modifying executable section '{section_name}' will likely break the binary!")
+                print(f"[!] Consider encoding non-executable sections like .rdata, .data, or .rodata instead.")
+
+            # Check if we're trying to write beyond the section's actual size
+            section_size = len(content)
+            if offset + len(new_data) > section_size:
+                print(f"[!] WARNING: Attempting to write {len(new_data)} bytes at offset {offset}")
+                print(f"[!] Section '{section_name}' is only {section_size} bytes, need {offset + len(new_data)} bytes")
+                print(f"[!] This will expand the section and may break the binary!")
+                
+                # Ask for user confirmation or automatically reject for executable sections
+                if section_name in executable_sections:
+                    print(f"[-] Refusing to expand executable section '{section_name}' to prevent binary corruption")
+                    return False
 
             # Ensure we have enough space, expand if necessary
             if offset + len(new_data) > len(content):
@@ -196,7 +224,13 @@ class BinaryRewriter:
 
             # Apply the modification
             for i, byte in enumerate(new_data):
-                content[offset + i] = byte
+                # Make sure we don't go beyond the section boundaries
+                if offset + i < len(content):
+                    content[offset + i] = byte
+                else:
+                    # This shouldn't happen if we extended correctly, but just in case
+                    print(f"[!] Warning: Attempted to write beyond section boundaries")
+                    break
 
             # Update the section content
             section.content = content
@@ -209,6 +243,11 @@ class BinaryRewriter:
         """Analyze and display detailed section information"""
         print(f"\n[*] Section Analysis for {self.input_file}")
         print("=" * 60)
+        print("[*] Suggested sections for encoding:")
+        print("    - Safe: .rdata, .rodata, .data (non-executable data sections)")
+        print("    - Use with caution: .text, .code (executable sections - will break program)")
+        print("    - Avoid: .idata, .reloc (critical for program loading)")
+        print()
 
         for section in self.binary.sections:
             try:
@@ -217,25 +256,35 @@ class BinaryRewriter:
 
                 # Try to determine section type
                 section_type = "Unknown"
+                safe_for_encoding = "No"
                 if section.name in ['.text', '.code']:
                     section_type = "Executable Code"
+                    safe_for_encoding = "No - Will break program"
                 elif section.name in ['.data', '.bss']:
                     section_type = "Data"
+                    safe_for_encoding = "Yes"
                 elif section.name in ['.rdata', '.rodata']:
                     section_type = "Read-only Data"
+                    safe_for_encoding = "Yes"
                 elif section.name in ['.idata']:
                     section_type = "Import Data"
+                    safe_for_encoding = "No - Critical for loading"
                 elif section.name in ['.reloc']:
                     section_type = "Relocation Data"
+                    safe_for_encoding = "No - Critical for loading"
                 elif section.name in ['.pdata']:
                     section_type = "Exception Data"
+                    safe_for_encoding = "Use with caution"
                 elif section.name in ['.xdata']:
                     section_type = "Exception Unwind Data"
+                    safe_for_encoding = "Use with caution"
                 elif section.name.startswith('/'):
                     section_type = "Resource/Debug Data"
+                    safe_for_encoding = "Yes"
 
                 print(f"Section: {section.name}")
                 print(f"  Type: {section_type}")
+                print(f"  Safe for encoding: {safe_for_encoding}")
                 print(f"  Size: {len(content)} bytes")
                 print(f"  Virtual Address: 0x{section.virtual_address:x}")
                 if hasattr(section, 'characteristics'):
@@ -257,6 +306,131 @@ class BinaryRewriter:
             except Exception as e:
                 print(f"  Error analyzing section {section.name}: {e}")
                 print()
+
+    def suggest_obfuscation(self) -> None:
+        """Analyze the binary and suggest optimal sections for obfuscation with different tiers"""
+        print(f"\n[*] Obfuscation Suggestions for {self.input_file}")
+        print("=" * 60)
+        
+        # Collect section information
+        sections_info = []
+        for section in self.binary.sections:
+            try:
+                content = bytes(section.content)
+                # Determine section type and safety
+                section_type = "Unknown"
+                safe_for_encoding = False
+                encoding_tier = 0  # 0 = avoid, 1 = basic, 2 = intermediate, 3 = advanced
+                
+                if section.name in ['.text', '.code']:
+                    section_type = "Executable Code"
+                    safe_for_encoding = False
+                    encoding_tier = 0  # Avoid
+                elif section.name in ['.data', '.bss']:
+                    section_type = "Data"
+                    safe_for_encoding = True
+                    encoding_tier = 2  # Intermediate
+                elif section.name in ['.rdata', '.rodata']:
+                    section_type = "Read-only Data"
+                    safe_for_encoding = True
+                    encoding_tier = 3  # Advanced
+                elif section.name in ['.idata']:
+                    section_type = "Import Data"
+                    safe_for_encoding = False
+                    encoding_tier = 0  # Avoid
+                elif section.name in ['.reloc']:
+                    section_type = "Relocation Data"
+                    safe_for_encoding = False
+                    encoding_tier = 0  # Avoid
+                elif section.name in ['.pdata']:
+                    section_type = "Exception Data"
+                    safe_for_encoding = True
+                    encoding_tier = 1  # Basic
+                elif section.name in ['.xdata']:
+                    section_type = "Exception Unwind Data"
+                    safe_for_encoding = True
+                    encoding_tier = 1  # Basic
+                elif section.name.startswith('/'):
+                    section_type = "Resource/Debug Data"
+                    safe_for_encoding = True
+                    encoding_tier = 2  # Intermediate
+                
+                sections_info.append({
+                    'name': section.name,
+                    'type': section_type,
+                    'size': len(content),
+                    'safe': safe_for_encoding,
+                    'tier': encoding_tier,
+                    'virtual_address': section.virtual_address,
+                    'characteristics': getattr(section, 'characteristics', 0)
+                })
+            except Exception as e:
+                print(f"  Error analyzing section {section.name}: {e}")
+        
+        # Sort sections by tier (descending) and size (descending) for prioritization
+        sections_info.sort(key=lambda x: (x['tier'], x['size']), reverse=True)
+        
+        # Display suggestions by tier
+        tier_names = {
+            0: "Avoid (Critical Sections)",
+            1: "Basic Tier (Small, Low-Impact Sections)",
+            2: "Intermediate Tier (Medium-Size Data Sections)",
+            3: "Advanced Tier (Large, High-Impact Sections)"
+        }
+        
+        for tier in range(3, -1, -1):  # From 3 (Advanced) to 0 (Avoid)
+            tier_sections = [s for s in sections_info if s['tier'] == tier]
+            if tier_sections:
+                print(f"\n{tier_names[tier]}:")
+                print("-" * 40)
+                for section in tier_sections:
+                    size_mb = section['size'] / (1024 * 1024)
+                    if size_mb >= 1:
+                        size_str = f"{size_mb:.2f} MB"
+                    else:
+                        size_kb = section['size'] / 1024
+                        if size_kb >= 1:
+                            size_str = f"{size_kb:.2f} KB"
+                        else:
+                            size_str = f"{section['size']} bytes"
+                    
+                    print(f"  Section: {section['name']}")
+                    print(f"    Type: {section['type']}")
+                    print(f"    Size: {size_str}")
+                    print(f"    Virtual Address: 0x{section['virtual_address']:x}")
+                    
+                    # Provide specific suggestions for each tier
+                    if tier == 3:  # Advanced Tier
+                        print(f"    Suggestion: Best for heavy obfuscation. Large capacity for complex encoding.")
+                        print(f"    Encoding Options: base64, compressed_base64, hex")
+                    elif tier == 2:  # Intermediate Tier
+                        print(f"    Suggestion: Good for moderate obfuscation. Balanced size and safety.")
+                        print(f"    Encoding Options: base64, compressed_base64")
+                    elif tier == 1:  # Basic Tier
+                        print(f"    Suggestion: Suitable for light obfuscation. Small sections, minimal impact.")
+                        print(f"    Encoding Options: hex, octal")
+                    else:  # Avoid
+                        print(f"    Suggestion: Critical for program execution. Avoid obfuscation.")
+                    
+                    print()
+        
+        # Provide overall recommendations
+        print("\n[*] Overall Recommendations:")
+        print("-" * 40)
+        safe_sections = [s for s in sections_info if s['tier'] >= 2]
+        if safe_sections:
+            largest_safe = max(safe_sections, key=lambda x: x['size'])
+            print(f"  Best section for maximum obfuscation: {largest_safe['name']} ({largest_safe['type']})")
+            print(f"    Size: {largest_safe['size']} bytes")
+            print(f"    Command example: --encode-section {largest_safe['name']} --encoding compressed_base64")
+        else:
+            print("  No large safe sections found for significant obfuscation.")
+        
+        # Warn about executable sections
+        exec_sections = [s for s in sections_info if s['name'] in ['.text', '.code']]
+        if exec_sections:
+            print(f"\n  Warning: Obfuscating executable sections ({', '.join([s['name'] for s in exec_sections])})")
+            print(f"    will break the program. Use with extreme caution.")
 
 
 class RewriterPlugin:
@@ -363,13 +537,14 @@ def main():
 
     # Add analysis arguments
     parser.add_argument("--analyze-sections", action="store_true", help="Analyze and display section information")
+    parser.add_argument("--suggest-obfuscation", action="store_true", help="Suggest optimal sections for obfuscation with different tiers")
 
     # Add encoding/decoding arguments
     parser.add_argument("--encode-section", action="append", help="Section name(s) to encode. Use comma-separated list for same encoding (e.g., '.text,.data'), or multiple flags for different encodings")
     parser.add_argument("--encode-offset", type=int, action="append", help="Offset within section to start encoding (default: 0)")
     parser.add_argument("--encode-length", type=int, action="append", help="Number of bytes to encode (default: entire section from offset)")
     parser.add_argument("--encoding-length", type=int, action="append", help="Alias for --encode-length")  # 𐑣𐑨𐑯𐑛𐑤 𐑤𐑮𐑑 𐑧𐑮𐑼
-    parser.add_argument("--encoding", action="append", choices=["hex", "octal", "null", "base64"], help="Encoding format")
+    parser.add_argument("--encoding", action="append", choices=["hex", "octal", "null", "base64", "compressed_base64"], help="Encoding format")
     parser.add_argument("--print-encoded", action="store_true", help="Print encoded data")
 
     args = parser.parse_args()
@@ -383,6 +558,11 @@ def main():
     # Handle section analysis if requested
     if args.analyze_sections:
         rewriter.analyze_sections()
+        return
+
+    # Handle obfuscation suggestions if requested
+    if args.suggest_obfuscation:
+        rewriter.suggest_obfuscation()
         return
 
     # Handle encoding if requested
@@ -433,9 +613,25 @@ def main():
                 if args.print_encoded:
                     print(f"  [+] Encoded data for {section_name} ({encoding_type}): {encoded_data}")
 
-                # Apply the encoded string as bytes to the section
-                # Convert encoded string to bytes and apply to section
+                # Check if the encoded data will fit in the original space
                 encoded_bytes = encoded_data.encode('utf-8')
+                original_data = rewriter.get_section_data(section_name)[offset:offset+length]
+                
+                # Warn if the encoded data is larger than the original
+                if len(encoded_bytes) > len(original_data):
+                    print(f"[!] WARNING: Encoded data ({len(encoded_bytes)} bytes) is larger than original ({len(original_data)} bytes)")
+                    print(f"[!] This will expand the section and may break the binary!")
+                    
+                    # For executable sections, refuse to proceed
+                    if section_name in ['.text', '.code']:
+                        print(f"[-] Refusing to encode executable section '{section_name}' with larger data")
+                        print(f"[-] Consider using a different encoding method or section")
+                        continue
+                    
+                    # For other sections, suggest using compressed encoding
+                    if encoding_type == "base64":
+                        print(f"[!] Suggestion: Try using 'compressed_base64' encoding to reduce data size")
+                
                 success = rewriter.modify_section_data(
                     section_name,
                     offset,

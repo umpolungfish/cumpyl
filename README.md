@@ -6,7 +6,10 @@ Cumpyl is a Python-based binary rewriting tool that allows you to analyze, modif
 
 - Load and parse binary files (PE, ELF, Mach-O) using LIEF
 - **Section Analysis** - Detailed inspection of binary sections with type identification and content preview
+- **Obfuscation Suggestions** - Intelligent tiered recommendations for optimal obfuscation locations with encoding options
 - **Multi-Section Encoding** - Support for encoding multiple sections simultaneously or with different encodings
+- **Smart Safety Checks** - Prevents corruption by refusing to expand executable sections and warning about size increases
+- **Compressed Encoding** - Space-efficient compressed base64 encoding to minimize section expansion
 - Disassemble code sections using Capstone
 - Apply modifications to binaries
 - Encode/decode binary data in various formats:
@@ -14,6 +17,7 @@ Cumpyl is a Python-based binary rewriting tool that allows you to analyze, modif
   - Octal
   - Base64
   - Null bytes
+  - Compressed Base64
 - Plugin architecture for extensibility
 - Command-line interface
 - Cross-platform compatibility (Windows PE, Linux ELF, macOS Mach-O)
@@ -56,6 +60,9 @@ pip install -e .
 # Analyze binary sections first (recommended)
 cumpyl input_binary --analyze-sections
 
+# Get intelligent obfuscation suggestions
+cumpyl input_binary --suggest-obfuscation
+
 # Basic usage
 cumpyl input_binary -o output_binary
 
@@ -65,6 +72,9 @@ cumpyl input_binary --encode-section .rodata --encoding hex --print-encoded
 # Encode a specific portion of a section
 cumpyl input_binary --encode-section .text --encode-offset 0x100 --encode-length 32 --encoding base64
 
+# Use space-efficient compressed encoding for larger sections
+cumpyl input_binary --encode-section .rdata --encode-length 1000 --encoding compressed_base64 --print-encoded
+
 # Multiple sections with same encoding (comma-separated)
 cumpyl input_binary --encode-section ".text,.data,.rdata" --encoding base64 -o output_binary
 
@@ -73,6 +83,7 @@ cumpyl input_binary --encode-section .text --encoding base64 --encode-section .d
 
 # Working with Windows PE files
 cumpyl malware.exe --analyze-sections
+cumpyl malware.exe --suggest-obfuscation
 cumpyl malware.exe --encode-section .text --encoding base64 -o obfuscated.exe
 
 # Working with Linux ELF files
@@ -101,6 +112,50 @@ Common section types:
 - `.idata` - Import tables
 - `.reloc` - Relocation information
 
+### Obfuscation Suggestions
+
+The `--suggest-obfuscation` flag provides intelligent, tiered recommendations for optimal obfuscation:
+
+```bash
+cumpyl binary.exe --suggest-obfuscation
+```
+
+This feature analyzes the binary and provides:
+
+1. **Tiered Section Classification**:
+   - **Advanced Tier**: Large, safe sections like `.rdata`, `.rodata` - best for heavy obfuscation
+   - **Intermediate Tier**: Medium-size data sections and resource/debug data - good for moderate obfuscation
+   - **Basic Tier**: Small sections like exception data - suitable for light obfuscation
+   - **Avoid Tier**: Critical sections like executable code, import data, relocation data
+
+2. **Detailed Recommendations**:
+   - Section name, type, and size information
+   - Specific encoding options for each tier (hex, octal, base64, compressed_base64)
+   - Overall best section for maximum obfuscation
+   - Warnings about sections that would break the program
+
+3. **Example Output**:
+   ```
+   [*] Obfuscation Suggestions for binary.exe
+   ============================================================
+
+   Advanced Tier (Large, High-Impact Sections):
+   ----------------------------------------
+     Section: .rdata
+       Type: Read-only Data
+       Size: 1.37 MB
+       Suggestion: Best for heavy obfuscation. Large capacity for complex encoding.
+       Encoding Options: base64, compressed_base64, hex
+
+   [*] Overall Recommendations:
+   ----------------------------------------
+     Best section for maximum obfuscation: .rdata (Read-only Data)
+       Size: 1432696 bytes
+       Command example: --encode-section .rdata --encoding compressed_base64
+   ```
+
+This feature makes it easy to identify the best sections for obfuscation without needing to understand the binary format in detail.
+
 ### Python API
 
 ```python
@@ -113,10 +168,17 @@ rewriter.load_binary()
 # Analyze sections programmatically
 rewriter.analyze_sections()
 
+# Get obfuscation suggestions
+rewriter.suggest_obfuscation()
+
 # Encode a portion of a section
 plugin = EncodingPlugin()
 encoded_data = plugin.encode_section_portion(rewriter, ".rodata", 0, 20, "hex")
 print(f"Encoded data: {encoded_data}")
+
+# Use compressed encoding for better space efficiency
+encoded_compressed = plugin.encode_section_portion(rewriter, ".rdata", 0, 1000, "compressed_base64")
+print(f"Compressed encoded data: {encoded_compressed}")
 
 # Apply modifications back to the binary
 plugin.decode_and_apply(rewriter, ".rodata", 0, encoded_data, "hex")
@@ -181,7 +243,8 @@ This will create a test binary, encode a portion of it in hex format, and demons
 
 ## Recent Updates
 
-- **v0.1.3**: Fixed section expansion for encoding operations - sections now automatically expand to accommodate encoded data that exceeds original size
+- **v0.1.4**: Added obfuscation suggestions feature with tiered recommendations and intelligent encoding options
+- **v0.1.3**: Added compressed base64 encoding and smart safety checks to prevent binary corruption
 - **v0.1.2**: Added multi-section encoding support - encode multiple sections with same or different encodings
 - **v0.1.1**: Added section analyzer with `--analyze-sections` flag
 - **v0.1.0**: Fixed compatibility issues with newer LIEF versions
