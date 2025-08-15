@@ -26,6 +26,8 @@ setup(
         "lief",
         "capstone",
         "keystone-engine",
+        "rich",
+        "tqdm",
     ],
     entry_points={
         "console_scripts": [
