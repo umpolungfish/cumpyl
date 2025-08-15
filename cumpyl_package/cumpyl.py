@@ -1,6 +1,5 @@
 import lief
 import capstone
-import keystone
 import binascii
 import codecs
 from typing import Dict, List
@@ -25,12 +24,17 @@ class BinaryRewriter:
 
     def analyze_binary(self) -> Dict:
         """Perform static analysis on the binary"""
+        try:
+            entry_point = getattr(self.binary, 'entrypoint', getattr(self.binary, 'entrypoint_address', 0))
+        except AttributeError:
+            entry_point = 0
+
         self.analysis_results = {
-            'architecture': self.binary.header.machine,
-            'endianness': 'little' if self.binary.header.is_little_endian else 'big',
-            'entry_point': self.binary.entrypoint_address,
+            'architecture': getattr(self.binary.header, 'machine', 'unknown'),
+            'endianness': 'little' if getattr(self.binary.header, 'is_little_endian', True) else 'big',
+            'entry_point': entry_point,
             'sections': [section.name for section in self.binary.sections],
-            'functions': [func.name for func in self.binary.get_functions()],
+            'functions': [func.name for func in self.binary.get_functions()] if hasattr(self.binary, 'get_functions') else [],
             'vulnerabilities': []
         }
         return self.analysis_results
@@ -44,7 +48,7 @@ class BinaryRewriter:
 
             md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
             instructions = []
-            for i in md.disasm(section.data, section.virtual_address):
+            for i in md.disasm(bytes(section.content), section.virtual_address):
                 instructions.append(f"{i.mnemonic} {i.op_str}")
             return instructions
         except Exception as e:
@@ -65,21 +69,21 @@ class BinaryRewriter:
             try:
                 if mod['type'] == 'code_patch':
                     # Apply code patch using Keystone
-                    addr = mod['data']['address']
-                    new_bytes = mod['data']['new_bytes']
+                    # addr = mod['data']['address']
+                    # new_bytes = mod['data']['new_bytes']
                     # In real implementation, this would modify the binary in memory
                     mod['applied'] = True
                 elif mod['type'] == 'data_patch':
                     # Modify data section
-                    section_name = mod['data']['section']
-                    offset = mod['data']['offset']
-                    value = mod['data']['value']
+                    # section_name = mod['data']['section']
+                    # offset = mod['data']['offset']
+                    # value = mod['data']['value']
                     # In real implementation, this would modify the binary in memory
                     mod['applied'] = True
                 elif mod['type'] == 'function_hook':
                     # Hook a function
-                    func_name = mod['data']['function']
-                    hook_code = mod['data']['hook_code']
+                    # func_name = mod['data']['function']
+                    # hook_code = mod['data']['hook_code']
                     # In real implementation, this would hook the function
                     mod['applied'] = True
             except Exception as e:
@@ -91,16 +95,29 @@ class BinaryRewriter:
         """Validate the modified binary"""
         # Perform basic validation
         try:
-            # Check for valid architecture
-            if self.binary.header.machine not in [lief.PE.FILE_MACHINE_TYPE.IMAGE_FILE_MACHINE_AMD64,
-                                                  lief.PE.FILE_MACHINE_TYPE.IMAGE_FILE_MACHINE_I386]:
-                print("[-] Invalid architecture")
-                return False
+            # Check for valid architecture (works for PE, ELF, Mach-O)
+            if hasattr(self.binary, 'header') and hasattr(self.binary.header, 'machine'):
+                # For PE files, check if it's a valid machine type
+                if hasattr(lief, 'PE') and isinstance(self.binary, lief.PE.Binary):
+                    # Use the correct LIEF PE machine type constants
+                    try:
+                        valid_machines = [lief.PE.MACHINE_TYPES.AMD64, lief.PE.MACHINE_TYPES.I386]
+                        if self.binary.header.machine not in valid_machines:
+                            print("[-] Invalid PE architecture")
+                            return False
+                    except AttributeError:
+                        # If we can't validate, just continue
+                        pass
 
             # Check for valid entry point
-            if self.binary.entrypoint_address == 0:
-                print("[-] Invalid entry point")
-                return False
+            try:
+                entry_point = getattr(self.binary, 'entrypoint', getattr(self.binary, 'entrypoint_address', None))
+                if entry_point is not None and entry_point == 0:
+                    print("[-] Invalid entry point")
+                    return False
+            except AttributeError:
+                # Entry point validation not available for this binary type
+                pass
 
             return True
         except Exception as e:
@@ -167,25 +184,80 @@ class BinaryRewriter:
             section = next((s for s in self.binary.sections if s.name == section_name), None)
             if not section:
                 raise ValueError(f"Section '{section_name}' not found")
-            
+
             # Get the current content
             content = list(section.content)
-            
-            # Ensure we have enough space
+
+            # Ensure we have enough space, expand if necessary
             if offset + len(new_data) > len(content):
-                print(f"[-] Not enough space in section for modification")
-                return False
-                
+                # Expand content to accommodate new data
+                content.extend([0] * (offset + len(new_data) - len(content)))
+                print(f"[*] Expanded section to accommodate {len(new_data)} bytes")
+
             # Apply the modification
             for i, byte in enumerate(new_data):
                 content[offset + i] = byte
-                
+
             # Update the section content
             section.content = content
             return True
         except Exception as e:
             print(f"[-] Failed to modify section data: {e}")
             return False
+
+    def analyze_sections(self) -> None:
+        """Analyze and display detailed section information"""
+        print(f"\n[*] Section Analysis for {self.input_file}")
+        print("=" * 60)
+
+        for section in self.binary.sections:
+            try:
+                content = bytes(section.content)
+                content_preview = content[:32]  # First 32 bytes
+
+                # Try to determine section type
+                section_type = "Unknown"
+                if section.name in ['.text', '.code']:
+                    section_type = "Executable Code"
+                elif section.name in ['.data', '.bss']:
+                    section_type = "Data"
+                elif section.name in ['.rdata', '.rodata']:
+                    section_type = "Read-only Data"
+                elif section.name in ['.idata']:
+                    section_type = "Import Data"
+                elif section.name in ['.reloc']:
+                    section_type = "Relocation Data"
+                elif section.name in ['.pdata']:
+                    section_type = "Exception Data"
+                elif section.name in ['.xdata']:
+                    section_type = "Exception Unwind Data"
+                elif section.name.startswith('/'):
+                    section_type = "Resource/Debug Data"
+
+                print(f"Section: {section.name}")
+                print(f"  Type: {section_type}")
+                print(f"  Size: {len(content)} bytes")
+                print(f"  Virtual Address: 0x{section.virtual_address:x}")
+                if hasattr(section, 'characteristics'):
+                    print(f"  Characteristics: 0x{section.characteristics:x}")
+
+                # Show content preview
+                if content:
+                    hex_preview = ' '.join(f'{b:02x}' for b in content_preview)
+                    print(f"  Content Preview: {hex_preview}")
+
+                    # Try to show printable characters
+                    printable = ''.join(chr(b) if 32 <= b <= 126 else '.' for b in content_preview)
+                    print(f"  ASCII Preview: {printable}")
+                else:
+                    print("  Content: Empty")
+
+                print()
+
+            except Exception as e:
+                print(f"  Error analyzing section {section.name}: {e}")
+                print()
+
 
 class RewriterPlugin:
     def __init__(self):
@@ -238,16 +310,18 @@ class EncodingPlugin(RewriterPlugin):
         try:
             # Get the section data
             section_data = rewriter.get_section_data(section_name)
-            
-            # Extract the portion to encode
+
+            # 𐑸𐑑𐑴-𐑨𐑛𐑡𐑳𐑕𐑑 𐑤𐑧𐑙𐑔 𐑦𐑓 𐑑 𐑚𐑦𐑜
+            original_length = length
             if offset + length > len(section_data):
-                raise ValueError("Offset and length exceed section size")
-                
+                length = len(section_data) - offset
+                print(f"  [!] Adjusted encode length from {original_length} to {length} bytes for section {section_name}")
+
             data_portion = section_data[offset:offset+length]
-            
+
             # Encode the data
             encoded = rewriter.encode_bytes(data_portion, encoding)
-            
+
             # Store for later use
             key = f"{section_name}_{offset}_{length}_{encoding}"
             self.encoded_data[key] = {
@@ -255,7 +329,7 @@ class EncodingPlugin(RewriterPlugin):
                 'encoded_data': encoded,
                 'encoding': encoding
             }
-            
+
             return encoded
         except Exception as e:
             print(f"[-] Failed to encode section portion: {e}")
@@ -273,7 +347,7 @@ class EncodingPlugin(RewriterPlugin):
                 decoded_data = b"\x00" * len(self.encoded_data.get(f"{section_name}_{offset}_{len(section_data)-offset}_null", {}).get("original_data", b""))
             else:
                 decoded_data = rewriter.decode_bytes(encoded_data, encoding)
-            
+
             # Apply the modification
             return rewriter.modify_section_data(section_name, offset, decoded_data)
         except Exception as e:
@@ -286,14 +360,18 @@ def main():
     parser = argparse.ArgumentParser(description="Binary Rewriting Tool")
     parser.add_argument("input", help="Input binary file")
     parser.add_argument("-o", "--output", help="Output file")
-    
+
+    # Add analysis arguments
+    parser.add_argument("--analyze-sections", action="store_true", help="Analyze and display section information")
+
     # Add encoding/decoding arguments
-    parser.add_argument("--encode-section", help="Section name to encode")
-    parser.add_argument("--encode-offset", type=int, default=0, help="Offset within section to start encoding")
-    parser.add_argument("--encode-length", type=int, help="Number of bytes to encode")
-    parser.add_argument("--encoding", choices=["hex", "octal", "null", "base64"], help="Encoding format")
+    parser.add_argument("--encode-section", action="append", help="Section name(s) to encode. Use comma-separated list for same encoding (e.g., '.text,.data'), or multiple flags for different encodings")
+    parser.add_argument("--encode-offset", type=int, action="append", help="Offset within section to start encoding (default: 0)")
+    parser.add_argument("--encode-length", type=int, action="append", help="Number of bytes to encode (default: entire section from offset)")
+    parser.add_argument("--encoding-length", type=int, action="append", help="Alias for --encode-length")  # 𐑣𐑨𐑯𐑛𐑤 𐑤𐑮𐑑 𐑧𐑮𐑼
+    parser.add_argument("--encoding", action="append", choices=["hex", "octal", "null", "base64"], help="Encoding format")
     parser.add_argument("--print-encoded", action="store_true", help="Print encoded data")
-    
+
     args = parser.parse_args()
 
     # Initialize rewriter
@@ -302,41 +380,74 @@ def main():
     if not rewriter.load_binary():
         return
 
+    # Handle section analysis if requested
+    if args.analyze_sections:
+        rewriter.analyze_sections()
+        return
+
     # Handle encoding if requested
     if args.encode_section and args.encoding:
         encoding_plugin = EncodingPlugin()
-        
-        # If length not specified, encode the entire section from offset
-        if not args.encode_length:
-            section_data = rewriter.get_section_data(args.encode_section)
-            args.encode_length = len(section_data) - args.encode_offset
-            
-        # Encode the section portion
-        encoded_data = encoding_plugin.encode_section_portion(
-            rewriter, 
-            args.encode_section, 
-            args.encode_offset, 
-            args.encode_length, 
-            args.encoding
-        )
-        
-        if args.print_encoded:
-            print(f"[+] Encoded data ({args.encoding}): {encoded_data}")
-        
-        # For demonstration, let's also apply it back (in a real scenario, you might modify this)
-        # Only do this if not printing, to avoid overwriting
-        if not args.print_encoded:
-            success = encoding_plugin.decode_and_apply(
-                rewriter,
-                args.encode_section,
-                args.encode_offset,
-                encoded_data,
-                args.encoding
-            )
-            
-            if not success:
-                print("[-] Failed to apply encoded data back to binary")
-                return
+
+        # Ensure we have matching numbers of parameters
+        num_operations = len(args.encode_section)
+        encodings = args.encoding if len(args.encoding) == num_operations else [args.encoding[0]] * num_operations
+        offsets = args.encode_offset if args.encode_offset and len(args.encode_offset) == num_operations else [args.encode_offset[0] if args.encode_offset else 0] * num_operations
+        # 𐑚𐑨𐑯𐑛𐑤 𐑚𐑴𐑔 --encode-length 𐑯 --encoding-length
+        encode_lengths = args.encode_length or args.encoding_length
+        lengths = encode_lengths if encode_lengths and len(encode_lengths) == num_operations else [encode_lengths[0] if encode_lengths else None] * num_operations
+
+        # Process each encoding operation
+        for i, section_spec in enumerate(args.encode_section):
+            encoding_type = encodings[i]
+            offset = offsets[i]
+            length = lengths[i]
+
+            # Handle comma-separated section names
+            section_names = [name.strip() for name in section_spec.split(',')]
+
+            print(f"[*] Processing encoding operation {i+1}: {section_spec} with {encoding_type}")
+
+            for section_name in section_names:
+                print(f"  [*] Processing section: {section_name}")
+
+                # 𐑸𐑑𐑴-𐑛𐑧𐑑𐑧𐑯 𐑣𐑨𐑯𐑛𐑤𐑯 𐑓 𐑤𐑧𐑙𐑔 𐑑 𐑓 𐑕𐑧𐑒𐑖𐑯 𐑿 𐑦𐑓 𐑑 𐑦𐑟 𐑑 𐑚𐑦𐑜
+                section_data = rewriter.get_section_data(section_name)
+                if not length or length > len(section_data) - offset:
+                    length = len(section_data) - offset
+                    print(f"  [!] Adjusted length to {length} bytes for section size")
+
+                # Encode the section portion
+                encoded_data = encoding_plugin.encode_section_portion(
+                    rewriter,
+                    section_name,
+                    offset,
+                    length,
+                    encoding_type
+                )
+
+                if not encoded_data:
+                    print(f"  [-] Failed to encode section {section_name}")
+                    continue
+
+                if args.print_encoded:
+                    print(f"  [+] Encoded data for {section_name} ({encoding_type}): {encoded_data}")
+
+                # Apply the encoded string as bytes to the section
+                # Convert encoded string to bytes and apply to section
+                encoded_bytes = encoded_data.encode('utf-8')
+                success = rewriter.modify_section_data(
+                    section_name,
+                    offset,
+                    encoded_bytes
+                )
+
+                if success:
+                    print(f"  [+] Successfully encoded section {section_name}")
+                else:
+                    print(f"  [-] Failed to apply encoded data to section {section_name}")
+
+            print()  # Add spacing between operations
 
     # Plugin-based analysis (only if we have a valid binary)
     if rewriter.binary is not None:
@@ -344,7 +455,7 @@ def main():
         plugin.analyze(rewriter)
 
         # Example: Disassemble .text section
-        text_section = rewriter.disassemble_section(".text")
+        # text_section = rewriter.disassemble_section(".text")
 
         # Example modification: Add a patch
         rewriter.add_modification(
@@ -373,6 +484,7 @@ def main():
         return
 
     print("[+] Binary rewriting complete!")
+
 
 if __name__ == "__main__":
     main()

@@ -41,25 +41,41 @@ The tool also supports a plugin architecture via the `RewriterPlugin` class, all
 
 ## Running the Tool
 
-To rewrite a binary, use the following command:
+**Recommended workflow - analyze first:**
 
 ```bash
+# 1. Analyze the binary structure
+cumpyl <input_binary> --analyze-sections
+
+# 2. Based on analysis, encode specific sections
+cumpyl <input_binary> --encode-section .text --encoding base64 -o <output_binary>
+```
+
+**Basic commands:**
+
+```bash
+# Basic rewriting
 cumpyl <input_binary> [-o <output_binary>]
-```
 
-To encode a section of the binary:
-
-```bash
+# Encode a section of the binary
 cumpyl <input_binary> --encode-section .rodata --encoding hex --print-encoded
-```
 
-To encode a specific portion of a section:
-
-```bash
+# Encode a specific portion of a section
 cumpyl <input_binary> --encode-section .text --encode-offset 0x100 --encode-length 32 --encoding base64
 ```
 
 If no output file is specified, the tool will create a file named `modified_<input_binary>`.
+
+## Section Analysis Feature
+
+The `--analyze-sections` flag provides detailed information about each section:
+
+- **Section identification**: Automatically identifies section types (.text = code, .rdata = strings, etc.)
+- **Size and address information**: Virtual addresses and section sizes
+- **Content preview**: First 32 bytes shown in both hex and ASCII
+- **Section characteristics**: Permissions and flags
+
+This helps choose the right section for encoding operations.
 
 ## Development Notes
 
@@ -67,3 +83,12 @@ If no output file is specified, the tool will create a file named `modified_<inp
 - The plugin system allows for easy extension of analysis and transformation capabilities.
 - Modifications are queued and applied in a batch process.
 - Encoding/decoding features allow for flexible manipulation of binary data.
+- **Recent improvements**: Fixed LIEF compatibility issues and added comprehensive section analysis.
+
+## Recent Updates (v0.1.1)
+
+- **Section Analyzer**: New `--analyze-sections` flag for detailed binary inspection
+- **LIEF Compatibility**: Fixed issues with newer LIEF versions (section.content vs section.data)
+- **PE Support**: Improved Windows PE binary handling with correct machine type constants
+- **Error Handling**: Better validation and attribute checking for different binary formats
+- **Cross-platform**: Enhanced support for PE, ELF, and Mach-O formats
