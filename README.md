@@ -17,6 +17,8 @@ Cumpyl is a Python-based binary rewriting tool that allows you to analyze, modif
 
 ## Installation
 
+### Using Conda/Mamba (Recommended)
+
 ```bash
 # Create a conda environment
 mamba create -n cumpyl -c conda-forge python=3.9
@@ -25,8 +27,22 @@ mamba activate cumpyl
 # Install dependencies
 pip install lief capstone keystone-engine
 
-# Install cumpyl
-pip install .
+# Install cumpyl in development mode
+pip install -e .
+```
+
+### Using pip
+
+```bash
+# Create a virtual environment
+python -m venv cumpyl-env
+source cumpyl-env/bin/activate  # On Windows: cumpyl-env\Scripts\activate
+
+# Install dependencies
+pip install lief capstone keystone-engine
+
+# Install cumpyl in development mode
+pip install -e .
 ```
 
 ## Usage
@@ -64,6 +80,16 @@ plugin.decode_and_apply(rewriter, ".rodata", 0, encoded_data, "hex")
 # Save the modified binary
 rewriter.save_binary("output_binary")
 ```
+
+## Example
+
+To see the encoding functionality in action, you can run the demo script:
+
+```bash
+python demo_encoding.py
+```
+
+This will create a test binary, encode a portion of it in hex format, and demonstrate the decoding functionality.
 
 ## Dependencies
 
