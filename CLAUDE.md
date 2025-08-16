@@ -60,7 +60,8 @@ python demo_encoding.py
 
 **EncodingPlugin Class** (`cumpyl_package/cumpyl.py:221-281`)
 - Specialized plugin for encoding/decoding binary data
-- Supports hex, octal, base64, and null byte encodings
+- Supports hex, octal, base64, compressed_base64, and null byte encodings
+- **FIXED**: All encoding methods now work correctly with proper round-trip encoding/decoding
 - Can encode specific portions of binary sections
 
 ### Key Dependencies
@@ -90,6 +91,12 @@ No formal test framework is configured. Testing is done through:
 - Validation through the built-in `validate_binary()` method
 
 ## Recent Updates
+
+### v0.2.1 - Encoding Method Fixes
+- **CRITICAL FIX**: Fixed octal encoding/decoding round-trip functionality
+- **Improved Reliability**: All 5 encoding methods (hex, octal, base64, compressed_base64, null) now work correctly
+- **Bug Fix**: Corrected regex pattern in octal decoding logic (cumpyl.py:170-174)
+- **Validation**: Added comprehensive encoding method testing and verification
 
 ### v0.2.0 - Rich UI Enhancement
 - **Rich Console Interface**: Beautiful color-coded output with panels, tables, and borders

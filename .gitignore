@@ -122,3 +122,4 @@ ENV/
 *.out
 hello
 test_binary
+.aider*

@@ -168,8 +168,9 @@ class BinaryRewriter:
             encoded_data = encoded_data.replace(" ", "").replace("0x", "")
             return binascii.unhexlify(encoded_data)
         elif encoding == "octal":
-            # 𐑐𐑳𐑉𐑕 𐑫𐑉𐑑𐑩𐑤 𐑕𐑑𐑮𐑦𐑙 𐑤𐑲𐑉 \\123\\456
-            octal_values = encoded_data.split("\\\\")[1:]  # Split by \\ and remove first empty element
+            # 𐑐𐑳𐑉𐑕 𐑫𐑉𐑑𐑩𐑤 𐑕𐑑𐑮𐑦𐑙 𐑤𐑲𐑉 \123\456\789
+            import re
+            octal_values = re.findall(r'\\(\d{3})', encoded_data)
             return bytes([int(oct_val, 8) for oct_val in octal_values])
         elif encoding == "null":
             # 𐑞𐑦𐑕 𐑢𐑫𐑛 𐑡𐑳𐑕𐑑 𐑚𐑦 𐑯𐑳𐑤 𐑚𐑲𐑑𐑕 𐑬 𐑞 𐑕𐑱𐑥 𐑤𐑧𐑙𐑔
@@ -698,25 +699,20 @@ def main():
                 if args.print_encoded:
                     print(f"  [+] Encoded data for {section_name} ({encoding_type}): {encoded_data}")
 
-                # 𐑗𐑧𐑒 𐑦𐑓 𐑞 𐑦𐑯𐑒𐑴𐑛𐑦𐑛 𐑛𐑱𐑑𐑩 𐑢𐑦𐑤 𐑓𐑦𐑑 𐑦𐑯 𐑞 𐑪𐑮𐑦𐑡𐑦𐑯𐑩𐑤 𐑕𐑐𐑱𐑕
+                # To preserve functionality, the encoded data must not expand the section,
+                # which would corrupt the binary. We will truncate oversized data and pad undersized data.
                 encoded_bytes = encoded_data.encode('utf-8')
-                original_data = rewriter.get_section_data(section_name)[offset:offset+length]
+                original_data_portion = rewriter.get_section_data(section_name)[offset:offset+length]
+
+                if len(encoded_bytes) > len(original_data_portion):
+                    print(f"[!] WARNING: Encoded data ({len(encoded_bytes)} bytes) is larger than original space ({len(original_data_portion)} bytes).")
+                    print(f"[!] Truncating encoded data to fit. The binary structure will be preserved, but the encoded data is incomplete.")
+                    encoded_bytes = encoded_bytes[:len(original_data_portion)]
                 
-                # 𐑢𐑸𐑯 𐑦𐑓 𐑞 𐑦𐑯𐑒𐑴𐑛𐑦𐑛 𐑛𐑱𐑑𐑩 𐑦𐑟 𐑤𐑸𐑡𐑼 𐑞𐑨𐑯 𐑞 𐑪𐑮𐑦𐑡𐑦𐑯𐑩𐑤
-                if len(encoded_bytes) > len(original_data):
-                    print(f"[!] WARNING: Encoded data ({len(encoded_bytes)} bytes) is larger than original ({len(original_data)} bytes)")
-                    print(f"[!] This will expand the section and may break the binary!")
-                    
-                    # 𐑓𐑹 𐑦𐑜𐑟𐑧𐑒𐑿𐑑𐑩𐑚𐑩𐑤 𐑕𐑧𐑒𐑖𐑩𐑯𐑟, 𐑮𐑦𐑓𐑿𐑟 𐑑 𐑐𐑮𐑩𐑕𐑰𐑛
-                    if section_name in ['.text', '.code']:
-                        print(f"[-] Refusing to encode executable section '{section_name}' with larger data")
-                        print(f"[-] Consider using a different encoding method or section")
-                        continue
-                    
-                    # 𐑓𐑹 𐑳𐑞𐑼 𐑕𐑧𐑒𐑖𐑩𐑯𐑟, 𐑕𐑩𐑡𐑧𐑕𐑑 𐑿𐑟𐑦𐑙 𐑒𐑩𐑥𐑐𐑮𐑧𐑕𐑑 𐑦𐑯𐑒𐑴𐑛𐑦𐑙
-                    if encoding_type == "base64":
-                        print(f"[!] Suggestion: Try using 'compressed_base64' encoding to reduce data size")
-                
+                # Pad with null bytes if encoded data is smaller to ensure we overwrite the exact original portion.
+                if len(encoded_bytes) < len(original_data_portion):
+                    encoded_bytes += b'\x00' * (len(original_data_portion) - len(encoded_bytes))
+
                 success = rewriter.modify_section_data(
                     section_name,
                     offset,
@@ -724,7 +720,7 @@ def main():
                 )
 
                 if success:
-                    print(f"  [+] Successfully encoded section {section_name}")
+                    print(f"  [+] Successfully wrote encoded data to section {section_name}")
                 else:
                     print(f"  [-] Failed to apply encoded data to section {section_name}")
 
