@@ -1,86 +1,59 @@
-# 🚀 Cumpyl - Advanced Binary Rewriting Tool
+# Cumpyl - Binary Rewriting Tool
 
-**Cumpyl** is a powerful Python-based binary rewriting framework that revolutionizes how you analyze, modify, and obfuscate binary files. With intelligent analysis capabilities and beautiful rich console output, Cumpyl makes binary manipulation accessible and efficient.
+**Cumpyl** is a Python-based binary rewriting framework for analyzing, modifying, and obfuscating binary files. It provides intelligent analysis and a clean console interface.
 
-✨ **Key Highlights:**
-- 🎯 **Intelligent Obfuscation** - AI-powered section analysis with tiered recommendations
-- 🎨 **Rich Console Interface** - Beautiful, color-coded output with progress indicators
-- 🔧 **Multi-Format Support** - PE, ELF, Mach-O binaries across all platforms
-- 🛡️ **Safety-First Design** - Smart checks prevent binary corruption
-- ⚡ **High Performance** - Optimized encoding with compression support
+## Key Features
 
-## ✨ Features
+- **Intelligent Obfuscation**: AI-powered section analysis with tiered recommendations.
+- **Rich Console Interface**: Color-coded output with progress indicators.
+- **Multi-Format Support**: Works with PE, ELF, and Mach-O binaries.
+- **Safety-First Design**: Smart checks prevent binary corruption.
+- **High Performance**: Optimized encoding with compression support.
 
-### 🎯 **Intelligent Analysis Engine**
-- 📊 **Advanced Section Analysis** - Deep inspection with automatic type identification and content preview
-- 🧠 **AI-Powered Obfuscation Suggestions** - Intelligent tiered recommendations with rich visual output
-- 🔍 **Smart Pattern Recognition** - Automatic detection of critical vs. safe sections
-- 📈 **Progress Visualization** - Real-time progress spinners and status updates
+## Installation
 
-### 🎨 **Rich User Interface**
-- 🌈 **Color-Coded Output** - Tier-based color schemes (Green=Advanced, Yellow=Intermediate, Blue=Basic, Red=Avoid)
-- 📋 **Professional Tables** - Clean, organized data presentation with borders and styling
-- 🔲 **Rich Panels** - Beautiful bordered sections for different content types
-- ⚡ **Interactive Progress** - Animated spinners during analysis operations
-
-### 🔧 **Powerful Encoding Capabilities**
-- 🎭 **Multi-Section Encoding** - Simultaneous or sequential encoding with different algorithms
-- 🗜️ **Compressed Encoding** - Space-efficient compressed base64 to minimize binary expansion
-- 🛡️ **Smart Safety Checks** - Prevents corruption with intelligent section validation
-- 📝 **Format Support**:
-  - 🔢 Hexadecimal
-  - 8️⃣ Octal  
-  - 📋 Base64
-  - 🗜️ Compressed Base64
-  - ⚫ Null bytes
-
-### 🏗️ **Architecture & Compatibility**
-- 🧩 **Plugin Architecture** - Extensible framework for custom analysis and transformations
-- 🖥️ **Cross-Platform** - Windows PE, Linux ELF, macOS Mach-O support
-- 🔌 **API Integration** - Both CLI and Python API interfaces
-- ⚙️ **Modern Dependencies** - Built on LIEF, Capstone, and Keystone engines
-
-## 📦 Installation
-
-### 🌟 **Conda/Mamba (Recommended)**
+### Conda/Mamba (Recommended)
 
 ```bash
-# 🐍 Create a fresh conda environment
+# Create a fresh conda environment
 mamba create -n cumpyl -c conda-forge python=3.9
 mamba activate cumpyl
 
-# 📚 Install core dependencies
-pip install lief capstone keystone-engine
-
-# 🎨 Install UI enhancement libraries
-pip install rich tqdm
-
-# 🔧 Install cumpyl in development mode
-pip install -e .
-```
-
-### 📋 **Standard pip Installation**
-
-```bash
-# 🏠 Create a virtual environment
-python -m venv cumpyl-env
-source cumpyl-env/bin/activate  # 🪟 Windows: cumpyl-env\Scripts\activate
-
-# 📚 Install all dependencies
+# Install dependencies
 pip install lief capstone keystone-engine rich tqdm
 
-# 🔧 Install cumpyl in development mode
+# Install cumpyl in development mode
 pip install -e .
 ```
 
-### 🚀 **Quick Start Verification**
+### Standard pip Installation
 
 ```bash
-# ✅ Test your installation
+# Create a virtual environment
+python -m venv cumpyl-env
+source cumpyl-env/bin/activate  # Windows: cumpyl-env\\Scripts\\activate
+
+# Install dependencies
+pip install lief capstone keystone-engine rich tqdm
+
+# Install cumpyl in development mode
+pip install -e .
+```
+
+## Quick Start
+
+```bash
+# Test your installation
 cumpyl --help
 
-# 🎯 Try the enhanced suggestions feature
-cumpyl some_binary.exe --suggest-obfuscation
+# Analyze binary sections
+cumpyl input_binary --analyze-sections
+
+# Get obfuscation suggestions
+cumpyl input_binary --suggest-obfuscation
+
+# Basic usage
+cumpyl input_binary -o output_binary
 ```
 
 ## Usage
@@ -143,21 +116,15 @@ Common section types:
 - `.idata` - Import tables
 - `.reloc` - Relocation information
 
-### 🎯 **Enhanced Obfuscation Suggestions**
+### Enhanced Obfuscation Suggestions
 
-**NEW!** The `--suggest-obfuscation` flag now features a stunning rich console interface with intelligent recommendations:
+The `--suggest-obfuscation` flag provides intelligent recommendations:
 
 ```bash
 cumpyl binary.exe --suggest-obfuscation
 ```
 
-#### 🌟 **What's New in v0.2.0:**
-- 🎨 **Rich Visual Interface** - Beautiful color-coded panels and tables
-- ⚡ **Progress Spinners** - Real-time analysis feedback
-- 📋 **Copy-Ready Commands** - Each suggestion includes the exact command to execute
-- 🏷️ **Smart Categorization** - Color-coded tiers for easy identification
-
-#### 🎭 **Intelligent Tier System:**
+#### Intelligent Tier System:
 
 🟢 **Advanced Tier** (Green)
 - Large, safe sections like `.rdata`, `.rodata`
@@ -177,31 +144,6 @@ cumpyl binary.exe --suggest-obfuscation
 🔴 **Avoid Tier** (Red)
 - Critical sections (executable code, imports, relocations)
 - **DO NOT OBFUSCATE** - Will break program execution
-
-#### 🖼️ **Rich Console Preview:**
-
-```
-╭──────────────────────────────────────────────────────────────────────────────╮
-│                                                                              │
-│  Obfuscation Suggestions for binary.exe                                     │
-│                                                                              │
-╰──────────────────────────────────────────────────────────────────────────────╯
-⠇ Analyzing binary sections...
-
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ Advanced Tier (Large, High-Impact Sections)                                 │
-╰──────────────────────────────────────────────────────────────────────────────╯
-┏━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Section ┃ Type           ┃ Size    ┃ Address  ┃ Command                      ┃
-┡━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ .rdata  │ Read-only Data │ 1.37 MB │ 0x125000 │ cumpyl binary.exe            │
-│         │                │         │          │ --encode-section .rdata      │
-│         │                │         │          │ --encoding compressed_base64 │
-│         │                │         │          │ -o obfuscated_binary.exe     │
-└─────────┴────────────────┴─────────┴──────────┴──────────────────────────────┘
-```
-
-Each suggestion now includes **copy-ready commands** you can execute immediately!
 
 ### Python API
 
@@ -265,16 +207,16 @@ cumpyl binary.exe --encode-section ".text,.data" --encode-length 100 --encoding 
 **Different encodings on different sections (sequential operations):**
 ```bash
 # Apply base64 to .text, hex to .data, and octal to .rdata
-cumpyl binary.exe \
-  --encode-section .text --encoding base64 \
-  --encode-section .data --encoding hex \
-  --encode-section .rdata --encoding octal \
+cumpyl binary.exe \\
+  --encode-section .text --encoding base64 \\
+  --encode-section .data --encoding hex \\
+  --encode-section .rdata --encoding octal \\
   -o output.exe
 
 # With different parameters for each section
-cumpyl binary.exe \
-  --encode-section .text --encoding base64 --encode-length 50 \
-  --encode-section .data --encoding hex --encode-offset 10 --encode-length 30 \
+cumpyl binary.exe \\
+  --encode-section .text --encoding base64 --encode-length 50 \\
+  --encode-section .data --encoding hex --encode-offset 10 --encode-length 30 \\
   -o output.exe
 ```
 
@@ -288,55 +230,55 @@ python demo_encoding.py
 
 This will create a test binary, encode a portion of it in hex format, and demonstrate the decoding functionality.
 
-## 📈 Recent Updates
+## Recent Updates
 
-### 🎨 **v0.2.0** - Rich UI Revolution *(Latest)*
-- ✨ **Rich Console Interface** - Beautiful color-coded output with panels and tables
-- ⚡ **Progress Visualization** - Real-time spinners during analysis
-- 📋 **Copy-Ready Commands** - Each suggestion includes exact execution commands
-- 🎯 **Enhanced UX** - Professional, visually appealing console experience
+### v0.2.0 - Rich UI Revolution *(Latest)*
+- Rich console interface with panels and tables.
+- Progress visualization during analysis.
+- Copy-ready commands in suggestions.
+- Enhanced user experience.
 
-### 🧠 **v0.1.4** - Intelligence Upgrade
-- 🎭 Added obfuscation suggestions with tiered recommendations
-- 🔍 Intelligent encoding options based on section analysis
-- 📊 Advanced section categorization system
+### v0.1.4 - Intelligence Upgrade
+- Added obfuscation suggestions with tiered recommendations.
+- Intelligent encoding options based on section analysis.
+- Advanced section categorization system.
 
-### 🛡️ **v0.1.3** - Safety & Performance
-- 🗜️ Compressed base64 encoding for space efficiency  
-- 🛡️ Smart safety checks to prevent binary corruption
-- ⚡ Performance optimizations for large binaries
+### v0.1.3 - Safety & Performance
+- Compressed base64 encoding for space efficiency.
+- Smart safety checks to prevent binary corruption.
+- Performance optimizations for large binaries.
 
-### 🔧 **v0.1.2** - Multi-Section Support
-- 🎛️ Multi-section encoding with same or different algorithms
-- 🔄 Sequential operation support
-- 📝 Enhanced command-line parameter handling
+### v0.1.2 - Multi-Section Support
+- Multi-section encoding with same or different algorithms.
+- Sequential operation support.
+- Enhanced command-line parameter handling.
 
-### 🔍 **v0.1.1** - Analysis Foundation
-- 📊 Section analyzer with `--analyze-sections` flag
-- 🏷️ Automatic section type identification
-- 👀 Content preview capabilities
+### v0.1.1 - Analysis Foundation
+- Section analyzer with `--analyze-sections` flag.
+- Automatic section type identification.
+- Content preview capabilities.
 
-### 🏗️ **v0.1.0** - Stable Foundation
-- 🔧 LIEF compatibility improvements
-- 🛠️ Enhanced error handling across binary formats
-- 🎯 Core architecture stabilization
+### v0.1.0 - Stable Foundation
+- LIEF compatibility improvements.
+- Enhanced error handling across binary formats.
+- Core architecture stabilization.
 
-## 🔗 Dependencies
+## Dependencies
 
-### 🏗️ **Core Engine**
-- 🔧 **[LIEF](https://lief.quarkslab.com/)** - Library to Instrument Executable Formats
-- 🔍 **[Capstone](https://www.capstone-engine.org/)** - Multi-architecture disassembly framework
-- ⚙️ **[Keystone](https://www.keystone-engine.org/)** - Lightweight assembly framework
+### Core Engine
+- [LIEF](https://lief.quarkslab.com/) - Library to Instrument Executable Formats
+- [Capstone](https://www.capstone-engine.org/) - Multi-architecture disassembly framework
+- [Keystone](https://www.keystone-engine.org/) - Lightweight assembly framework
 
-### 🎨 **Rich User Interface**
-- 🌈 **[Rich](https://github.com/Textualize/rich)** - Beautiful console formatting and progress bars
-- ⏳ **[tqdm](https://github.com/tqdm/tqdm)** - Fast, extensible progress meter
+### Rich User Interface
+- [Rich](https://github.com/Textualize/rich) - Beautiful console formatting and progress bars
+- [tqdm](https://github.com/tqdm/tqdm) - Fast, extensible progress meter
 
-### 📋 **Quick Install Command**
+### Quick Install Command
 ```bash
 pip install lief capstone keystone-engine rich tqdm
 ```
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is released into the public domain under the Unlicense. See the LICENSE file for details.
