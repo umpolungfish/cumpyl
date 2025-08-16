@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="cumpyl",
-    version="0.2.1",
+    version="0.3.0",
     author="Your Name",
     author_email="your.email@example.com",
     description="A binary rewriting tool with encoding/decoding capabilities",
@@ -28,7 +28,21 @@ setup(
         "keystone-engine",
         "rich",
         "tqdm",
+        "pyyaml",
     ],
+    extras_require={
+        "dev": [
+            "numpy",  # 𐑯𐑰𐑛𐑦𐑛 𐑓𐑹 𐑧𐑯𐑑𐑮𐑩𐑐𐑦 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑐𐑤𐑳𐑜𐑦𐑯
+            "pytest",  # 𐑩𐑤𐑑𐑻𐑯𐑩𐑑𐑦𐑝 𐑑𐑧𐑕𐑑 𐑮𐑳𐑯𐑼
+            "pytest-cov",  # 𐑒𐑳𐑝𐑼𐑦𐑡 𐑮𐑦𐑐𐑹𐑑𐑦𐑙
+            "black",  # 𐑒𐑴𐑛 𐑓𐑹𐑥𐑨𐑑𐑦𐑙
+            "flake8",  # 𐑤𐑦𐑯𐑑𐑦𐑙
+        ],
+        "test": [
+            "numpy",
+        ]
+    },
+    test_suite="tests",
     entry_points={
         "console_scripts": [
             "cumpyl=cumpyl_package.cumpyl:main",

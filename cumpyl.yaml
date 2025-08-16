@@ -1,0 +1,170 @@
+# 𐑒𐑫𐑥𐑐𐑦𐑤 𐑓𐑮𐑱𐑥𐑢𐑻𐑒 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯
+# Primary configuration file for the cumpyl binary rewriting framework
+
+# Framework Settings
+framework:
+  version: "0.3.0"
+  debug_mode: false
+  verbose_logging: false
+  max_file_size_mb: 100
+  temp_directory: "/tmp/cumpyl"
+  
+# Plugin Configuration
+plugins:
+  enabled: true
+  auto_discovery: true
+  plugin_directory: "plugins"
+  load_order:
+    - "encoding"
+    - "entropy_analysis" 
+    - "string_extraction"
+    - "packer_detection"
+  
+  # Individual plugin settings
+  encoding:
+    default_encoding: "base64"
+    compression_level: 6
+    max_encode_size_mb: 10
+    
+  entropy_analysis:
+    block_size: 256
+    threshold_high: 7.5
+    threshold_low: 1.0
+    
+  string_extraction:
+    min_string_length: 4
+    max_string_length: 200
+    include_unicode: true
+    extract_patterns: true
+
+# Analysis Profiles
+profiles:
+  malware_analysis:
+    plugins: ["encoding", "entropy_analysis", "string_extraction", "packer_detection"]
+    safety_checks: true
+    detailed_reporting: true
+    
+  forensics:
+    plugins: ["string_extraction", "entropy_analysis"]
+    preserve_timestamps: true
+    create_backups: true
+    
+  research:
+    plugins: ["encoding", "entropy_analysis", "string_extraction"]
+    experimental_features: true
+    verbose_output: true
+
+# Output Configuration
+output:
+  default_format: "yaml"
+  available_formats: ["json", "xml", "yaml", "html"]
+  create_backups: true
+  backup_directory: "backups"
+  
+  # Report settings
+  reports:
+    include_metadata: true
+    include_analysis_time: true
+    include_plugin_versions: true
+    compress_large_reports: true
+
+# Security Settings
+security:
+  sandbox_mode: false
+  max_modifications_per_session: 100
+  verify_checksums: true
+  log_all_modifications: true
+
+# Performance Settings
+performance:
+  enable_parallel_processing: true
+  max_worker_threads: 4
+  cache_analysis_results: true
+  cache_expiry_hours: 24
+  memory_limit_mb: 512
+
+# Binary Format Support
+formats:
+  pe:
+    enabled: true
+    preserve_signatures: false
+    handle_packers: true
+    
+  elf:
+    enabled: true
+    preserve_debug_info: true
+    handle_stripped_binaries: true
+    
+  macho:
+    enabled: true
+    handle_fat_binaries: true
+    preserve_code_signatures: false
+
+# Encoding Settings
+encoding:
+  available_methods:
+    - "hex"
+    - "octal" 
+    - "base64"
+    - "compressed_base64"
+    - "null"
+    - "custom"
+  
+  # Method-specific settings
+  base64:
+    line_wrap: 76
+    url_safe: false
+    
+  compressed_base64:
+    compression_algorithm: "zlib"
+    compression_level: 6
+    
+  custom:
+    allow_user_encoders: false
+    validate_decoders: true
+
+# Section Analysis
+sections:
+  auto_categorize: true
+  safety_recommendations: true
+  content_preview_bytes: 32
+  
+  # Section type mappings
+  executable_sections: [".text", ".code", "__TEXT"]
+  data_sections: [".data", ".bss", "__DATA"]
+  readonly_sections: [".rdata", ".rodata", "__RODATA"]
+  import_sections: [".idata", "__IMPORT"]
+  debug_sections: [".debug", "__DWARF"]
+
+# Obfuscation Settings
+obfuscation:
+  tier_system:
+    enabled: true
+    color_coding: true
+    copy_ready_commands: true
+    
+  recommendations:
+    prefer_safe_sections: true
+    warn_dangerous_operations: true
+    suggest_alternatives: true
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file_logging: true
+  log_file: "cumpyl.log"
+  max_log_size_mb: 10
+  backup_count: 5
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Integration Settings
+integration:
+  yara_rules_directory: "rules"
+  external_tools:
+    enabled: false
+    timeout_seconds: 30
+  
+  apis:
+    enable_rest_api: false
+    api_port: 8080
+    api_key_required: true

@@ -11,14 +11,28 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.text import Text
 from tqdm import tqdm
 import time
+from .config import ConfigManager, get_config
+from .plugin_manager import PluginManager
+from .batch_processor import BatchProcessor
+from .reporting import ReportGenerator
 
 class BinaryRewriter:
-    def __init__(self, input_file: str):
+    def __init__(self, input_file: str, config: ConfigManager = None):
         """𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑞 𐑚𐑲𐑯𐑩𐑮𐑦 𐑮𐑰𐑮𐑲𐑑𐑼 𐑢𐑦𐑞 𐑑𐑸𐑜𐑧𐑑 𐑓𐑲𐑤"""
         self.input_file = input_file
+        self.config = config or get_config()
         self.binary = None  # 𐑣𐑴𐑤𐑛𐑟 𐑐𐑸𐑕𐑑 𐑚𐑲𐑯𐑩𐑮𐑦
         self.modifications = []  # 𐑑𐑮𐑨𐑒 𐑷𐑤 𐑥𐑪𐑛𐑦𐑓𐑦𐑒𐑱𐑖𐑩𐑯𐑟
         self.analysis_results = {}  # 𐑕𐑑𐑹 𐑩𐑯𐑨𐑤𐑦𐑕𐑦𐑕 𐑛𐑱𐑑𐑩
+        
+        # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑐𐑤𐑳𐑜𐑦𐑯 𐑥𐑨𐑯𐑦𐑡𐑼
+        self.plugin_manager = PluginManager(self.config)
+        
+        # 𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑓𐑲𐑤 𐑕𐑲𐑟 𐑩𐑜𐑱𐑯𐑕𐑑 𐑒𐑪𐑯𐑓𐑦𐑜 𐑤𐑦𐑥𐑦𐑑
+        if os.path.exists(input_file):
+            file_size_mb = os.path.getsize(input_file) / (1024 * 1024)
+            if file_size_mb > self.config.framework.max_file_size_mb:
+                raise ValueError(f"File size ({file_size_mb:.1f}MB) exceeds maximum allowed size ({self.config.framework.max_file_size_mb}MB)")
 
     def load_binary(self) -> bool:
         """𐑤𐑴𐑛 𐑯 𐑐𐑸𐑕 𐑞 𐑦𐑯𐑐𐑫𐑑 𐑚𐑲𐑯𐑩𐑮𐑦 𐑓𐑲𐑤"""
@@ -185,6 +199,56 @@ class BinaryRewriter:
             return zlib.decompress(decoded)
         else:
             raise ValueError(f"Unsupported encoding: {encoding}")
+
+    def load_plugins(self) -> int:
+        """𐑤𐑴𐑛 𐑷𐑤 𐑩𐑝𐑱𐑤𐑩𐑚𐑩𐑤 𐑐𐑤𐑳𐑜𐑦𐑯𐑟"""
+        return self.plugin_manager.load_all_plugins()
+    
+    def run_plugin_analysis(self) -> Dict[str, Any]:
+        """𐑮𐑳𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑓𐑱𐑟 𐑓𐑹 𐑷𐑤 𐑤𐑴𐑛𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯𐑟"""
+        if self.binary is None:
+            print("[-] Binary not loaded. Cannot run plugin analysis.")
+            return {}
+        
+        print("[*] Running plugin analysis phase...")
+        return self.plugin_manager.execute_analysis_phase(self)
+    
+    def run_plugin_transformations(self, analysis_results: Dict[str, Any]) -> bool:
+        """𐑮𐑳𐑯 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑓𐑱𐑟 𐑓𐑹 𐑷𐑤 𐑤𐑴𐑛𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯𐑟"""
+        if self.binary is None:
+            print("[-] Binary not loaded. Cannot run plugin transformations.")
+            return False
+        
+        print("[*] Running plugin transformation phase...")
+        return self.plugin_manager.execute_transformation_phase(self, analysis_results)
+    
+    def list_loaded_plugins(self) -> None:
+        """𐑤𐑦𐑕𐑑 𐑷𐑤 𐑤𐑴𐑛𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯𐑟 𐑢𐑦𐑞 𐑞𐑺 𐑦𐑯𐑓𐑼𐑥𐑱𐑖𐑩𐑯"""
+        plugins = self.plugin_manager.list_plugins()
+        
+        if not plugins:
+            print("[*] No plugins loaded")
+            return
+        
+        console = Console()
+        console.print(Panel("Loaded Plugins", style="bold cyan"))
+        
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Name", style="cyan")
+        table.add_column("Version", style="green")
+        table.add_column("Description", style="white")
+        table.add_column("Enabled", style="yellow")
+        
+        for plugin_info in plugins:
+            enabled_status = "✓" if plugin_info['enabled'] else "✗"
+            table.add_row(
+                plugin_info['name'],
+                plugin_info['version'],
+                plugin_info['description'][:50] + "..." if len(plugin_info['description']) > 50 else plugin_info['description'],
+                enabled_status
+            )
+        
+        console.print(table)
 
     def get_section_data(self, section_name: str) -> bytes:
         """𐑦𐑒𐑕𐑑𐑮𐑨𐑒𐑑 𐑮𐑷 𐑚𐑲𐑑𐑕 𐑓𐑮𐑪𐑥 𐑩 𐑕𐑧𐑒𐑖𐑩𐑯"""
@@ -614,16 +678,95 @@ class EncodingPlugin(RewriterPlugin):
             print(f"[-] Failed to decode and apply: {e}")
             return False
 
+def handle_batch_processing(args, config):
+    """𐑣𐑨𐑯𐑛𐑩𐑤 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑪𐑐𐑼𐑱𐑖𐑩𐑯𐑟"""
+    batch_processor = BatchProcessor(config)
+    
+    # 𐑨𐑛 𐑓𐑲𐑤𐑟 𐑚𐑱𐑕𐑛 𐑪𐑯 𐑩𐑮𐑜𐑿𐑥𐑩𐑯𐑑𐑟
+    if args.batch_directory:
+        extensions = args.batch_extensions.split(',') if args.batch_extensions else None
+        added_files = batch_processor.add_directory(args.batch_directory, extensions, args.batch_recursive)
+        print(f"[*] Added {added_files} files from directory: {args.batch_directory}")
+    
+    if args.batch_pattern:
+        added_files = batch_processor.add_files(args.batch_pattern, args.batch_recursive)
+        print(f"[*] Added {added_files} files from patterns: {args.batch_pattern}")
+    
+    # 𐑒𐑩𐑯𐑓𐑦𐑜 𐑪𐑐𐑼𐑱𐑖𐑩𐑯𐑟 𐑦𐑓 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛
+    if args.batch_operation:
+        for operation in args.batch_operation:
+            if operation == "analyze_sections":
+                batch_processor.configure_operation("analyze_sections")
+            elif operation == "plugin_analysis":
+                batch_processor.configure_operation("plugin_analysis")
+            elif operation == "encode_section" and args.encode_section and args.encoding:
+                # 𐑿𐑟 𐑞 𐑓𐑻𐑕𐑑 𐑦𐑯𐑒𐑴𐑛𐑦𐑙 𐑪𐑐𐑼𐑱𐑖𐑩𐑯 𐑓 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙
+                batch_processor.configure_operation("encode_section", 
+                                                   section_name=args.encode_section[0],
+                                                   encoding=args.encoding[0],
+                                                   offset=args.encode_offset[0] if args.encode_offset else 0,
+                                                   length=args.encode_length[0] if args.encode_length else None)
+    
+    # 𐑐𐑮𐑩𐑕𐑧𐑕 𐑷𐑤 𐑡𐑪𐑚𐑟
+    print(f"[*] Starting batch processing of {len(batch_processor.jobs)} files...")
+    batch_results = batch_processor.process_all()
+    
+    # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑮𐑦𐑟𐑳𐑤𐑑𐑟
+    batch_processor.print_summary(batch_results)
+    
+    # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑮𐑦𐑐𐑹𐑑 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    if args.generate_report or args.report_output:
+        report_generator = ReportGenerator(config)
+        report_data = report_generator.create_batch_report(batch_results)
+        
+        if args.report_output:
+            report_generator.generate_report(report_data, args.report_format, args.report_output)
+        else:
+            # 𐑦𐑓 𐑯𐑴 𐑬𐑑𐑐𐑫𐑑 𐑓𐑲𐑤 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛, 𐑐𐑮𐑦𐑯𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑
+            report_content = report_generator.generate_report(report_data, args.report_format)
+            print("\n" + "="*50)
+            print("BATCH PROCESSING REPORT")
+            print("="*50)
+            print(report_content)
+
+
 def main():
     import argparse
+    from .config import init_config
 
-    parser = argparse.ArgumentParser(description="Binary Rewriting Tool")
+    parser = argparse.ArgumentParser(description="Binary Rewriting Tool with YAML Configuration Support")
     parser.add_argument("input", help="Input binary file")
     parser.add_argument("-o", "--output", help="Output file")
+    
+    # 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
+    parser.add_argument("--config", help="Path to configuration file (default: cumpyl.yaml)")
+    parser.add_argument("--profile", help="Use predefined analysis profile (malware_analysis, forensics, research)")
+    parser.add_argument("--validate-config", action="store_true", help="Validate configuration file and exit")
+    parser.add_argument("--show-config", action="store_true", help="Display current configuration and exit")
 
     # 𐑨𐑛 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
     parser.add_argument("--analyze-sections", action="store_true", help="Analyze and display section information")
     parser.add_argument("--suggest-obfuscation", action="store_true", help="Suggest optimal sections for obfuscation with different tiers")
+    
+    # 𐑐𐑤𐑳𐑜𐑦𐑯 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
+    parser.add_argument("--list-plugins", action="store_true", help="List all loaded plugins and their information")
+    parser.add_argument("--run-analysis", action="store_true", help="Run comprehensive analysis using all loaded plugins")
+    parser.add_argument("--disable-plugins", action="store_true", help="Disable plugin system for this run")
+    
+    # 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
+    parser.add_argument("--batch", action="store_true", help="Enable batch processing mode")
+    parser.add_argument("--batch-directory", help="Process all files in a directory")
+    parser.add_argument("--batch-pattern", action="append", help="Glob pattern for batch processing (can be used multiple times)")
+    parser.add_argument("--batch-extensions", help="Comma-separated list of file extensions for batch processing (e.g., '.exe,.dll,.so')")
+    parser.add_argument("--batch-recursive", action="store_true", default=True, help="Recursively process subdirectories (default: True)")
+    parser.add_argument("--batch-output-dir", help="Directory for batch output files (default: same as input)")
+    parser.add_argument("--batch-operation", action="append", help="Operation to apply to all batch files (analyze_sections, plugin_analysis, encode_section)")
+    parser.add_argument("--max-workers", type=int, help="Maximum number of worker threads for batch processing")
+    
+    # 𐑮𐑦𐑐𐑹𐑑𐑦𐑙 𐑯 𐑬𐑑𐑐𐑫𐑑 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
+    parser.add_argument("--report-format", choices=["json", "yaml", "xml", "html"], default="json", help="Output report format (default: json)")
+    parser.add_argument("--report-output", help="Save report to specified file (auto-detects extension if not provided)")
+    parser.add_argument("--generate-report", action="store_true", help="Generate structured analysis report")
 
     # 𐑨𐑛 𐑦𐑯𐑒𐑴𐑛𐑦𐑙/𐑛𐑦𐑒𐑴𐑛𐑦𐑙 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
     parser.add_argument("--encode-section", action="append", help="Section name(s) to encode. Use comma-separated list for same encoding (e.g., '.text,.data'), or multiple flags for different encodings")
@@ -635,13 +778,104 @@ def main():
 
     args = parser.parse_args()
 
-    # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑮𐑦𐑮𐑲𐑜𐑼
-    rewriter = BinaryRewriter(args.input)
+    # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯
+    config = init_config(args.config)
+    
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑒𐑪𐑯𐑓𐑦𐑜 𐑝𐑨𐑤𐑦𐑛𐑱𐑖𐑩𐑯
+    if args.validate_config:
+        issues = config.validate_config()
+        if issues:
+            print("[!] Configuration validation failed:")
+            for issue in issues:
+                print(f"  - {issue}")
+            return
+        else:
+            print("[+] Configuration validation passed")
+            return
+    
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑒𐑪𐑯𐑓𐑦𐑜 𐑛𐑦𐑕𐑐𐑤𐑱
+    if args.show_config:
+        console = Console()
+        console.print(Panel("Current Configuration", style="bold cyan"))
+        
+        # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑒𐑰 𐑒𐑪𐑯𐑓𐑦𐑜 𐑕𐑧𐑒𐑖𐑩𐑯𐑟
+        console.print(f"[cyan]Config File:[/cyan] {config.config_path}")
+        console.print(f"[cyan]Framework Version:[/cyan] {config.framework.version}")
+        console.print(f"[cyan]Debug Mode:[/cyan] {config.framework.debug_mode}")
+        console.print(f"[cyan]Max File Size:[/cyan] {config.framework.max_file_size_mb}MB")
+        console.print(f"[cyan]Plugins Enabled:[/cyan] {config.plugins.enabled}")
+        console.print(f"[cyan]Plugin Directory:[/cyan] {config.plugins.plugin_directory}")
+        return
+
+    # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑮𐑦𐑮𐑲𐑜𐑼 𐑢𐑦𐑞 𐑒𐑪𐑯𐑓𐑦𐑜
+    rewriter = BinaryRewriter(args.input, config)
+    
+    # 𐑩𐑐𐑤𐑲 𐑐𐑮𐑴𐑓𐑲𐑤 𐑒𐑪𐑯𐑓𐑦𐑜 𐑦𐑓 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛
+    if args.profile:
+        profile_config = config.get_profile_config(args.profile)
+        if not profile_config:
+            print(f"[-] Profile '{args.profile}' not found in configuration")
+            return
+        print(f"[*] Using profile: {args.profile}")
+        if config.framework.verbose_logging:
+            print(f"    Profile plugins: {profile_config.get('plugins', [])}")
+            print(f"    Safety checks: {profile_config.get('safety_checks', False)}")
 
     if not rewriter.load_binary():
         return
 
-    # 𐑣𐑨𐑯𐑛𐑤 𐑕𐑧𐑒𐑖𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    # 𐑤𐑴𐑛 𐑐𐑤𐑳𐑜𐑦𐑯𐑟 𐑦𐑓 𐑯𐑪𐑑 𐑛𐑦𐑟𐑱𐑚𐑩𐑤𐑛
+    if not args.disable_plugins:
+        loaded_plugins = rewriter.load_plugins()
+        if config.framework.verbose_logging:
+            print(f"[*] Loaded {loaded_plugins} plugin(s)")
+    
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑐𐑤𐑳𐑜𐑦𐑯 𐑤𐑦𐑕𐑑𐑦𐑙
+    if args.list_plugins:
+        rewriter.list_loaded_plugins()
+        return
+    
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑒𐑪𐑥𐑐𐑮𐑦𐑣𐑧𐑯𐑕𐑦𐑝 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕
+    if args.run_analysis:
+        analysis_results = rewriter.run_plugin_analysis()
+        
+        # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑕
+        console = Console()
+        console.print(Panel("Plugin Analysis Results", style="bold cyan"))
+        
+        for plugin_name, result in analysis_results.items():
+            if 'error' in result:
+                console.print(f"[red]❌ {plugin_name}: {result['error']}[/red]")
+            else:
+                console.print(f"[green]✓ {plugin_name}: Analysis completed[/green]")
+                if config.framework.debug_mode:
+                    console.print(f"  Result keys: {list(result.keys())}")
+        
+        # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑐𐑹𐑑 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+        if args.generate_report or args.report_output:
+            report_generator = ReportGenerator(config)
+            
+            # 𐑒𐑮𐑦𐑱𐑑 𐑩 𐑒𐑩𐑥𐑐𐑮𐑦𐑣𐑧𐑯𐑕𐑦𐑝 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑐𐑹𐑑
+            basic_analysis = rewriter.analyze_binary()
+            report_data = report_generator.create_analysis_report(
+                args.input, 
+                basic_analysis, 
+                analysis_results
+            )
+            
+            if args.report_output:
+                report_generator.generate_report(report_data, args.report_format, args.report_output)
+            else:
+                # 𐑦𐑓 𐑯𐑴 𐑬𐑑𐑐𐑫𐑑 𐑓𐑲𐑤 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛, 𐑐𐑮𐑦𐑯𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑
+                report_content = report_generator.generate_report(report_data, args.report_format)
+                print("\n" + "="*50)
+                print("ANALYSIS REPORT")
+                print("="*50)
+                print(report_content)
+        
+        return
+
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑕𐑧𐑒𐑖𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
     if args.analyze_sections:
         rewriter.analyze_sections()
         return
@@ -649,6 +883,11 @@ def main():
     # 𐑣𐑨𐑯𐑛𐑤 𐑪𐑚𐑓𐑩𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯𐑟 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
     if args.suggest_obfuscation:
         rewriter.suggest_obfuscation()
+        return
+
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    if args.batch or args.batch_directory or args.batch_pattern:
+        handle_batch_processing(args, config)
         return
 
     # 𐑣𐑨𐑯𐑛𐑤 𐑦𐑯𐑒𐑴𐑛𐑦𐑙 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
