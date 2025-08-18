@@ -1,4 +1,4 @@
-# 𐑒𐑫𐑥𐑐𐑦𐑤 𐑓𐑮𐑱𐑥𐑢𐑻𐑒 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯
+# cumpyl 𐑓𐑮𐑱𐑥𐑢𐑻𐑒 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯
 # Primary configuration file for the cumpyl binary rewriting framework
 
 # Framework Settings
@@ -67,6 +67,10 @@ output:
     include_analysis_time: true
     include_plugin_versions: true
     compress_large_reports: true
+    # 𐑓𐑲𐑤 𐑕𐑐𐑤𐑦𐑑𐑦𐑙 𐑕𐑧𐑑𐑦𐑙𐑟 𐑓𐑹 𐑤𐑸𐑡 𐑚𐑨𐑗 𐑮𐑦𐑐𐑹𐑑𐑟
+    split_large_reports: true
+    max_report_size_mb: 50  # 𐑕𐑐𐑤𐑦𐑑 𐑦𐑓 𐑤𐑸𐑜𐑼 𐑞𐑨𐑯 50MB
+    files_per_chunk: 10     # 𐑥𐑨𐑒𐑕 𐑓𐑲𐑤𐑟 𐑐𐑼 𐑮𐑦𐑐𐑹𐑑 𐑗𐑳𐑙𐑒
 
 # Security Settings
 security:
@@ -79,6 +83,7 @@ security:
 performance:
   enable_parallel_processing: true
   max_worker_threads: 4
+  max_batch_size: 10  # 𐑥𐑨𐑒𐑕 𐑓𐑲𐑤𐑟 𐑐𐑼 𐑚𐑨𐑗 𐑓𐑹 𐑮𐑦𐑤𐑲𐑩𐑚𐑦𐑤𐑦𐑑𐑦
   cache_analysis_results: true
   cache_expiry_hours: 24
   memory_limit_mb: 512
@@ -161,7 +166,7 @@ logging:
 integration:
   yara_rules_directory: "rules"
   external_tools:
-    enabled: false
+    enabled: true
     timeout_seconds: 30
   
   apis:

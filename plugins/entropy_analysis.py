@@ -7,7 +7,13 @@ import os
 # 𐑨𐑛 𐑞 𐑐𐑸𐑧𐑯𐑑 𐑛𐑲𐑮𐑧𐑒𐑑𐑼𐑦 𐑑 𐑞 𐑐𐑭𐑔 𐑓𐑹 𐑦𐑥𐑐𐑹𐑑𐑦𐑙
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from cumpyl_package.plugin_manager import AnalysisPlugin
+try:
+    from cumpyl_package.plugin_manager import AnalysisPlugin
+except ImportError:
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'cumpyl_package'))
+    from plugin_manager import AnalysisPlugin
 
 
 class EntropyAnalysisPlugin(AnalysisPlugin):

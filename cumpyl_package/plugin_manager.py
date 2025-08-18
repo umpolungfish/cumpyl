@@ -6,7 +6,10 @@ from typing import Dict, List, Any, Optional, Type
 from abc import ABC, abstractmethod
 from pathlib import Path
 import yaml
-from .config import ConfigManager
+try:
+    from .config import ConfigManager
+except ImportError:
+    from config import ConfigManager
 
 
 class PluginInterface(ABC):
@@ -141,12 +144,23 @@ class PluginManager:
             # 𐑓𐑲𐑯𐑛 𐑐𐑤𐑳𐑜𐑦𐑯 𐑒𐑤𐑭𐑕𐑌𐑦
             plugin_class = None
             for name, obj in inspect.getmembers(module, inspect.isclass):
-                if (issubclass(obj, PluginInterface) and 
-                    obj != PluginInterface and 
-                    obj != AnalysisPlugin and 
-                    obj != TransformationPlugin):
-                    plugin_class = obj
-                    break
+                # 𐑗𐑧𐑒 𐑦𐑓 𐑦𐑑'𐑕 𐑩 𐑝𐑨𐑤𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯 𐑒𐑤𐑭𐑕 (𐑦𐑯𐑣𐑧𐑮𐑦𐑑𐑕 𐑓𐑮𐑪𐑥 PluginInterface 𐑚𐑳𐑑 𐑦𐑟𐑯'𐑑 𐑞 𐑚𐑱𐑕 𐑒𐑤𐑭𐑕)
+                if (inspect.isclass(obj) and 
+                    hasattr(obj, 'analyze') and 
+                    hasattr(obj, 'transform') and
+                    obj.__name__ not in ['PluginInterface', 'AnalysisPlugin', 'TransformationPlugin'] and
+                    obj.__module__ == module.__name__):
+                    try:
+                        # 𐑩𐑛𐑦𐑖𐑩𐑯𐑩𐑤 𐑗𐑧𐑒: 𐑑𐑮𐑲 𐑑 𐑦𐑯𐑕𐑑𐑨𐑯𐑖𐑦𐑱𐑑 𐑦𐑑 𐑢𐑦𐑞 𐑩 𐑛𐑳𐑥𐑦 𐑒𐑪𐑯𐑓𐑦𐑜
+                        test_instance = obj(self.config)
+                        if hasattr(test_instance, 'name') and hasattr(test_instance, 'version'):
+                            plugin_class = obj
+                            break
+                    except Exception as e:
+                        # 𐑦𐑓 𐑦𐑯𐑕𐑑𐑨𐑯𐑖𐑦𐑱𐑖𐑩𐑯 𐑓𐑱𐑤𐑟, 𐑦𐑑'𐑕 𐑯𐑪𐑑 𐑩 𐑝𐑨𐑤𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯
+                        if self.config.framework.verbose_logging:
+                            print(f"[-] Class {obj.__name__} failed instantiation test: {e}")
+                        continue
             
             if plugin_class is None:
                 raise PluginLoadError(f"No valid plugin class found in {plugin_name}")
@@ -220,6 +234,12 @@ class PluginManager:
         results = {}
         analysis_plugins = self.get_analysis_plugins()
         
+        # 𐑛𐑦𐑚𐑳𐑜: 𐑕𐑰 𐑦𐑓 𐑢𐑰 𐑣𐑨𐑝 𐑐𐑤𐑳𐑜𐑦𐑯𐑟
+        if not analysis_plugins:
+            print(f"[-] No analysis plugins found. Total plugins: {len(self.plugins)}")
+            print(f"    Plugin types: {[type(p).__name__ for p in self.plugins.values()]}")
+            return results
+        
         for plugin in analysis_plugins:
             if plugin.enabled:
                 try:
@@ -229,6 +249,8 @@ class PluginManager:
                         print(f"[*] Analysis completed for plugin: {plugin.name}")
                 except Exception as e:
                     print(f"[-] Analysis failed for plugin {plugin.name}: {e}")
+                    import traceback
+                    traceback.print_exc()
                     results[plugin.name] = {'error': str(e)}
         
         return results

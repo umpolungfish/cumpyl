@@ -3,7 +3,7 @@ import capstone
 import binascii
 import codecs
 import os
-from typing import Dict, List
+from typing import Dict, List, Any
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -11,10 +11,20 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.text import Text
 from tqdm import tqdm
 import time
-from .config import ConfigManager, get_config
-from .plugin_manager import PluginManager
-from .batch_processor import BatchProcessor
-from .reporting import ReportGenerator
+try:
+    from .config import ConfigManager, get_config
+    from .plugin_manager import PluginManager
+    from .batch_processor import BatchProcessor
+    from .reporting import ReportGenerator
+except ImportError:
+    # 𐑯 𐑑𐑦𐑝 𐑦𐑥𐑐𐑹𐑑 𐑓𐑹𐑤𐑚𐑨𐑒
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from config import ConfigManager, get_config
+    from plugin_manager import PluginManager
+    from batch_processor import BatchProcessor
+    from reporting import ReportGenerator
 
 class BinaryRewriter:
     def __init__(self, input_file: str, config: ConfigManager = None):
@@ -37,7 +47,12 @@ class BinaryRewriter:
     def load_binary(self) -> bool:
         """𐑤𐑴𐑛 𐑯 𐑐𐑸𐑕 𐑞 𐑦𐑯𐑐𐑫𐑑 𐑚𐑲𐑯𐑩𐑮𐑦 𐑓𐑲𐑤"""
         try:
+            # 𐑛𐑦𐑟𐑱𐑚𐑩𐑤 LIEF 𐑝𐑻𐑚𐑴𐑕 𐑤𐑪𐑜𐑦𐑙 𐑑 𐑮𐑦𐑛𐑿𐑕 𐑯𐑱𐑟
+            lief.logging.disable()
             self.binary = lief.parse(self.input_file)
+            if self.binary is None:
+                print(f"[-] Failed to parse {self.input_file}")
+                return False
             print(f"[+] Successfully loaded {self.input_file}")
             return True
         except Exception as e:
@@ -732,10 +747,13 @@ def handle_batch_processing(args, config):
 
 def main():
     import argparse
-    from .config import init_config
+    try:
+        from .config import init_config
+    except ImportError:
+        from config import init_config
 
     parser = argparse.ArgumentParser(description="Binary Rewriting Tool with YAML Configuration Support")
-    parser.add_argument("input", help="Input binary file")
+    parser.add_argument("input", nargs="?", help="Input binary file (optional when using batch mode)")
     parser.add_argument("-o", "--output", help="Output file")
     
     # 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
@@ -777,6 +795,10 @@ def main():
     parser.add_argument("--print-encoded", action="store_true", help="Print encoded data")
 
     args = parser.parse_args()
+    
+    # 𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑸𐑜𐑿𐑥𐑩𐑯𐑑 𐑒𐑩𐑥𐑚𐑦𐑯𐑱𐑖𐑩𐑯
+    if not args.input and not args.batch_directory:
+        parser.error("Either input file or --batch-directory must be provided")
 
     # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯
     config = init_config(args.config)
@@ -807,7 +829,12 @@ def main():
         console.print(f"[cyan]Plugin Directory:[/cyan] {config.plugins.plugin_directory}")
         return
 
-    # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑮𐑦𐑮𐑲𐑜𐑼 𐑢𐑦𐑞 𐑒𐑪𐑯𐑓𐑦𐑜
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    if args.batch or args.batch_directory or args.batch_pattern:
+        handle_batch_processing(args, config)
+        return
+
+    # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑮𐑦𐑮𐑲𐑜𐑼 𐑢𐑦𐑞 𐑒𐑪𐑯𐑓𐑦𐑜 (𐑴𐑯𐑤𐑦 𐑓𐑹 𐑕𐑦𐑙𐑜𐑩𐑤-𐑓𐑲𐑤 𐑥𐑴𐑛)
     rewriter = BinaryRewriter(args.input, config)
     
     # 𐑩𐑐𐑤𐑲 𐑐𐑮𐑴𐑓𐑲𐑤 𐑒𐑪𐑯𐑓𐑦𐑜 𐑦𐑓 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛

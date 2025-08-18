@@ -239,7 +239,7 @@ class MyCustomPlugin(PluginInterface):
         # Your custom analysis logic here
         return {"status": "completed"}
 
-# Register the plugin (automatic discovery)
+# Register the plugin (automatic discovery) 
 def get_plugin():
     return MyCustomPlugin()
 ```

@@ -6,7 +6,10 @@ from typing import Dict, Any, List, Optional
 import os
 from pathlib import Path
 from abc import ABC, abstractmethod
-from .config import ConfigManager
+try:
+    from .config import ConfigManager
+except ImportError:
+    from config import ConfigManager
 
 
 class ReportFormatter(ABC):
@@ -438,7 +441,9 @@ class ReportGenerator:
                 output_file += formatter.get_file_extension()
             
             # 𐑒𐑮𐑦𐑱𐑑 𐑞 𐑛𐑲𐑮𐑧𐑒𐑑𐑼𐑦 𐑦𐑓 𐑦𐑑 𐑛𐑳𐑟𐑩𐑯𐑑 𐑧𐑒𐑟𐑦𐑕𐑑
-            os.makedirs(os.path.dirname(output_file), exist_ok=True)
+            output_dir = os.path.dirname(output_file)
+            if output_dir:  # 𐑴𐑯𐑤𐑦 𐑒𐑮𐑦𐑱𐑑 𐑛𐑲𐑮𐑧𐑒𐑑𐑼𐑦 𐑦𐑓 𐑯𐑪𐑑 𐑧𐑥𐑐𐑑𐑦
+                os.makedirs(output_dir, exist_ok=True)
             
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(report_content)
@@ -525,3 +530,113 @@ class ReportGenerator:
             report_data['errors'].append(f"{job.input_file}: {job.error}")
         
         return report_data
+    
+    def generate_batch_report_chunked(self, batch_results: Dict[str, Any], format_type: str = 'json', 
+                                    output_file_base: Optional[str] = None) -> List[str]:
+        """𐑡𐑧𐑯𐑼𐑱𐑑 𐑚𐑨𐑗 𐑮𐑦𐑐𐑹𐑑 𐑦𐑯 𐑥𐑩𐑤𐑑𐑦𐑐𐑩𐑤 𐑗𐑳𐑙𐑒𐑕 𐑦𐑓 𐑑𐑵 𐑤𐑸𐑡"""
+        
+        if not self.config.output.split_large_reports:
+            # 𐑦𐑓 𐑕𐑐𐑤𐑦𐑑𐑦𐑙 𐑦𐑟 𐑛𐑦𐑟𐑱𐑚𐑩𐑤𐑛, 𐑿𐑟 𐑮𐑧𐑜𐑿𐑤𐑼 𐑚𐑨𐑗 𐑮𐑦𐑐𐑹𐑑 𐑥𐑧𐑔𐑩𐑛
+            report_data = self.generate_batch_report_data(batch_results)
+            output_file = output_file_base or f"batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            self.generate_report(report_data, format_type, output_file)
+            return [output_file]
+        
+        # 𐑜𐑧𐑑 𐑒𐑩𐑥𐑐𐑤𐑰𐑑𐑦𐑛 𐑡𐑪𐑚𐑟 𐑯 𐑗𐑳𐑙𐑒 𐑞𐑧𐑥
+        completed_jobs = batch_results.get('completed_jobs', [])
+        failed_jobs = batch_results.get('failed_jobs', [])
+        
+        chunk_size = self.config.output.files_per_chunk
+        output_files = []
+        
+        # 𐑒𐑮𐑦𐑱𐑑 𐑗𐑳𐑙𐑒𐑕 𐑝 𐑒𐑩𐑥𐑐𐑤𐑰𐑑𐑦𐑛 𐑡𐑪𐑚𐑟
+        for i in range(0, len(completed_jobs), chunk_size):
+            chunk_jobs = completed_jobs[i:i + chunk_size]
+            chunk_num = (i // chunk_size) + 1
+            total_chunks = (len(completed_jobs) + chunk_size - 1) // chunk_size
+            
+            # 𐑒𐑮𐑦𐑱𐑑 𐑩 𐑗𐑳𐑙𐑒-𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑚𐑨𐑗 𐑮𐑦𐑟𐑳𐑤𐑑 𐑛𐑦𐑒𐑖𐑩𐑯𐑧𐑮𐑦
+            chunk_batch_results = {
+                'completed': len(chunk_jobs),
+                'failed': 0,  # 𐑓𐑱𐑤𐑛 𐑡𐑪𐑚𐑟 𐑜𐑴 𐑦𐑯 𐑞 𐑤𐑭𐑕𐑑 𐑗𐑳𐑙𐑒
+                'total': len(chunk_jobs),
+                'duration': sum(job.get_duration() for job in chunk_jobs),
+                'completed_jobs': chunk_jobs,
+                'failed_jobs': []
+            }
+            
+            # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑 𐑛𐑱𐑑𐑩 𐑓𐑹 𐑞𐑦𐑕 𐑗𐑳𐑙𐑒
+            chunk_report_data = self.generate_batch_report_data(chunk_batch_results)
+            
+            # 𐑩𐑛 𐑗𐑳𐑙𐑒 𐑦𐑯𐑓𐑹𐑥𐑱𐑖𐑩𐑯 𐑑 𐑥𐑧𐑑𐑩𐑛𐑱𐑑𐑩
+            chunk_report_data['metadata'].update({
+                'chunk_number': chunk_num,
+                'total_chunks': total_chunks,
+                'chunk_size': len(chunk_jobs),
+                'chunk_description': f"Chunk {chunk_num} of {total_chunks} (files {i+1}-{min(i+chunk_size, len(completed_jobs))})"
+            })
+            
+            # 𐑒𐑮𐑦𐑱𐑑 𐑞 𐑬𐑑𐑐𐑫𐑑 𐑓𐑲𐑤 𐑯𐑱𐑥
+            base_name = output_file_base or f"batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            chunk_output_file = f"{base_name}_chunk_{chunk_num:03d}_of_{total_chunks:03d}"
+            
+            # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑
+            self.generate_report(chunk_report_data, format_type, chunk_output_file)
+            output_files.append(chunk_output_file)
+            
+            print(f"[+] Generated chunk {chunk_num}/{total_chunks}: {chunk_output_file}")
+        
+        # 𐑞 𐑓𐑱𐑤𐑛 𐑡𐑪𐑚𐑟 𐑦𐑯 𐑩 𐑕𐑧𐑐𐑼𐑦𐑑 𐑞𐑦𐑤 (𐑦𐑓 𐑧𐑯𐑦)
+        if failed_jobs:
+            failed_batch_results = {
+                'completed': 0,
+                'failed': len(failed_jobs),
+                'total': len(failed_jobs),
+                'duration': sum(job.get_duration() for job in failed_jobs),
+                'completed_jobs': [],
+                'failed_jobs': failed_jobs
+            }
+            
+            failed_report_data = self.generate_batch_report_data(failed_batch_results)
+            failed_report_data['metadata'].update({
+                'report_type': 'failed_jobs_summary',
+                'description': f"Summary of {len(failed_jobs)} failed jobs"
+            })
+            
+            base_name = output_file_base or f"batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            failed_output_file = f"{base_name}_failed_jobs"
+            
+            self.generate_report(failed_report_data, format_type, failed_output_file)
+            output_files.append(failed_output_file)
+            
+            print(f"[+] Generated failed jobs report: {failed_output_file}")
+        
+        # 𐑒𐑮𐑦𐑱𐑑 𐑩 𐑕𐑳𐑥𐑼𐑦 𐑞𐑦𐑤 𐑢𐑦𐑞 𐑦𐑯𐑓𐑹𐑥𐑱𐑖𐑩𐑯 𐑩𐑚𐑬𐑑 𐑷𐑤 𐑗𐑳𐑙𐑒𐑕
+        summary_data = {
+            'metadata': self._generate_metadata(),
+            'batch_summary': {
+                'total_files': len(completed_jobs) + len(failed_jobs),
+                'completed_files': len(completed_jobs),
+                'failed_files': len(failed_jobs),
+                'success_rate': f"{(len(completed_jobs) / (len(completed_jobs) + len(failed_jobs)) * 100):.1f}%" if (completed_jobs or failed_jobs) else "0%",
+                'total_chunks_generated': len(output_files),
+                'chunk_files': output_files,
+                'chunk_size': chunk_size
+            }
+        }
+        
+        summary_data['metadata'].update({
+            'report_type': 'batch_processing_summary',
+            'description': f"Summary of batch processing split into {len(output_files)} chunks"
+        })
+        
+        base_name = output_file_base or f"batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        summary_output_file = f"{base_name}_summary"
+        
+        self.generate_report(summary_data, format_type, summary_output_file)
+        output_files.insert(0, summary_output_file)  # 𐑨𐑛 𐑕𐑳𐑥𐑼𐑦 𐑨𐑑 𐑞 𐑚𐑦𐑜𐑦𐑯𐑦𐑙
+        
+        print(f"[+] Generated summary report: {summary_output_file}")
+        print(f"[+] Total files generated: {len(output_files)}")
+        
+        return output_files

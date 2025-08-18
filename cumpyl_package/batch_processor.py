@@ -11,8 +11,10 @@ from rich.console import Console
 from rich.progress import Progress, TaskID, TextColumn, BarColumn, TimeElapsedColumn, TimeRemainingColumn
 from rich.panel import Panel
 from rich.table import Table
-from .config import ConfigManager
-from .cumpyl import BinaryRewriter
+try:
+    from .config import ConfigManager
+except ImportError:
+    from config import ConfigManager
 
 
 class BatchJob:
@@ -62,6 +64,9 @@ class BatchProcessor:
         # 𐑞𐑮𐑧𐑛 𐑐𐑵𐑤 𐑒𐑪𐑯𐑓𐑦𐑜
         self.max_workers = self.config.performance.max_worker_threads if self.config.performance.enable_parallel_processing else 1
         self.progress_queue = queue.Queue()
+        
+        # 𐑚𐑨𐑗 𐑕𐑲𐑟 𐑤𐑦𐑥𐑦𐑑 𐑓𐑹 𐑮𐑦𐑤𐑲𐑩𐑚𐑦𐑤𐑦𐑑𐑦
+        self.max_batch_size = getattr(self.config.performance, 'max_batch_size', 10)
     
     def add_files(self, file_patterns: List[str], recursive: bool = True) -> int:
         """𐑨𐑛 𐑓𐑲𐑤𐑟 𐑚𐑱𐑕𐑑 𐑪𐑯 𐑜𐑤𐑪𐑚 𐑐𐑨𐑑𐑼𐑯𐑟"""
@@ -114,6 +119,11 @@ class BatchProcessor:
     
     def _process_single_job(self, job: BatchJob) -> BatchJob:
         """𐑐𐑮𐑩𐑕𐑧𐑕 𐑩 𐑕𐑦𐑙𐑜𐑩𐑤 𐑡𐑪𐑚"""
+        try:
+            from .cumpyl import BinaryRewriter
+        except ImportError:
+            from cumpyl import BinaryRewriter
+        
         job.status = "processing"
         job.start_time = time.time()
         
@@ -121,6 +131,7 @@ class BatchProcessor:
             # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑞 𐑚𐑲𐑯𐑩𐑮𐑦 𐑮𐑰𐑮𐑲𐑑𐑼
             rewriter = BinaryRewriter(job.input_file, self.config)
             
+            # 𐑨𐑛 𐑩 𐑑𐑲𐑥𐑬𐑑 𐑓𐑹 𐑤𐑴𐑛𐑦𐑙 𐑐𐑮𐑪𐑚𐑤𐑧𐑥𐑨𐑑𐑦𐑒 𐑓𐑲𐑤𐑟
             if not rewriter.load_binary():
                 raise Exception(f"Failed to load binary: {job.input_file}")
             
@@ -148,7 +159,10 @@ class BatchProcessor:
                     length = params.get('length', None)
                     
                     # 𐑦𐑒𐑕𐑑𐑮𐑨𐑒𐑑 𐑯 𐑦𐑯𐑒𐑴𐑛 𐑞 𐑕𐑧𐑒𐑖𐑩𐑯
-                    from .cumpyl import EncodingPlugin
+                    try:
+                        from .cumpyl import EncodingPlugin
+                    except ImportError:
+                        from cumpyl import EncodingPlugin
                     encoding_plugin = EncodingPlugin()
                     
                     section_data = rewriter.get_section_data(section_name)
@@ -245,27 +259,42 @@ class BatchProcessor:
                     if progress_callback:
                         progress_callback(processed_job)
             else:
-                # 𐑥𐑩𐑤𐑑𐑦-𐑞𐑮𐑧𐑛𐑦𐑛 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙
-                with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                    # 𐑕𐑩𐑚𐑥𐑦𐑑 𐑷𐑤 𐑡𐑪𐑚𐑟
-                    future_to_job = {
-                        executor.submit(self._process_single_job, job): job 
-                        for job in self.jobs
-                    }
+                # 𐑥𐑩𐑤𐑑𐑦-𐑞𐑮𐑧𐑛𐑦𐑛 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑦𐑯 𐑗𐑳𐑙𐑒𐑟 𐑓𐑹 𐑮𐑦𐑤𐑲𐑩𐑚𐑦𐑤𐑦𐑑𐑦
+                for i in range(0, len(self.jobs), self.max_batch_size):
+                    chunk = self.jobs[i:i + self.max_batch_size]
+                    chunk_num = (i // self.max_batch_size) + 1
+                    total_chunks = (len(self.jobs) + self.max_batch_size - 1) // self.max_batch_size
                     
-                    # 𐑒𐑩𐑤𐑧𐑒𐑑 𐑮𐑦𐑟𐑳𐑤𐑑𐑟 𐑨𐑟 𐑞𐑱 𐑒𐑩𐑥𐑐𐑤𐑰𐑑
-                    for future in as_completed(future_to_job):
-                        processed_job = future.result()
+                    progress.update(task, description=f"Processing chunk {chunk_num}/{total_chunks} ({len(chunk)} files)...")
+                    
+                    with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                        # 𐑕𐑩𐑚𐑥𐑦𐑑 𐑗𐑳𐑙𐑒 𐑡𐑪𐑚𐑟
+                        future_to_job = {
+                            executor.submit(self._process_single_job, job): job 
+                            for job in chunk
+                        }
                         
-                        if processed_job.status == "completed":
-                            self.completed_jobs.append(processed_job)
-                        else:
-                            self.failed_jobs.append(processed_job)
+                        # 𐑒𐑩𐑤𐑧𐑒𐑑 𐑮𐑦𐑟𐑳𐑤𐑑𐑟 𐑓𐑹 𐑗𐑳𐑙𐑒
+                        chunk_completed = []
+                        chunk_failed = []
                         
-                        progress.advance(task)
+                        for future in as_completed(future_to_job):
+                            processed_job = future.result()
+                            
+                            if processed_job.status == "completed":
+                                self.completed_jobs.append(processed_job)
+                                chunk_completed.append(processed_job)
+                            else:
+                                self.failed_jobs.append(processed_job)
+                                chunk_failed.append(processed_job)
+                            
+                            progress.advance(task)
+                            
+                            if progress_callback:
+                                progress_callback(processed_job)
                         
-                        if progress_callback:
-                            progress_callback(processed_job)
+                        # 𐑜𐑧𐑯𐑼𐑱𐑑 𐑩 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹 𐑞𐑦𐑕 𐑗𐑳𐑙𐑒 𐑦𐑓 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑛
+                        self._generate_chunk_report(chunk_completed, chunk_failed, chunk_num, total_chunks)
         
         end_time = time.time()
         
@@ -337,3 +366,50 @@ class BatchProcessor:
             'max_duration': max(durations) if durations else 0,
             'total_duration': sum(durations) if durations else 0
         }
+    
+    def _generate_chunk_report(self, chunk_completed: List, chunk_failed: List, chunk_num: int, total_chunks: int):
+        """𐑜𐑧𐑯𐑼𐑱𐑑 𐑩 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹 𐑩 𐑕𐑦𐑙𐑜𐑩𐑤 𐑗𐑳𐑙𐑒 𐑝 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙"""
+        if not self.config.output.split_large_reports:
+            return  # 𐑛𐑴𐑯𐑑 𐑡𐑧𐑯𐑼𐑱𐑑 𐑗𐑳𐑙𐑒 𐑮𐑦𐑐𐑹𐑑𐑟 𐑦𐑓 𐑯𐑪𐑑 𐑦𐑯𐑱𐑚𐑩𐑤𐑛
+        
+        try:
+            from .reporting import ReportGenerator
+        except ImportError:
+            from reporting import ReportGenerator
+        
+        # 𐑒𐑮𐑦𐑱𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑 𐑡𐑧𐑯𐑼𐑱𐑑𐑼
+        report_generator = ReportGenerator(self.config)
+        
+        # 𐑒𐑮𐑦𐑱𐑑 𐑚𐑨𐑗 𐑮𐑦𐑟𐑳𐑤𐑑 𐑛𐑦𐑒𐑖𐑩𐑯𐑧𐑮𐑦 𐑓𐑹 𐑞𐑦𐑕 𐑗𐑳𐑙𐑒
+        chunk_batch_results = {
+            'completed': len(chunk_completed),
+            'failed': len(chunk_failed), 
+            'total': len(chunk_completed) + len(chunk_failed),
+            'duration': sum(job.get_duration() for job in chunk_completed + chunk_failed),
+            'completed_jobs': chunk_completed,
+            'failed_jobs': chunk_failed
+        }
+        
+        # 𐑜𐑧𐑯𐑼𐑱𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑 𐑛𐑱𐑑𐑩
+        chunk_report_data = report_generator.create_batch_report(chunk_batch_results)
+        
+        # 𐑨𐑛 𐑗𐑳𐑙𐑒-𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑥𐑧𐑑𐑩𐑛𐑱𐑑𐑩
+        chunk_report_data['metadata'].update({
+            'chunk_number': chunk_num,
+            'total_chunks': total_chunks,
+            'chunk_size': len(chunk_completed) + len(chunk_failed),
+            'chunk_description': f"Batch chunk {chunk_num} of {total_chunks}",
+            'chunk_timestamp': time.strftime('%Y-%m-%d_%H-%M-%S'),
+            'chunk_files_processed': [job.input_file for job in chunk_completed + chunk_failed]
+        })
+        
+        # 𐑒𐑮𐑦𐑱𐑑 𐑞 𐑞𐑦𐑤 𐑯𐑱𐑥 𐑢𐑦𐑞 𐑑𐑲𐑥𐑕𐑑𐑨𐑥𐑐 𐑯 𐑗𐑳𐑙𐑒 𐑦𐑯𐑓𐑼𐑥𐑱𐑖𐑩𐑯
+        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        output_filename = f"batch_chunk_{chunk_num:03d}_of_{total_chunks:03d}_{timestamp}"
+        
+        # 𐑜𐑧𐑯𐑼𐑱𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑 (𐑿𐑟 JSON 𐑚𐑲 𐑛𐑦𐑓𐑷𐑤𐑑 𐑓𐑹 𐑓𐑨𐑕𐑑 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙)
+        report_generator.generate_report(chunk_report_data, 'json', output_filename)
+        
+        self.console.print(f"[+] Generated chunk report: {output_filename}.json ({len(chunk_completed)} completed, {len(chunk_failed)} failed)")
+        
+        return output_filename

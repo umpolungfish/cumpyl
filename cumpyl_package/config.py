@@ -64,6 +64,26 @@ class PerformanceConfig:
     memory_limit_mb: int = 512
 
 
+@dataclass  
+class OutputConfig:
+    """𐑬𐑑𐑐𐑫𐑑 𐑯 𐑮𐑦𐑐𐑹𐑑 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯 𐑕𐑧𐑑𐑦𐑙𐑟"""
+    default_format: str = "yaml"
+    available_formats: List[str] = field(default_factory=lambda: ["json", "xml", "yaml", "html"])
+    create_backups: bool = True
+    backup_directory: str = "backups"
+    
+    # 𐑮𐑦𐑐𐑹𐑑 𐑕𐑧𐑑𐑦𐑙𐑟
+    include_metadata: bool = True
+    include_analysis_time: bool = True
+    include_plugin_versions: bool = True
+    compress_large_reports: bool = True
+    
+    # 𐑓𐑲𐑤 𐑕𐑐𐑤𐑦𐑑𐑦𐑙 𐑕𐑧𐑑𐑦𐑙𐑟
+    split_large_reports: bool = True
+    max_report_size_mb: int = 50
+    files_per_chunk: int = 10
+
+
 class ConfigManager:
     """𐑥𐑨𐑯𐑦𐑡 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯 𐑓𐑲𐑤𐑟 𐑯 𐑕𐑧𐑑𐑦𐑙𐑟"""
     
@@ -75,6 +95,7 @@ class ConfigManager:
         self.plugins: PluginConfig = PluginConfig()
         self.security: SecurityConfig = SecurityConfig()
         self.performance: PerformanceConfig = PerformanceConfig()
+        self.output: OutputConfig = OutputConfig()
         
         self.load_config()
     
@@ -114,6 +135,7 @@ class ConfigManager:
             self._load_plugin_config()
             self._load_security_config()
             self._load_performance_config()
+            self._load_output_config()
             
             return True
             
@@ -167,6 +189,25 @@ class ConfigManager:
             cache_analysis_results=performance_data.get('cache_analysis_results', self.performance.cache_analysis_results),
             cache_expiry_hours=performance_data.get('cache_expiry_hours', self.performance.cache_expiry_hours),
             memory_limit_mb=performance_data.get('memory_limit_mb', self.performance.memory_limit_mb)
+        )
+    
+    def _load_output_config(self):
+        """𐑤𐑴𐑛 𐑬𐑑𐑐𐑫𐑑 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯"""
+        output_data = self.config_data.get('output', {})
+        reports_data = output_data.get('reports', {})
+        
+        self.output = OutputConfig(
+            default_format=output_data.get('default_format', self.output.default_format),
+            available_formats=output_data.get('available_formats', self.output.available_formats),
+            create_backups=output_data.get('create_backups', self.output.create_backups),
+            backup_directory=output_data.get('backup_directory', self.output.backup_directory),
+            include_metadata=reports_data.get('include_metadata', self.output.include_metadata),
+            include_analysis_time=reports_data.get('include_analysis_time', self.output.include_analysis_time),
+            include_plugin_versions=reports_data.get('include_plugin_versions', self.output.include_plugin_versions),
+            compress_large_reports=reports_data.get('compress_large_reports', self.output.compress_large_reports),
+            split_large_reports=reports_data.get('split_large_reports', self.output.split_large_reports),
+            max_report_size_mb=reports_data.get('max_report_size_mb', self.output.max_report_size_mb),
+            files_per_chunk=reports_data.get('files_per_chunk', self.output.files_per_chunk)
         )
     
     def get_plugin_config(self, plugin_name: str) -> Dict[str, Any]:
