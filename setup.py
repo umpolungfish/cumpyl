@@ -6,8 +6,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="cumpyl",
     version="0.3.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Cumpyl Framework",
+    author_email="",
     description="A binary rewriting tool with encoding/decoding capabilities",
     long_description=long_description,
     long_description_content_type="text/markdown",

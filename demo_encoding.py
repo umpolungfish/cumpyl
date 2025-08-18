@@ -6,7 +6,7 @@ Example script demonstrating the encoding/decoding functionality of cumpyl
 import tempfile
 import os
 import sys
-sys.path.insert(0, '/home/mrnob0dy666/cumpyl')
+sys.path.insert(0, '.')
 
 from cumpyl_package.cumpyl import BinaryRewriter, EncodingPlugin
 
