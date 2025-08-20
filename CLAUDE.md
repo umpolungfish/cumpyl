@@ -80,6 +80,36 @@ cumpyl binary.exe --config custom_config.yaml
 cumpyl binary.exe --profile malware_analysis
 ```
 
+## 🎯 Interactive Menu System (NEW!)
+
+### 🚀 Guided Framework Usage
+```bash
+# Launch interactive menu system
+cumpyl --menu
+
+# Launch menu with pre-selected target file
+cumpyl --menu path/to/binary.exe
+```
+
+The interactive menu provides a beautiful, user-friendly interface for accessing all framework features:
+
+#### 🌟 Menu Features
+- **🔍 Quick Analysis**: Fast section analysis and obfuscation suggestions
+- **🧪 Deep Analysis**: Comprehensive plugin-based analysis with reporting
+- **🔧 Interactive Hex Viewer**: Explore binaries with visual tooltips and annotations
+- **⚡ Batch Processing**: Process multiple files with automated workflows
+- **🎯 Encoding Operations**: Obfuscate sections with various encoding methods
+- **📊 Report Generation**: Create detailed reports in multiple formats
+- **⚙️ Configuration**: View and modify framework settings
+- **📁 Smart File Selection**: Auto-discovery of binary files in current directory
+
+#### 💡 Menu Benefits
+- **Beginner-Friendly**: Guided workflows with parameter suggestions
+- **Expert-Efficient**: Quick access to advanced features with command preview
+- **Visual Interface**: Rich console tables, panels, and color-coded options
+- **Command Learning**: Shows exact CLI commands for each operation
+- **Error Prevention**: Built-in validation and safety checks
+
 ## Advanced Usage Examples
 
 ### 🔍 Comprehensive Analysis
@@ -125,6 +155,36 @@ cumpyl binary.exe --run-analysis --report-format yaml --report-output config_exp
 
 # XML report for enterprise integration
 cumpyl binary.exe --run-analysis --report-format xml --report-output enterprise_report.xml
+```
+
+### 🔍 Interactive Hex Viewer
+```bash
+# Generate interactive hex dump with analysis overlay
+cumpyl binary.exe --hex-view
+
+# Interactive hex view with comprehensive analysis and obfuscation suggestions
+cumpyl binary.exe --hex-view --run-analysis --suggest-obfuscation
+
+# Custom hex view with specific byte limit and output file
+cumpyl binary.exe --hex-view --hex-view-bytes 4096 --hex-view-output custom_hex.html
+
+# Hex view with analysis profiles
+cumpyl binary.exe --hex-view --profile malware_analysis --run-analysis
+
+# Interactive section/range selection after analysis
+cumpyl binary.exe --hex-view-interactive
+
+# View specific section with hex viewer
+cumpyl binary.exe --hex-view --hex-view-section .text
+
+# View specific offset range (supports hex notation)
+cumpyl binary.exe --hex-view --hex-view-offset 0x1000 --hex-view-bytes 2048
+
+# View custom range with interactive analysis
+cumpyl binary.exe --hex-view --run-analysis --hex-view-offset 0x600 --hex-view-bytes 1024
+
+# Batch hex view generation for multiple files
+cumpyl --batch-directory /samples --batch-operation hex_view --hex-view-bytes 2048
 ```
 
 ### 🔐 Advanced Encoding Operations
@@ -178,6 +238,17 @@ cumpyl binary.exe --encode-section .text --encoding hex --print-encoded
 - Metadata enrichment
 - Batch and individual analysis reporting
 - Template-based output formatting
+
+**HexViewer Class** (`cumpyl_package/hex_viewer.py`)
+- Interactive hex dump visualization with working hover tooltips
+- Color-coded annotations by severity and type (sections, entropy, strings, suggestions)
+- Support for custom offset ranges and section-specific viewing
+- Interactive section selection with tabular overview
+- Proper file offset mapping for accurate annotation placement
+- Real-time annotation counting and display
+- Configurable display options and themes
+- JavaScript-powered interactivity with escape-safe JSON embedding
+- Base offset support for viewing arbitrary file ranges
 
 ### 🔌 Advanced Plugin System
 
@@ -238,7 +309,9 @@ cumpyl/
 │   ├── config.py            # Configuration management
 │   ├── plugin_manager.py    # Plugin architecture
 │   ├── batch_processor.py   # Batch processing engine
-│   └── reporting.py         # Multi-format reporting
+│   ├── reporting.py         # Multi-format reporting
+│   ├── hex_viewer.py        # Interactive hex dump viewer
+│   └── menu_system.py       # Interactive menu interface (NEW!)
 ├── plugins/                 # Plugin ecosystem
 │   ├── entropy_analysis.py  # Entropy-based analysis
 │   └── string_extraction.py # Advanced string extraction
@@ -283,6 +356,14 @@ python -m pytest tests/ -v -s
 ### 🎉 v0.3.0 - Major Framework Revolution (Current)
 **🏆 MASSIVE ARCHITECTURAL OVERHAUL - This release represents a complete transformation of Cumpyl from a simple encoding tool into a comprehensive binary analysis platform!**
 
+#### 🎯 Interactive Menu System (NEW!)
+- **Guided User Interface**: Beautiful Rich console-based menu system with `--menu` option
+- **Smart File Discovery**: Automatic binary file detection and selection
+- **10 Comprehensive Menus**: Quick Analysis, Deep Analysis, Hex Viewer, Batch Processing, Encoding, Reports, Configuration, and more
+- **Command Learning**: Shows exact CLI commands for each operation
+- **Beginner-Friendly**: Guided workflows with parameter suggestions and validation
+- **Expert-Efficient**: Quick access to advanced features with visual feedback
+
 #### 🔧 Configuration System (COMPLETED)
 - **YAML-based configuration management** with `cumpyl.yaml`
 - **Predefined analysis profiles** for different use cases
@@ -314,6 +395,14 @@ python -m pytest tests/ -v -s
 - **Plugin testing infrastructure** for extensibility validation
 - **Coverage reporting** for quality assurance
 
+#### 🔍 Interactive Hex Viewer (COMPLETED)
+- **Interactive hex dump visualization** with hover tooltips
+- **Analysis overlay integration** showing sections, strings, entropy, and suggestions
+- **Color-coded annotations** with severity-based styling
+- **Configurable display options** through YAML configuration
+- **CLI integration** with `--hex-view` command options
+- **HTML report embedding** for comprehensive analysis reports
+
 ### v0.2.1 - Encoding Method Fixes
 - **CRITICAL FIX**: Fixed octal encoding/decoding round-trip functionality
 - **Improved Reliability**: All 5 encoding methods (hex, octal, base64, compressed_base64, null) now work correctly
@@ -335,11 +424,28 @@ python -m pytest tests/ -v -s
 
 ## 🏃‍♂️ Recommended Workflows
 
-### 🔍 Binary Analysis Workflow
+### 🎯 Interactive Menu Workflow (RECOMMENDED FOR BEGINNERS)
+1. **Launch Menu**: `cumpyl --menu`
+2. **Select Target**: Choose from auto-discovered binaries or specify custom path
+3. **Quick Start**: Use "Quick Analysis" for immediate insights
+4. **Explore Visually**: Try "Interactive Hex Viewer" for visual exploration
+5. **Generate Reports**: Use "Deep Analysis" with HTML reports for comprehensive results
+6. **Learn Commands**: Menu shows exact CLI commands for each operation
+
+### 🔍 Traditional CLI Workflow (FOR EXPERTS)
 1. **Initial Assessment**: `cumpyl binary.exe --analyze-sections`
 2. **Intelligence Gathering**: `cumpyl binary.exe --suggest-obfuscation`
-3. **Deep Analysis**: `cumpyl binary.exe --run-analysis --profile forensics`
-4. **Report Generation**: `cumpyl binary.exe --run-analysis --report-format html --report-output analysis.html`
+3. **Interactive Exploration**: `cumpyl binary.exe --hex-view --run-analysis`
+4. **Deep Analysis**: `cumpyl binary.exe --run-analysis --profile forensics`
+5. **Report Generation**: `cumpyl binary.exe --run-analysis --report-format html --report-output analysis.html`
+
+### 🔍 Interactive Hex Analysis Workflow
+1. **Quick Hex Overview**: `cumpyl binary.exe --hex-view`
+2. **Interactive Section Selection**: `cumpyl binary.exe --hex-view-interactive` → Choose sections interactively
+3. **Comprehensive Hex Analysis**: `cumpyl binary.exe --hex-view --run-analysis --suggest-obfuscation`
+4. **Targeted Section Analysis**: `cumpyl binary.exe --hex-view --hex-view-section .text --run-analysis`
+5. **Custom Range Investigation**: `cumpyl binary.exe --hex-view --hex-view-offset 0x1000 --hex-view-bytes 2048 --run-analysis`
+6. **Detailed Investigation**: Open generated HTML file in browser and hover over color-coded annotated bytes for detailed analysis tooltips
 
 ### 📦 Batch Processing Workflow
 1. **Setup Configuration**: Create custom `cumpyl.yaml` for your environment
@@ -353,6 +459,26 @@ python -m pytest tests/ -v -s
 3. **Gradual Application**: Start with green (safe) sections
 4. **Validation**: Verify binary integrity after each modification
 
+## 🆕 Recent Improvements (Latest Update)
+
+### ✅ Enhanced Hex Viewer
+- **Fixed Hover Tooltips**: Interactive tooltips now work properly with detailed annotation data
+- **Interactive Section Selection**: Use `--hex-view-interactive` for guided section/range selection
+- **Custom Range Support**: Specify exact offsets with `--hex-view-offset 0x1000 --hex-view-bytes 2048`
+- **Section-Specific Viewing**: Target specific sections with `--hex-view-section .text`
+- **Proper File Offset Mapping**: Annotations now correctly map to file positions
+- **Real-time Annotation Counting**: See exactly how many annotations are found
+
+### ✅ Improved Reporting Tables
+- **Fixed Section Classification**: Tables now show proper types like "Executable Code", "Data", "Read-only Data"
+- **Accurate File Offsets**: Binary sections table displays correct file offsets instead of "0x0"
+- **Enhanced Section Analysis**: Better integration between analysis and reporting components
+
+### ✅ Command Concatenation
+- **Working Multi-Flag Commands**: `--hex-view --run-analysis --suggest-obfuscation` now works seamlessly
+- **Integrated Workflows**: Analysis results and obfuscation suggestions properly integrate with hex viewer
+- **Flexible Command Combinations**: Mix and match analysis, suggestions, and hex viewing options
+
 ## 🌟 Rich Console Features
 
 - **Color-coded tiers**: Green (Advanced), Yellow (Intermediate), Blue (Basic), Red (Avoid)
@@ -361,6 +487,27 @@ python -m pytest tests/ -v -s
 - **Copy-ready commands**: Each suggestion includes exact execution syntax
 - **Rich panels**: Beautiful bordered sections for different content types
 - **Interactive progress bars**: Multi-threaded batch processing visualization
+- **Interactive Menu System**: Guided interface with visual feedback and command learning
+
+## 📖 CLI Reference
+
+### Core Commands
+```bash
+# Basic operations
+cumpyl binary.exe --analyze-sections          # Analyze binary sections
+cumpyl binary.exe --suggest-obfuscation       # Get obfuscation suggestions
+cumpyl binary.exe --run-analysis              # Run plugin analysis
+cumpyl binary.exe --hex-view                  # Generate hex dump
+
+# Interactive menu (NEW!)
+cumpyl --menu                                 # Launch interactive menu
+cumpyl --menu binary.exe                      # Launch menu with target file
+
+# Configuration
+cumpyl --show-config                          # Display current configuration
+cumpyl --validate-config                      # Validate configuration file
+cumpyl --list-plugins                         # List available plugins
+```
 
 ## 🔮 Future Roadmap
 
@@ -375,6 +522,72 @@ python -m pytest tests/ -v -s
 - Vulnerability scanning capabilities
 - Custom signature detection
 - Network behavior analysis
+
+## ⚙️ Hex Viewer Configuration
+
+The interactive hex viewer can be customized through the `cumpyl.yaml` configuration file:
+
+```yaml
+output:
+  hex_viewer:
+    enabled: true
+    default_bytes_per_row: 16
+    max_display_bytes: 2048
+    show_ascii: true
+    show_offsets: true
+    auto_add_section_annotations: true
+    auto_add_analysis_annotations: true
+    auto_add_suggestion_annotations: true
+    color_scheme: "dark"  # "light" or "dark"
+    annotation_priority: ["suggestions", "entropy", "strings", "sections"]
+```
+
+### Configuration Options
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `enabled` | Enable/disable hex viewer functionality | `true` |
+| `default_bytes_per_row` | Number of bytes displayed per row | `16` |
+| `max_display_bytes` | Maximum bytes to display in hex view | `2048` |
+| `show_ascii` | Display ASCII representation alongside hex | `true` |
+| `show_offsets` | Show byte offset addresses | `true` |
+| `auto_add_section_annotations` | Automatically annotate binary sections | `true` |
+| `auto_add_analysis_annotations` | Include plugin analysis results | `true` |
+| `auto_add_suggestion_annotations` | Include obfuscation suggestions | `true` |
+| `color_scheme` | Visual theme ("light" or "dark") | `"dark"` |
+| `annotation_priority` | Order of annotation types for display | `["suggestions", "entropy", "strings", "sections"]` |
+
+### Interactive Features
+
+- **Hover Tooltips**: Display detailed information when hovering over annotated bytes
+- **Color Coding**: Different colors for different annotation types and severities
+- **Responsive Design**: Adapts to different screen sizes
+- **Copy-Friendly**: Easy to copy hex values and offsets
+- **Analysis Integration**: Seamlessly displays results from plugins and analysis phases
+- **Interactive Section Selection**: Choose specific sections or ranges interactively
+- **Custom Range Viewing**: Specify exact offset ranges with hex notation support
+- **Real-time Annotation Count**: Shows total number of annotations found
+- **Multiple Annotation Types**: Supports sections, entropy analysis, strings, and obfuscation suggestions
+- **Proper File Offset Mapping**: Correctly maps virtual addresses to file offsets for accurate annotation placement
+
+### CLI Options for Hex Viewer
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--hex-view` | Generate interactive hex dump | `--hex-view` |
+| `--hex-view-interactive` | Interactive section/range selection | `--hex-view-interactive` |
+| `--hex-view-offset OFFSET` | Starting offset (supports hex) | `--hex-view-offset 0x1000` |
+| `--hex-view-bytes BYTES` | Number of bytes to display | `--hex-view-bytes 4096` |
+| `--hex-view-section SECTION` | View specific section | `--hex-view-section .text` |
+| `--hex-view-output FILE` | Output HTML file path | `--hex-view-output analysis.html` |
+
+### Interactive Selection Options
+
+When using `--hex-view-interactive`, you can:
+- **Enter section index** (0-N) → View specific section
+- **Enter 'all'** → View entire file (up to 16KB limit)
+- **Enter range** like '0x1000-0x2000' or '4096-8192' → Custom byte ranges
+- **Press Enter** → Default view (first 2048 bytes)
 
 ## 🎯 Development Philosophy
 

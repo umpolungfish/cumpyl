@@ -71,6 +71,19 @@ output:
     split_large_reports: true
     max_report_size_mb: 50  # 𐑕𐑐𐑤𐑦𐑑 𐑦𐑓 𐑤𐑸𐑜𐑼 𐑞𐑨𐑯 50MB
     files_per_chunk: 10     # 𐑥𐑨𐑒𐑕 𐑓𐑲𐑤𐑟 𐑐𐑼 𐑮𐑦𐑐𐑹𐑑 𐑗𐑳𐑙𐑒
+  
+  # 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑕𐑧𐑑𐑦𐑙𐑟
+  hex_viewer:
+    enabled: true
+    default_bytes_per_row: 16
+    max_display_bytes: 2048
+    show_ascii: true
+    show_offsets: true
+    auto_add_section_annotations: true
+    auto_add_analysis_annotations: true
+    auto_add_suggestion_annotations: true
+    color_scheme: "dark"  # "light" or "dark"
+    annotation_priority: ["suggestions", "entropy", "strings", "sections"]
 
 # Security Settings
 security:

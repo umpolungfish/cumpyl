@@ -3,7 +3,7 @@ import capstone
 import binascii
 import codecs
 import os
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -17,7 +17,7 @@ try:
     from .batch_processor import BatchProcessor
     from .reporting import ReportGenerator
 except ImportError:
-    # 𐑯 𐑑𐑦𐑝 𐑦𐑥𐑐𐑹𐑑 𐑓𐑹𐑤𐑚𐑨𐑒
+    # Fallback import for direct script execution
     import sys
     import os
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -395,9 +395,10 @@ class BinaryRewriter:
                 print(f"  Error analyzing section {section.name}: {e}")
                 print()
 
-    def suggest_obfuscation(self) -> None:
+    def suggest_obfuscation(self, return_suggestions: bool = False) -> Optional[List[Dict[str, Any]]]:
         """𐑨𐑯𐑩𐑤𐑲𐑟 𐑞 𐑚𐑲𐑯𐑻𐑦 𐑯 𐑕𐑳𐑜𐑧𐑕𐑑 𐑪𐑐𐑑𐑦𐑥𐑩𐑤 𐑕𐑧𐑒𐑖𐑩𐑯𐑟 𐑓 𐑩𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑢 𐑛𐑦𐑓𐑻𐑩𐑯𐑑 𐑑𐑽𐑟"""
         console = Console()
+        suggestions_data = []  # 𐑒𐑩𐑤𐑧𐑒𐑑 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑛𐑱𐑑𐑩 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
         
         # 𐑣𐑧𐑛𐑼 𐑢𐑦𐑞 𐑮𐑦𐑗 𐑐𐑨𐑯𐑩𐑤
         header_text = Text(f"Obfuscation Suggestions for {self.input_file}", style="bold cyan")
@@ -454,7 +455,7 @@ class BinaryRewriter:
                         safe_for_encoding = True
                         encoding_tier = 2  # Intermediate
                     
-                    sections_info.append({
+                    section_data = {
                         'name': section.name,
                         'type': section_type,
                         'size': len(content),
@@ -462,7 +463,28 @@ class BinaryRewriter:
                         'tier': encoding_tier,
                         'virtual_address': section.virtual_address,
                         'characteristics': getattr(section, 'characteristics', 0)
-                    })
+                    }
+                    sections_info.append(section_data)
+                    
+                    # 𐑨𐑛 𐑑 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯𐑟 𐑛𐑱𐑑𐑩 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+                    if return_suggestions:
+                        tier_colors = {3: "green", 2: "yellow", 1: "blue", 0: "red"}
+                        tier_reasons = {
+                            3: "Advanced tier - Large read-only data section, safe for heavy obfuscation",
+                            2: "Intermediate tier - Data section, good for moderate obfuscation", 
+                            1: "Basic tier - Small section, suitable for light obfuscation",
+                            0: "Avoid - Critical for program execution"
+                        }
+                        
+                        suggestions_data.append({
+                            'section': section.name,
+                            'tier': tier_colors.get(encoding_tier, "red"),
+                            'reason': tier_reasons.get(encoding_tier, "Unknown tier"),
+                            'offset': section.virtual_address,
+                            'size': len(content),
+                            'section_type': section_type,
+                            'safe_for_encoding': safe_for_encoding
+                        })
                     time.sleep(0.1)  # Small delay for spinner effect
                 except Exception as e:
                     console.print(f"[red]Error analyzing section {section.name}: {e}[/red]")
@@ -596,6 +618,10 @@ class BinaryRewriter:
                 title="[bold red]WARNING[/bold red]",
                 border_style="red"
             ))
+        
+        # 𐑮𐑦𐑑𐑻𐑯 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑛𐑱𐑑𐑩 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+        if return_suggestions:
+            return suggestions_data
 
 
 class RewriterPlugin:
@@ -785,6 +811,17 @@ def main():
     parser.add_argument("--report-format", choices=["json", "yaml", "xml", "html"], default="json", help="Output report format (default: json)")
     parser.add_argument("--report-output", help="Save report to specified file (auto-detects extension if not provided)")
     parser.add_argument("--generate-report", action="store_true", help="Generate structured analysis report")
+    
+    # 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
+    parser.add_argument("--hex-view", action="store_true", help="Generate interactive hex dump with analysis overlay")
+    parser.add_argument("--hex-view-output", help="Output file for hex view (default: adds _hex.html to input filename)")
+    parser.add_argument("--hex-view-bytes", type=int, default=2048, help="Maximum bytes to display in hex view (default: 2048)")
+    parser.add_argument("--hex-view-offset", type=lambda x: int(x, 0), default=0, help="Starting offset for hex view (default: 0, supports hex like 0x1000)")
+    parser.add_argument("--hex-view-section", help="Show hex view for specific section (e.g., .text, .data)")
+    parser.add_argument("--hex-view-interactive", action="store_true", help="Interactively select sections/ranges after analysis")
+    
+    # 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑥𐑧𐑯𐑿 𐑸𐑜𐑿𐑥𐑩𐑯𐑜
+    parser.add_argument("--menu", action="store_true", help="Launch interactive menu system for guided framework usage")
 
     # 𐑨𐑛 𐑦𐑯𐑒𐑴𐑛𐑦𐑙/𐑛𐑦𐑒𐑴𐑛𐑦𐑙 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
     parser.add_argument("--encode-section", action="append", help="Section name(s) to encode. Use comma-separated list for same encoding (e.g., '.text,.data'), or multiple flags for different encodings")
@@ -797,8 +834,8 @@ def main():
     args = parser.parse_args()
     
     # 𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑸𐑜𐑿𐑥𐑩𐑯𐑑 𐑒𐑩𐑥𐑚𐑦𐑯𐑱𐑖𐑩𐑯
-    if not args.input and not args.batch_directory:
-        parser.error("Either input file or --batch-directory must be provided")
+    if not args.input and not args.batch_directory and not args.menu:
+        parser.error("Either input file, --batch-directory, or --menu must be provided")
 
     # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯
     config = init_config(args.config)
@@ -827,6 +864,16 @@ def main():
         console.print(f"[cyan]Max File Size:[/cyan] {config.framework.max_file_size_mb}MB")
         console.print(f"[cyan]Plugins Enabled:[/cyan] {config.plugins.enabled}")
         console.print(f"[cyan]Plugin Directory:[/cyan] {config.plugins.plugin_directory}")
+        return
+    
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑥𐑧𐑯𐑿 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    if args.menu:
+        try:
+            from .menu_system import launch_menu
+        except ImportError:
+            from menu_system import launch_menu
+        
+        launch_menu(config, args.input)
         return
 
     # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
@@ -862,7 +909,11 @@ def main():
         rewriter.list_loaded_plugins()
         return
     
-    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑒𐑪𐑥𐑐𐑮𐑦𐑣𐑧𐑯𐑕𐑦𐑝 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕
+    # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑝𐑨𐑮𐑦𐑩𐑚𐑩𐑤𐑟 𐑓𐑹 𐑨𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑩𐑯 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑛𐑱𐑑𐑩
+    analysis_results = {}
+    suggestions = []
+
+    # 𐑮𐑳𐑯 𐑒𐑪𐑥𐑐𐑮𐑦𐑣𐑧𐑯𐑕𐑦𐑝 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
     if args.run_analysis:
         analysis_results = rewriter.run_plugin_analysis()
         
@@ -877,29 +928,153 @@ def main():
                 console.print(f"[green]✓ {plugin_name}: Analysis completed[/green]")
                 if config.framework.debug_mode:
                     console.print(f"  Result keys: {list(result.keys())}")
+
+    # 𐑮𐑳𐑯 𐑪𐑚𐑓𐑩𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯𐑟 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    if args.suggest_obfuscation:
+        suggestions = rewriter.suggest_obfuscation(return_suggestions=True)
+
+    # 𐑦𐑓 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑦𐑟 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛, 𐑡𐑧𐑯𐑼𐑱𐑑 𐑦𐑑 𐑢𐑦𐑞 𐑦𐑯𐑑𐑧𐑜𐑮𐑱𐑑𐑦𐑛 𐑨𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑞𐑨𐑑 𐑣𐑨𐑟 𐑚𐑰𐑯 𐑮𐑳𐑯
+    if args.hex_view:
+        try:
+            from .hex_viewer import HexViewer
+        except ImportError:
+            from hex_viewer import HexViewer
         
-        # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑐𐑹𐑑 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
-        if args.generate_report or args.report_output:
-            report_generator = ReportGenerator(config)
+        # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑕𐑧𐑤𐑧𐑒𐑖𐑩𐑯
+        if args.hex_view_interactive:
+            console = Console()
+            if rewriter.binary and rewriter.binary.sections:
+                console.print(Panel("Available Sections for Hex View", style="bold cyan"))
+                
+                sections_table = Table(show_header=True, header_style="bold")
+                sections_table.add_column("Index", style="cyan")
+                sections_table.add_column("Section", style="magenta")
+                sections_table.add_column("Size", style="green")
+                sections_table.add_column("File Offset", style="yellow")
+                sections_table.add_column("Virtual Address", style="blue")
+                
+                for i, section in enumerate(rewriter.binary.sections):
+                    file_offset = getattr(section, 'offset', getattr(section, 'virtual_address', 0))
+                    size_str = f"{section.size} bytes" if section.size < 1024 else f"{section.size/1024:.1f} KB"
+                    sections_table.add_row(
+                        str(i),
+                        section.name,
+                        size_str,
+                        f"0x{file_offset:x}",
+                        f"0x{section.virtual_address:x}"
+                    )
+                
+                console.print(sections_table)
+                console.print("\nOptions:")
+                console.print("• Enter section index (0-{}) to view specific section".format(len(rewriter.binary.sections)-1))
+                console.print("• Enter 'all' to view all sections")
+                console.print("• Enter offset range like '0x1000-0x2000' or '4096-8192'")
+                console.print("• Press Enter for default view (first 2048 bytes)")
+                
+                choice = input("\nSelect option: ").strip()
+                
+                if choice.isdigit() and 0 <= int(choice) < len(rewriter.binary.sections):
+                    # 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑕𐑧𐑒𐑖𐑩𐑯 𐑕𐑧𐑤𐑧𐑒𐑑𐑦𐑛
+                    selected_section = rewriter.binary.sections[int(choice)]
+                    args.hex_view_section = selected_section.name
+                    args.hex_view_offset = getattr(selected_section, 'offset', 0)
+                    args.hex_view_bytes = min(selected_section.size, 8192)  # 𐑤𐑦𐑥𐑦𐑑 𐑑 8KB 𐑓 𐑤𐑸𐑡 𐑕𐑧𐑒𐑖𐑩𐑯𐑟
+                elif choice.lower() == 'all':
+                    args.hex_view_bytes = min(len(open(args.input, 'rb').read()), 16384)  # 𐑤𐑦𐑥𐑦𐑑 𐑑 16KB
+                elif '-' in choice:
+                    # 𐑮𐑱𐑯𐑡 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒𐑱𐑖𐑩𐑯
+                    try:
+                        start, end = choice.split('-')
+                        start = int(start, 0)  # 𐑨𐑤𐑬 𐑣𐑧𐑒𐑕 𐑹 𐑛𐑧𐑕𐑦𐑥𐑩𐑤
+                        end = int(end, 0)
+                        args.hex_view_offset = start
+                        args.hex_view_bytes = end - start
+                    except ValueError:
+                        console.print("[red]Invalid range format. Using default.[/red]")
             
-            # 𐑒𐑮𐑦𐑱𐑑 𐑩 𐑒𐑩𐑥𐑐𐑮𐑦𐑣𐑧𐑯𐑕𐑦𐑝 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑐𐑹𐑑
-            basic_analysis = rewriter.analyze_binary()
-            report_data = report_generator.create_analysis_report(
-                args.input, 
-                basic_analysis, 
-                analysis_results
-            )
-            
-            if args.report_output:
-                report_generator.generate_report(report_data, args.report_format, args.report_output)
-            else:
-                # 𐑦𐑓 𐑯𐑴 𐑬𐑑𐑐𐑫𐑑 𐑓𐑲𐑤 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛, 𐑐𐑮𐑦𐑯𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑
-                report_content = report_generator.generate_report(report_data, args.report_format)
-                print("\n" + "="*50)
-                print("ANALYSIS REPORT")
-                print("="*50)
-                print(report_content)
+        print("[*] Generating interactive hex view with integrated analysis...")
         
+        # 𐑤𐑴𐑛 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩
+        with open(args.input, 'rb') as f:
+            f.seek(args.hex_view_offset)
+            binary_data = f.read(args.hex_view_bytes)
+        
+        # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
+        hex_viewer = HexViewer(config, base_offset=args.hex_view_offset)
+        hex_viewer.load_binary_data(binary_data)
+        hex_viewer.bytes_per_row = 16
+        
+        # 𐑨𐑛 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑓𐑮𐑩𐑥 𐑚𐑲𐑯𐑩𐑮𐑦 𐑕𐑧𐑒𐑖𐑩𐑯𐑟
+        if rewriter.binary and rewriter.binary.sections:
+            hex_viewer.add_section_annotations(rewriter.binary.sections)
+        
+        # 𐑨𐑛 𐑨𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑦𐑓 𐑩𐑝𐑱𐑤𐑩𐑚𐑩𐑤
+        if analysis_results:
+            hex_viewer.add_analysis_annotations(analysis_results)
+            
+        # 𐑨𐑛 𐑪𐑚𐑓𐑩𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑦𐑓 𐑩𐑝𐑱𐑤𐑩𐑚𐑩𐑤
+        if suggestions:
+            hex_viewer.add_suggestion_annotations(suggestions)
+        
+        # 𐑡𐑧𐑯𐑼𐑱𐑑 HTML 𐑮𐑦𐑐𐑹𐑑 𐑢𐑦𐑞 𐑦𐑯𐑑𐑧𐑜𐑮𐑱𐑑𐑦𐑛 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
+        report_generator = ReportGenerator(config)
+        hex_report_data = {
+            'metadata': {
+                'target_file': args.input,
+                'framework_version': config.framework.version,
+                'analysis_type': 'hex_view_with_analysis'
+            },
+            'binary_data': binary_data[:args.hex_view_bytes],
+            'sections': [{'name': s.name, 'virtual_address': s.virtual_address, 'size': s.size, 'offset': s.offset} 
+                        for s in rewriter.binary.sections] if rewriter.binary else [],
+            'analysis_results': analysis_results,
+            'obfuscation_suggestions': suggestions,
+            'hex_viewer': hex_viewer
+        }
+        
+        # 𐑛𐑦𐑑𐑻𐑥𐑲𐑯 𐑬𐑑𐑐𐑫𐑑 𐑓𐑲𐑤 𐑯𐑱𐑥
+        if args.hex_view_output:
+            hex_output_file = args.hex_view_output
+        else:
+            base_name = os.path.splitext(args.input)[0]
+            hex_output_file = f"{base_name}_hex.html"
+        
+        # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑩𐑯 𐑕𐑱𐑝 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿 𐑮𐑦𐑐𐑹𐑑
+        report_generator.generate_report(hex_report_data, 'html', hex_output_file)
+        print(f"[+] Interactive hex view with integrated analysis saved to: {hex_output_file}")
+        return
+
+    # Check if we need a report generator for any of the following operations
+    need_report_generator = (
+        (args.hex_view and args.run_analysis) or
+        (args.run_analysis and (args.generate_report or args.report_output))
+    )
+    
+    if need_report_generator:
+        report_generator = ReportGenerator(config)
+
+    # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑐𐑹𐑑 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛 (𐑩𐑯 𐑯𐑪𐑑 𐑣𐑧𐑒𐑕 𐑝𐑿)
+    if args.run_analysis and (args.generate_report or args.report_output):
+        # 𐑒𐑮𐑦𐑱𐑑 𐑩 𐑒𐑩𐑥𐑐𐑮𐑦𐑣𐑧𐑯𐑕𐑦𐑝 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑐𐑹𐑑
+        basic_analysis = rewriter.analyze_binary()
+        report_data = report_generator.create_analysis_report(
+            args.input, 
+            basic_analysis, 
+            analysis_results
+        )
+        
+        if args.report_output:
+            report_generator.generate_report(report_data, args.report_format, args.report_output)
+        else:
+            # 𐑦𐑓 𐑯𐑴 𐑬𐑑𐑐𐑫𐑑 𐑓𐑲𐑤 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛, 𐑐𐑮𐑦𐑯𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑
+            report_content = report_generator.generate_report(report_data, args.report_format)
+            print("\n" + "="*50)
+            print("ANALYSIS REPORT")
+            print("="*50)
+            print(report_content)
+
+    # 𐑦𐑓 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑹 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑢𐑻 𐑮𐑳𐑯 𐑚𐑳𐑑 𐑯𐑪𐑑 𐑣𐑧𐑒𐑕 𐑝𐑿, 𐑮𐑦𐑑𐑻𐑯 𐑣𐑽
+    if args.run_analysis or args.suggest_obfuscation:
         return
 
     # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑕𐑧𐑒𐑖𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
@@ -1021,8 +1196,8 @@ def main():
         print("[-] Binary validation failed")
         return
 
-    # 𐑕𐑱𐑝
-    output_file = args.output or f"modified_{args.input}"
+    # Save
+    output_file = args.output or f"modified_{os.path.basename(args.input)}"
     if not rewriter.save_binary(output_file):
         return
 

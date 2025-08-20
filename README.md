@@ -10,6 +10,7 @@ Cumpyl is a Python-based binary analysis framework for analyzing, modifying, and
 
 - **Plugin Architecture**: Dynamic plugin discovery with standardized interfaces
 - **Multi-Format Support**: Native support for PE, ELF, and Mach-O binaries
+- **Interactive Hex Viewer**: Browser-based hex dump with hover tooltips showing analysis details
 - **Batch Processing**: Multi-threaded processing with configurable worker pools
 - **Comprehensive Reporting**: HTML, JSON, YAML, and XML report generation
 - **YAML Configuration**: Centralized configuration with predefined analysis profiles
@@ -17,7 +18,24 @@ Cumpyl is a Python-based binary analysis framework for analyzing, modifying, and
 
 ## Installation
 
-### Using Conda/Mamba (Recommended)
+### Modern Installation (Recommended with uv)
+
+```bash
+# Install uv package manager
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and install
+git clone https://github.com/umpolungfish/cumpyl.git
+cd cumpyl
+uv sync  # Creates virtual environment and installs all dependencies
+
+# Activate environment
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+```
+
+### Traditional Installation
+
+#### Using Conda/Mamba
 
 ```bash
 mamba create -n cumpyl -c conda-forge python=3.9
@@ -26,7 +44,7 @@ pip install lief capstone keystone-engine rich tqdm pyyaml
 pip install -e .
 ```
 
-### Using pip
+#### Using pip
 
 ```bash
 python -m venv cumpyl-env
@@ -37,6 +55,13 @@ pip install -e .
 
 ### Development Setup
 
+#### With uv (Recommended)
+```bash
+uv sync --extra dev --extra test
+python -m pytest tests/
+```
+
+#### Traditional
 ```bash
 pip install -e ".[dev,test]"
 python -m pytest tests/
@@ -53,6 +78,12 @@ cumpyl binary.exe --analyze-sections
 
 # Get obfuscation recommendations
 cumpyl binary.exe --suggest-obfuscation
+
+# Generate interactive hex viewer
+cumpyl binary.exe --hex-view
+
+# Comprehensive analysis with interactive hex view
+cumpyl binary.exe --hex-view --run-analysis --suggest-obfuscation
 
 # Run comprehensive analysis with HTML report
 cumpyl binary.exe --run-analysis --report-format html --report-output analysis.html
@@ -107,6 +138,13 @@ performance:
   enable_parallel_processing: true
   max_worker_threads: 4
   batch_size: 50
+
+output:
+  hex_viewer:
+    enabled: true
+    max_display_bytes: 2048
+    color_scheme: "dark"
+    auto_add_analysis_annotations: true
 
 analysis_profiles:
   malware_analysis:
@@ -211,6 +249,7 @@ cumpyl/
 │   ├── config.py           # Configuration management
 │   ├── plugin_manager.py   # Plugin architecture
 │   ├── batch_processor.py  # Batch processing
+│   ├── hex_viewer.py       # Interactive hex viewer
 │   └── reporting.py        # Report generation
 ├── plugins/                 # Plugin ecosystem
 ├── tests/                   # Test suite
