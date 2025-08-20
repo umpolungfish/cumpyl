@@ -70,6 +70,164 @@ cumpyl --show-config
 
 ## Quick Start
 
+
+## Interactive Menu System
+
+
+
+Cumpyl features a rich interactive menu system that provides guided access to all framework capabilities through an intuitive console interface. Launch the menu system with the `--menu` flag:
+
+
+
+```bash
+
+cumpyl binary.exe --menu
+
+# or for batch operations
+
+cumpyl --menu
+
+```
+
+
+
+### Main Menu Options
+
+
+
+1. **🔍 Quick Analysis**: Fast section analysis and obfuscation suggestions
+
+2. **🧪 Deep Analysis**: Comprehensive plugin-based analysis with reporting
+
+3. **🔧 Interactive Hex Viewer**: Explore binary with interactive hex dump
+
+4. **⚡ Batch Processing**: Process multiple files with automated workflows
+
+5. **🎯 Encoding Operations**: Obfuscate specific sections with various encodings
+
+6. **📊 Generate Reports**: Create detailed analysis reports in multiple formats
+
+7. **⚙️ Configuration**: View and modify framework settings
+
+8. **📁 Change Target**: Select a different binary file
+
+9. **❓ Help**: Show detailed help and examples
+
+10. **🚪 Quit**: Exit the menu system
+
+
+
+### Quick Analysis Menu
+
+
+
+- **Section Analysis Only**: Analyze binary structure and sections
+
+- **Obfuscation Suggestions**: Get intelligent section encoding recommendations
+
+- **Both Analysis + Suggestions**: Combined analysis and suggestions
+
+- **With Basic Hex View**: Analysis with integrated hex viewer
+
+
+
+### Deep Analysis Menu
+
+
+
+- **Plugin Analysis Only**: Run all loaded plugins on the target binary
+
+- **Analysis + HTML Report**: Plugin analysis with HTML report output
+
+- **Analysis + JSON Report**: Plugin analysis with JSON report output
+
+- **Full Workflow + Hex View**: Complete analysis with hex viewer
+
+- **Malware Analysis Profile**: Preconfigured malware-focused analysis
+
+- **Forensics Profile**: Preconfigured forensics-focused analysis
+
+
+
+### Interactive Hex Viewer Menu
+
+
+
+- **Basic Hex View**: Generate static hex dump with analysis annotations
+
+- **Interactive Section Selection**: Choose specific sections to view
+
+- **Hex + Full Analysis**: Hex view with comprehensive binary analysis
+
+- **Custom Range**: Specify custom byte ranges for viewing
+
+- **View Specific Section**: Focus on a particular binary section
+
+- **Large File View**: Optimized view for large binary files
+
+
+
+### Batch Processing Menu
+
+
+
+- **Process Directory**: Analyze all binaries in a specified directory
+
+- **Pattern-based Processing**: Process files matching glob patterns
+
+- **Multi-operation Batch**: Apply multiple operations to files
+
+- **Custom Batch Job**: Build custom batch processing command
+
+
+
+### Encoding Operations Menu
+
+
+
+- **Encode Single Section**: Apply encoding to one binary section
+
+- **Encode Multiple Sections**: Apply encodings to multiple sections
+
+- **Custom Range Encoding**: Encode specific byte ranges
+
+- **Batch Section Encoding**: Encode sections across multiple files
+
+
+
+### Report Generation Menu
+
+
+
+- **HTML Report**: Generate styled HTML analysis report
+
+- **JSON Report**: Generate machine-readable JSON report
+
+- **YAML Report**: Generate human-readable YAML report
+
+- **XML Report**: Generate structured XML report
+
+- **Custom Report**: Configure custom reporting options
+
+
+
+### Configuration Menu
+
+
+
+- **Show Current Config**: Display active framework configuration
+
+- **Validate Config**: Check configuration file for errors
+
+- **List Available Profiles**: View predefined analysis profiles
+
+- **Plugin Information**: Show loaded plugins and their status
+
+
+
+The menu system provides copy-ready command suggestions for direct CLI usage, making it easy to transition from guided exploration to automated workflows.
+
+
 ### Basic Usage
 
 ```bash
