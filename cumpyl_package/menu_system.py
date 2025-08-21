@@ -485,8 +485,8 @@ class CumpylMenu:
             self.console.print("[yellow]Loading binary for interactive hex viewer...[/yellow]")
             
             # 𐑤𐑴𐑛 𐑚𐑲𐑯𐑩𐑮𐑦 𐑯 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
-            rewriter = BinaryRewriter(self.config)
-            if not rewriter.load_file(self.target_file):
+            rewriter = BinaryRewriter(self.target_file, self.config)
+            if not rewriter.load_binary():
                 self.console.print(f"[red]Failed to load binary file: {self.target_file}[/red]")
                 return
                 
@@ -498,8 +498,9 @@ class CumpylMenu:
             hex_viewer.load_binary_data(binary_data)
             
             # 𐑨𐑛 𐑕𐑧𐑒𐑖𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
-            sections = rewriter.get_sections()
-            hex_viewer.add_section_annotations(sections)
+            if rewriter.binary and hasattr(rewriter.binary, 'sections'):
+                sections = list(rewriter.binary.sections)
+                hex_viewer.add_section_annotations(sections)
             
             # 𐑮𐑳𐑯 𐑩𐑯𐑨𐑤𐑦𐑕𐑦𐑕 𐑯 𐑨𐑛 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
             if Confirm.ask("Run analysis plugins for enhanced annotations?", default=True):
