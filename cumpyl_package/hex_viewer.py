@@ -55,7 +55,7 @@ class HexViewer:
         
         # 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑝𐑿𐑼 𐑕𐑑𐑱𐑑
         self.current_offset = 0
-        self.display_rows = 20
+        self.display_rows = 30  # 𐑦𐑯𐑒𐑮𐑰𐑕 𐑓𐑹 𐑚𐑧𐑑𐑼 𐑝𐑦𐑿𐑦𐑙
         self.search_results: List[int] = []
         self.search_index = 0
         
@@ -511,13 +511,15 @@ class HexViewer:
         if not self.binary_data:
             return "𐑯𐑴 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑤𐑴𐑛𐑦𐑛"
             
+        # 𐑓𐑹 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑝𐑿𐑼, 𐑢𐑰 𐑢𐑪𐑯𐑑 𐑑 𐑛𐑦𐑕𐑐𐑤𐑱 𐑞 𐑒𐑻𐑩𐑯𐑑 𐑝𐑦𐑿 (display_rows)
         if max_bytes is None:
-            try:
-                max_bytes = min(self.config.output.hex_viewer.max_display_bytes if self.config else 2048, len(self.binary_data))
-            except AttributeError:
-                max_bytes = min(2048, len(self.binary_data))
+            max_bytes = self.display_rows * self.bytes_per_row
             
-        data_to_show = self.binary_data[self.current_offset:self.current_offset + max_bytes]
+        # 𐑧𐑯𐑖𐑫𐑼 𐑢𐑰 𐑛𐑴𐑯𐑑 𐑜𐑴 𐑚𐑦𐑘𐑪𐑯𐑛 𐑞 𐑧𐑯𐑛 𐑝 𐑞 𐑓𐑲𐑤
+        remaining_bytes = len(self.binary_data) - self.current_offset
+        bytes_to_show = min(max_bytes, remaining_bytes)
+        
+        data_to_show = self.binary_data[self.current_offset:self.current_offset + bytes_to_show]
         hex_lines = []
         
         for i in range(0, len(data_to_show), self.bytes_per_row):
@@ -608,9 +610,17 @@ class HexViewer:
         
     def navigate_to_offset(self, offset: int):
         """𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑪𐑓𐑕𐑧𐑑"""
-        # 𐑩𐑤𐑲𐑯 𐑑 𐑮𐑴 𐑚𐑬𐑯𐑛𐑼𐑦 𐑓𐑹 𐑐𐑮𐑪𐑐𐑼 𐑛𐑦𐑕𐑐𐑤𐑱
-        aligned_offset = (offset // self.bytes_per_row) * self.bytes_per_row
-        self.current_offset = max(0, min(aligned_offset, len(self.binary_data) - 1))
+        # 𐑞 𐑪𐑓𐑕𐑧𐑑 𐑦𐑟 𐑞 𐑞𐑦𐑙 𐑢𐑰 𐑢𐑪𐑯𐑑 𐑑 𐑣𐑲𐑤𐑲𐑑, 𐑕𐑴 𐑨𐑤𐑲𐑯 𐑞 𐑝𐑦𐑿 𐑑 𐑦𐑯𐑒𐑤𐑵𐑛 𐑦𐑑
+        # 𐑩𐑤𐑲𐑯 𐑞 𐑝𐑦𐑿 𐑑 𐑖𐑴 𐑞 𐑤𐑦𐑯 𐑢𐑦𐑞 𐑞 𐑞𐑸𐑜𐑧𐑑 𐑪𐑓𐑕𐑧𐑑
+        target_row_start = (offset // self.bytes_per_row) * self.bytes_per_row
+        
+        # 𐑞𐑻𐑶 𐑨 𐑓𐑿 𐑮𐑴𐑟 𐑚𐑦𐑓𐑹 𐑞 𐑞𐑸𐑜𐑧𐑑 𐑓𐑹 𐑒𐑪𐑯𐑑𐑧𐑒𐑕𐑑
+        context_rows = 3
+        view_start = max(0, target_row_start - (context_rows * self.bytes_per_row))
+        
+        # 𐑧𐑯𐑖𐑫𐑼 𐑢𐑰 𐑛𐑴𐑯𐑑 𐑜𐑴 𐑚𐑦𐑘𐑪𐑯𐑛 𐑞 𐑧𐑯𐑛 𐑝 𐑞 𐑓𐑲𐑤
+        max_start = len(self.binary_data) - (self.display_rows * self.bytes_per_row)
+        self.current_offset = max(0, min(view_start, max_start))
         
     def navigate_next_search_result(self):
         """𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑯𐑧𐑒𐑕𐑑 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
@@ -714,6 +724,8 @@ class InteractiveHexViewerApp(App):
     BINDINGS = [
         Binding("j,down", "scroll_down", "Scroll Down"),
         Binding("k,up", "scroll_up", "Scroll Up"),
+        Binding("ctrl+d", "page_down", "Page Down"),
+        Binding("ctrl+u", "page_up", "Page Up"),
         Binding("g", "go_to_top", "Go to Top"),
         Binding("G", "go_to_bottom", "Go to Bottom"),
         Binding("f,/", "search", "Search"),
@@ -738,14 +750,29 @@ class InteractiveHexViewerApp(App):
         
     def action_scroll_down(self):
         """𐑕𐑒𐑮𐑴𐑤 𐑛𐑬𐑯 𐑦𐑯 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿"""
-        self.hex_viewer.current_offset += self.hex_viewer.bytes_per_row
-        if self.hex_viewer.current_offset >= len(self.hex_viewer.binary_data):
-            self.hex_viewer.current_offset = len(self.hex_viewer.binary_data) - self.hex_viewer.bytes_per_row
+        max_offset = len(self.hex_viewer.binary_data) - (self.hex_viewer.display_rows * self.hex_viewer.bytes_per_row)
+        new_offset = self.hex_viewer.current_offset + self.hex_viewer.bytes_per_row
+        self.hex_viewer.current_offset = min(new_offset, max(0, max_offset))
         self._refresh_display()
         
     def action_scroll_up(self):
         """𐑕𐑒𐑮𐑴𐑤 𐑳𐑐 𐑦𐑯 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿"""
         self.hex_viewer.current_offset = max(0, self.hex_viewer.current_offset - self.hex_viewer.bytes_per_row)
+        self._refresh_display()
+        
+    def action_page_down(self):
+        """𐑐𐑱𐑡 𐑛𐑬𐑯 (𐑕𐑒𐑮𐑴𐑤 𐑩 𐑓𐑻𐑤 𐑕𐑒𐑮𐑰𐑯)"""
+        page_size = (self.hex_viewer.display_rows - 2) * self.hex_viewer.bytes_per_row
+        max_offset = len(self.hex_viewer.binary_data) - (self.hex_viewer.display_rows * self.hex_viewer.bytes_per_row)
+        new_offset = self.hex_viewer.current_offset + page_size
+        self.hex_viewer.current_offset = min(new_offset, max(0, max_offset))
+        self._refresh_display()
+        
+    def action_page_up(self):
+        """𐑐𐑱𐑡 𐑳𐑐 (𐑕𐑒𐑮𐑴𐑤 𐑩 𐑓𐑻𐑤 𐑕𐑒𐑮𐑰𐑯)"""
+        page_size = (self.hex_viewer.display_rows - 2) * self.hex_viewer.bytes_per_row
+        new_offset = self.hex_viewer.current_offset - page_size
+        self.hex_viewer.current_offset = max(0, new_offset)
         self._refresh_display()
         
     def action_go_to_top(self):
@@ -755,7 +782,8 @@ class InteractiveHexViewerApp(App):
         
     def action_go_to_bottom(self):
         """𐑜𐑴 𐑑 𐑚𐑪𐑑𐑩𐑥 𐑝 𐑓𐑲𐑤"""
-        self.hex_viewer.current_offset = max(0, len(self.hex_viewer.binary_data) - self.hex_viewer.display_rows * self.hex_viewer.bytes_per_row)
+        max_offset = len(self.hex_viewer.binary_data) - (self.hex_viewer.display_rows * self.hex_viewer.bytes_per_row)
+        self.hex_viewer.current_offset = max(0, max_offset)
         self._refresh_display()
         
     def action_search(self):
@@ -839,7 +867,17 @@ class InteractiveHexViewerApp(App):
             if ann.start_offset < view_end and ann.end_offset > view_start:
                 current_annotations.append(ann)
                 
-        self.notify(f"Total annotations: {annotation_count}, Visible: {len(current_annotations)}")
+        # 𐑨𐑛 𐑛𐑦𐑑𐑱𐑤 𐑦𐑯𐑓𐑹𐑥𐑱𐑖𐑩𐑯
+        info_lines = [f"Total annotations: {annotation_count}, Visible: {len(current_annotations)}"]
+        info_lines.append(f"Current view: 0x{view_start:X} - 0x{view_end:X}")
+        info_lines.append(f"File size: {len(self.hex_viewer.binary_data)} bytes")
+        
+        if current_annotations:
+            info_lines.append("Visible annotations:")
+            for i, ann in enumerate(current_annotations[:5]):  # 𐑤𐑦𐑥𐑦𐑑 𐑑 5
+                info_lines.append(f"  {i+1}. {ann.annotation_type} at 0x{ann.start_offset:X}")
+                
+        self.notify("\n".join(info_lines))
         
     def _refresh_display(self):
         """𐑮𐑰𐑓𐑮𐑧𐑖 𐑞 𐑣𐑧𐑒𐑕 𐑛𐑦𐑕𐑐𐑤𐑱"""
