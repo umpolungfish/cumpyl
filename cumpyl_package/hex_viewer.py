@@ -645,12 +645,8 @@ class TextualHexViewer(Static):
     """𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑢𐑦𐑡𐑧𐑑"""
     
     def __init__(self, hex_viewer: HexViewer, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(hex_viewer.generate_textual_hex_view(), id="hex-display", **kwargs)
         self.hex_viewer = hex_viewer
-        
-    def compose(self) -> ComposeResult:
-        """𐑒𐑩𐑥𐑐𐑴𐑟 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑢𐑦𐑡𐑧𐑑"""
-        yield Static(self.hex_viewer.generate_textual_hex_view(), id="hex-display")
 
 
 class HexSearchDialog(ModalScreen[str]):
@@ -665,10 +661,9 @@ class HexSearchDialog(ModalScreen[str]):
         with Container(id="search-dialog"):
             yield Label("Search for hex bytes or string:", id="search-label")
             yield Input(placeholder="Enter hex (e.g. 4D5A) or string", id="search-input")
-            with Horizontal():
-                yield Button("Search Hex", variant="primary", id="search-hex")
-                yield Button("Search String", variant="primary", id="search-string")
-                yield Button("Cancel", variant="default", id="cancel")
+            yield Button("Search Hex", variant="primary", id="search-hex")
+            yield Button("Search String", variant="primary", id="search-string")
+            yield Button("Cancel", variant="default", id="cancel")
                 
     def action_dismiss(self):
         self.dismiss("")
@@ -698,8 +693,8 @@ class InteractiveHexViewerApp(App):
     CSS_PATH = None
     CSS = """
     #search-dialog {
-        width: 60;
-        height: 8;
+        width: 50;
+        height: 10;
         background: $surface;
         border: thick $primary;
     }
@@ -714,9 +709,11 @@ class InteractiveHexViewerApp(App):
     }
     
     #hex-display {
-        margin: 1;
+        width: 100%;
+        height: 100%;
+        margin: 0;
         padding: 1;
-        border: solid $primary;
+        border: none;
         background: $surface;
     }
     """
@@ -742,10 +739,7 @@ class InteractiveHexViewerApp(App):
         
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield ScrollableContainer(
-            TextualHexViewer(self.hex_viewer, id="hex-viewer"),
-            id="main-container"
-        )
+        yield TextualHexViewer(self.hex_viewer, id="hex-viewer")
         yield Footer()
         
     def action_scroll_down(self):
