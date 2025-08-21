@@ -158,6 +158,43 @@ cumpyl binary.exe --run-analysis --report-format xml --report-output enterprise_
 ```
 
 ### 🔍 Interactive Hex Viewer
+
+#### 🖥️ Terminal-based Interactive Hex Viewer (NEW!)
+```bash
+# Access via interactive menu system
+cumpyl --menu  # Select option 3: "Interactive Hex Viewer" → "Interactive Terminal Hex Viewer"
+
+# Or programmatically through menu system
+python -c "
+from cumpyl_package.menu_system import CumpylMenu
+from cumpyl_package.config import ConfigManager
+menu = CumpylMenu(ConfigManager())
+menu.target_file = 'binary.exe'
+menu.launch_textual_hex_viewer()
+"
+```
+
+**🎯 Terminal Hex Viewer Features:**
+- **🎮 Keyboard Navigation**: j/k or ↓/↑ for scrolling, g/G for top/bottom
+- **🔍 Real-time Search**: f/‍/ to search hex bytes or strings, n/N for next/previous match  
+- **🎨 Color-coded Annotations**: Sections (blue), strings (green), entropy (yellow), suggestions (red)
+- **📊 Live Annotation Info**: Press 'a' to see annotation statistics for current view
+- **⚡ Performance Optimized**: Smooth scrolling with configurable display limits
+- **🔄 Real-time Updates**: Press 'r' to refresh display, automatic annotation integration
+
+**🎛️ Interactive Controls:**
+- **j, ↓**: Scroll down one row
+- **k, ↑**: Scroll up one row  
+- **g**: Go to top of file
+- **G**: Go to bottom of file
+- **f, /**: Open search dialog
+- **n**: Next search result
+- **N**: Previous search result
+- **a**: Show annotation information
+- **r**: Refresh display
+- **q**: Quit viewer
+
+#### 🌐 HTML-based Hex Viewer (Traditional)
 ```bash
 # Generate interactive hex dump with analysis overlay
 cumpyl binary.exe --hex-view
@@ -395,10 +432,13 @@ python -m pytest tests/ -v -s
 - **Plugin testing infrastructure** for extensibility validation
 - **Coverage reporting** for quality assurance
 
-#### 🔍 Interactive Hex Viewer (COMPLETED)
-- **Interactive hex dump visualization** with hover tooltips
+#### 🔍 Interactive Hex Viewer (COMPLETED + NEW!)
+- **Terminal-based Interactive Viewer**: Full-featured TUI hex viewer with Textual framework
+- **Real-time Keyboard Navigation**: Vim-like controls (j/k/g/G) for smooth scrolling
+- **Advanced Search Functionality**: Search hex bytes or strings with result navigation
+- **Live Annotation Integration**: Color-coded sections, entropy, strings, and suggestions
+- **Interactive HTML Viewer**: Traditional browser-based hex dump with hover tooltips
 - **Analysis overlay integration** showing sections, strings, entropy, and suggestions
-- **Color-coded annotations** with severity-based styling
 - **Configurable display options** through YAML configuration
 - **CLI integration** with `--hex-view` command options
 - **HTML report embedding** for comprehensive analysis reports

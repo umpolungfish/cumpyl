@@ -76,7 +76,7 @@ output:
   hex_viewer:
     enabled: true
     default_bytes_per_row: 16
-    max_display_bytes: 2048
+    max_display_bytes: 65536
     show_ascii: true
     show_offsets: true
     auto_add_section_annotations: true

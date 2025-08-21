@@ -10,7 +10,8 @@ Cumpyl is a Python-based binary analysis framework for analyzing, modifying, and
 
 - **Plugin Architecture**: Dynamic plugin discovery with standardized interfaces
 - **Multi-Format Support**: Native support for PE, ELF, and Mach-O binaries
-- **Interactive Hex Viewer**: Browser-based hex dump with hover tooltips showing analysis details
+- **Dual-Mode Hex Viewer**: Terminal TUI viewer (NEW!) + traditional browser-based hex dumps
+- **Interactive Terminal Interface**: Full-featured TUI hex viewer with vim-like controls and real-time search
 - **Batch Processing**: Multi-threaded processing with configurable worker pools
 - **Comprehensive Reporting**: HTML, JSON, YAML, and XML report generation
 - **YAML Configuration**: Centralized configuration with predefined analysis profiles
@@ -40,7 +41,7 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 ```bash
 mamba create -n cumpyl -c conda-forge python=3.9
 mamba activate cumpyl
-pip install lief capstone keystone-engine rich tqdm pyyaml
+pip install lief capstone keystone-engine rich tqdm pyyaml textual
 pip install -e .
 ```
 
@@ -49,7 +50,7 @@ pip install -e .
 ```bash
 python -m venv cumpyl-env
 source cumpyl-env/bin/activate  # Windows: cumpyl-env\Scripts\activate
-pip install lief capstone keystone-engine rich tqdm pyyaml
+pip install lief capstone keystone-engine rich tqdm pyyaml textual
 pip install -e .
 ```
 
@@ -151,7 +152,16 @@ cumpyl --menu
 
 ### Interactive Hex Viewer Menu
 
+#### 🖥️ Terminal-based Interactive Hex Viewer (NEW!)
 
+- **Interactive Terminal Hex Viewer**: Full TUI experience with real-time navigation
+  - **Vim-like Controls**: j/k/g/G for smooth scrolling
+  - **Live Search**: Search hex bytes or strings with instant highlighting  
+  - **Color-coded Annotations**: Sections (blue), strings (green), entropy (yellow), suggestions (red)
+  - **Real-time Analysis Integration**: Plugin results and obfuscation suggestions
+  - **Performance Optimized**: Smooth rendering with configurable limits
+
+#### 🌐 HTML-based Hex Viewer (Traditional)
 
 - **Basic Hex View**: Generate static hex dump with analysis annotations
 

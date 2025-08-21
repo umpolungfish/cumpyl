@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Example script demonstrating the encoding/decoding functionality of cumpyl
+Example script demonstrating the encoding/decoding functionality and interactive hex viewer of cumpyl
 """
 
 import tempfile

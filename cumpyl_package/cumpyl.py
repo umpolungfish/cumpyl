@@ -928,6 +928,69 @@ def main():
                 console.print(f"[green]✓ {plugin_name}: Analysis completed[/green]")
                 if config.framework.debug_mode:
                     console.print(f"  Result keys: {list(result.keys())}")
+        
+        # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑕𐑧𐑤𐑧𐑒𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑟 𐑓𐑹 𐑫𐑮 𐑫𐑯 𐑕𐑧𐑒𐑖𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑕𐑦𐑙𐑜𐑩𐑤 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕
+        if args.profile == "forensics" and analysis_results:
+            # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑫𐑮 𐑡𐑧𐑯𐑼𐑱𐑑 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹 𐑫𐑮 𐑫𐑯 𐑕𐑧𐑒𐑖𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕
+            if 'entropy_analysis' in analysis_results and 'error' not in analysis_results['entropy_analysis']:
+                entropy_result = analysis_results['entropy_analysis']
+                console.print(Panel("Entropy Analysis Results", style="bold blue"))
+                
+                # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑴𐑝𐑼𐑷𐑤 𐑩𐑕𐑧𐑕𐑥𐑩𐑯𐑑
+                if 'overall_assessment' in entropy_result:
+                    assessment = entropy_result['overall_assessment']
+                    if assessment.get('likely_packed'):
+                        console.print("[yellow]⚠️  Potential packing detected[/yellow]")
+                        if assessment.get('high_entropy_sections'):
+                            sections = ', '.join(assessment['high_entropy_sections'])
+                            console.print(f"  High entropy sections: {sections}")
+                    else:
+                        console.print("[green]✓ No packing detected[/green]")
+                
+                # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑕𐑧𐑒𐑖𐑩𐑯-𐑚𐑲-𐑕𐑧𐑒𐑖𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕
+                if 'sections' in entropy_result:
+                    for section_name, section_data in entropy_result['sections'].items():
+                        entropy = section_data.get('overall_entropy', 0)
+                        if entropy > 7.5:  # 𐑣𐑲 𐑧𐑯𐑑𐑮𐑩𐑐𐑦 𐑛𐑧𐑑𐑧𐑒𐑖𐑩𐑯 𐑔𐑮𐑧𐑖𐑱𐑤𐑛
+                            console.print(f"[yellow]  {section_name}: High entropy ({entropy})[/yellow]")
+                        elif entropy > 1.0:  # 𐑯𐑹𐑥𐑩𐑤 𐑧𐑯𐑑𐑮𐑩𐑐𐑦
+                            console.print(f"[white]  {section_name}: Normal entropy ({entropy})[/white]")
+                        else:  # 𐑤𐑴 𐑧𐑯𐑑𐑮𐑩𐑐𐑦
+                            console.print(f"[dim]  {section_name}: Low entropy ({entropy})[/dim]")
+            
+            # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑕𐑑𐑮𐑦𐑙 𐑧𐑒𐑕𐑑𐑮𐑨𐑒𐑖𐑩𐑯 𐑮𐑦𐑟𐑳𐑤𐑑𐑟
+            if 'string_extraction' in analysis_results and 'error' not in analysis_results['string_extraction']:
+                string_result = analysis_results['string_extraction']
+                console.print(Panel("String Extraction Results", style="bold magenta"))
+                
+                # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑕𐑧𐑒𐑖𐑩𐑯
+                if 'sections' in string_result:
+                    total_strings = 0
+                    for section_name, section_data in string_result['sections'].items():
+                        count = section_data.get('string_count', {}).get('total', 0)
+                        total_strings += count
+                        if count > 0:
+                            console.print(f"[white]  {section_name}: {count} strings extracted[/white]")
+                    
+                    # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑒𐑪𐑥𐑩𐑯 𐑕𐑑𐑮𐑦𐑙𐑟
+                    if 'summary' in string_result:
+                        summary = string_result['summary']
+                        if summary.get('interesting_strings'):
+                            console.print("[bold green]🔍 Interesting strings found:[/bold green]")
+                            for string_info in summary['interesting_strings'][:5]:  # 𐑕𐑴 𐑴𐑯𐑤𐑦 𐑞 𐑑𐑩𐑛 5
+                                console.print(f"  [dim]{string_info['section']}:[/dim] {string_info['value'][:50]}{'...' if len(string_info['value']) > 50 else ''} (Score: {string_info['score']:.1f})")
+                        
+                        # 𐑛𐑦𐑕𐑐𐑤𐑱 API 𐑓𐑳𐑙𐑒𐑖𐑩𐑯𐑟
+                        if summary.get('api_functions_found'):
+                            console.print("[bold blue]🔧 API functions detected:[/bold blue]")
+                            functions = summary['api_functions_found'][:10]  # 𐑕𐑴 𐑴𐑯𐑤𐑦 𐑞 𐑑𐑩𐑛 10
+                            console.print(f"  {', '.join(functions)}")
+                        
+                        # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑯𐑧𐑑𐑢𐑻𐑒 𐑦𐑯𐑛𐑦𐑒𐑱𐑑𐑼𐑟
+                        if summary.get('network_indicators'):
+                            console.print("[bold yellow]🌐 Network indicators:[/bold yellow]")
+                            for indicator in summary['network_indicators'][:5]:  # 𐑕𐑴 𐑴𐑯𐑤𐑦 𐑞 𐑑𐑩𐑛 5
+                                console.print(f"  [dim]{indicator['section']}:[/dim] {indicator['value']} ({indicator['type']})")
 
     # 𐑮𐑳𐑯 𐑪𐑚𐑓𐑩𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯𐑟 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
     if args.suggest_obfuscation:
@@ -1072,6 +1135,76 @@ def main():
             print("ANALYSIS REPORT")
             print("="*50)
             print(report_content)
+    elif args.run_analysis and args.profile == "forensics":
+        # 𐑓𐑹 𐑞 𐑓𐑹𐑯𐑕𐑦𐑒𐑕 𐑐𐑮𐑴𐑓𐑲𐑤, 𐑛𐑦𐑕𐑐𐑤𐑱 𐑩 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑮𐑦𐑐𐑹𐑑 𐑑 𐑞 𐑒𐑪𐑯𐑕𐑴𐑤
+        console = Console()
+        console.print("\n" + "="*60)
+        console.print("[bold cyan]FORENSICS ANALYSIS REPORT[/bold cyan]")
+        console.print("="*60)
+        
+        # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑧𐑯𐑑𐑮𐑩𐑐𐑦 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑟
+        if 'entropy_analysis' in analysis_results and 'error' not in analysis_results['entropy_analysis']:
+            entropy_result = analysis_results['entropy_analysis']
+            console.print(Panel("Entropy Analysis", style="bold blue"))
+            
+            if 'overall_assessment' in entropy_result:
+                assessment = entropy_result['overall_assessment']
+                if assessment.get('likely_packed'):
+                    console.print("[bold yellow]⚠️  POTENTIAL PACKING DETECTED[/bold yellow]")
+                    if assessment.get('high_entropy_sections'):
+                        sections = ', '.join(assessment['high_entropy_sections'])
+                        console.print(f"  High entropy sections: [bold]{sections}[/bold]")
+                else:
+                    console.print("[bold green]✓ No packing detected[/bold green]")
+            
+            if 'sections' in entropy_result:
+                console.print("\n[bold]Section Entropy Analysis:[/bold]")
+                for section_name, section_data in entropy_result['sections'].items():
+                    entropy = section_data.get('overall_entropy', 0)
+                    if entropy > 7.5:
+                        console.print(f"[yellow]  {section_name}: {entropy} (High - possible encryption/packing)[/yellow]")
+                    elif entropy > 1.0:
+                        console.print(f"[white]  {section_name}: {entropy} (Normal)[/white]")
+                    else:
+                        console.print(f"[dim]  {section_name}: {entropy} (Low - repetitive data)[/dim]")
+        
+        # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑕𐑑𐑮𐑦𐑙 𐑧𐑒𐑕𐑑𐑮𐑨𐑒𐑖𐑩𐑯 𐑮𐑦𐑟𐑳𐑤𐑑𐑟
+        if 'string_extraction' in analysis_results and 'error' not in analysis_results['string_extraction']:
+            string_result = analysis_results['string_extraction']
+            console.print(Panel("String Extraction", style="bold magenta"))
+            
+            if 'summary' in string_result:
+                summary = string_result['summary']
+                
+                # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑑𐑴𐑑𐑩𐑤 𐑕𐑑𐑮𐑦𐑙 𐑕𐑑𐑨𐑑𐑦𐑕𐑑𐑦𐑒𐑕
+                total_strings = summary.get('total_strings', 0)
+                console.print(f"[bold]Total strings extracted: {total_strings}[/bold]")
+                
+                # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑦𐑯𐑑𐑼𐑧𐑕𐑑𐑦𐑙 𐑕𐑑𐑮𐑦𐑙𐑟
+                if summary.get('interesting_strings'):
+                    console.print("\n[bold green]🔍 Interesting Strings:[/bold green]")
+                    for string_info in summary['interesting_strings'][:10]:
+                        score = string_info.get('score', 0)
+                        score_color = "red" if score > 8 else "yellow" if score > 5 else "green"
+                        console.print(f"  [dim]{string_info['section']}:[/dim] [bold]{string_info['value'][:60]}{'...' if len(string_info['value']) > 60 else ''}[/bold] [{score_color}]({score:.1f})[/]")
+                
+                # 𐑛𐑦𐑕𐑐𐑤𐑱 API 𐑓𐑳𐑙𐑒𐑖𐑩𐑯𐑟
+                if summary.get('api_functions_found'):
+                    console.print("\n[bold blue]🔧 API Functions:[/bold blue]")
+                    functions = summary['api_functions_found'][:15]
+                    console.print(f"  {', '.join(functions)}")
+                
+                # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑯𐑧𐑑𐑢𐑻𐑒 𐑦𐑯𐑛𐑦𐑒𐑱𐑑𐑼𐑟
+                if summary.get('network_indicators'):
+                    console.print("\n[bold yellow]🌐 Network Indicators:[/bold yellow]")
+                    for indicator in summary['network_indicators'][:10]:
+                        console.print(f"  [dim]{indicator['section']}:[/dim] {indicator['value']} ({indicator['type']})")
+                
+                # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑕𐑧𐑒𐑿𐑮𐑦𐑑𐑦 𐑮𐑦𐑤𐑱𐑑𐑦𐑛 𐑕𐑑𐑮𐑦𐑙𐑟
+                if summary.get('security_related'):
+                    console.print("\n[bold red]🔒 Security-Related Strings:[/bold red]")
+                    for indicator in summary['security_related'][:10]:
+                        console.print(f"  [dim]{indicator['section']}:[/dim] {indicator['value']} ({indicator['type']})")
 
     # 𐑦𐑓 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑹 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑢𐑻 𐑮𐑳𐑯 𐑚𐑳𐑑 𐑯𐑪𐑑 𐑣𐑧𐑒𐑕 𐑝𐑿, 𐑮𐑦𐑑𐑻𐑯 𐑣𐑽
     if args.run_analysis or args.suggest_obfuscation:

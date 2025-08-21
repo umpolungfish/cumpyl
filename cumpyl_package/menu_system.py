@@ -193,12 +193,13 @@ class CumpylMenu:
         self.console.print(Panel("🔧 Interactive Hex Viewer Options", style="bold magenta"))
         
         options = [
-            ("1", "Basic Hex View", f"cumpyl {self.target_file} --hex-view"),
-            ("2", "Interactive Section Selection", f"cumpyl {self.target_file} --hex-view --hex-view-interactive"),
-            ("3", "Hex + Full Analysis", f"cumpyl {self.target_file} --hex-view --run-analysis --suggest-obfuscation"),
-            ("4", "Custom Range (specify offset)", "Custom command builder"),
-            ("5", "View Specific Section", "Custom section selector"),
-            ("6", "Large File View (8KB)", f"cumpyl {self.target_file} --hex-view --hex-view-bytes 8192"),
+            ("1", "Basic Hex View (HTML)", f"cumpyl {self.target_file} --hex-view"),
+            ("2", "Interactive Section Selection (HTML)", f"cumpyl {self.target_file} --hex-view --hex-view-interactive"),
+            ("3", "Interactive Terminal Hex Viewer", "Launch TUI hex viewer with navigation"),
+            ("4", "Hex + Full Analysis", f"cumpyl {self.target_file} --hex-view --run-analysis --suggest-obfuscation"),
+            ("5", "Custom Range (specify offset)", "Custom command builder"),
+            ("6", "View Specific Section", "Custom section selector"),
+            ("7", "Large File View (8KB)", f"cumpyl {self.target_file} --hex-view --hex-view-bytes 8192"),
             ("b", "Back to Main Menu", "")
         ]
         
@@ -215,12 +216,15 @@ class CumpylMenu:
         choice = Prompt.ask(
             "\n[yellow]Select hex viewer option[/yellow]",
             choices=[opt[0] for opt in options],
-            default="2"
+            default="3"
         )
         
         if choice == "b":
             return
-        elif choice == "4":
+        elif choice == "3":
+            # 𐑤𐑷𐑯𐑗 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
+            self.launch_textual_hex_viewer()
+        elif choice == "5":
             # 𐑒𐑩𐑕𐑑𐑩𐑥 𐑮𐑱𐑯𐑡 𐑦𐑯𐑐𐑫𐑑
             offset = Prompt.ask("Enter starting offset (hex like 0x1000 or decimal)", default="0x0")
             bytes_count = Prompt.ask("Enter number of bytes to display", default="2048")
@@ -231,7 +235,7 @@ class CumpylMenu:
                 cmd += " --run-analysis --suggest-obfuscation"
             
             self.execute_command(cmd)
-        elif choice == "5":
+        elif choice == "6":
             # 𐑕𐑧𐑒𐑖𐑩𐑯 𐑕𐑧𐑤𐑧𐑒𐑑𐑼
             section = Prompt.ask("Enter section name (e.g., .text, .data, .rdata)", default=".text")
             analysis = Confirm.ask("Include analysis and suggestions?", default=True)
@@ -471,6 +475,52 @@ class CumpylMenu:
         else:
             cmd = options[int(choice) - 1][2]
             self.execute_command(cmd)
+    
+    def launch_textual_hex_viewer(self):
+        """𐑤𐑷𐑯𐑗 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼"""
+        try:
+            from .hex_viewer import HexViewer, launch_textual_hex_viewer
+            from .cumpyl import BinaryRewriter
+            
+            self.console.print("[yellow]Loading binary for interactive hex viewer...[/yellow]")
+            
+            # 𐑤𐑴𐑛 𐑚𐑲𐑯𐑩𐑮𐑦 𐑯 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
+            rewriter = BinaryRewriter(self.config)
+            if not rewriter.load_file(self.target_file):
+                self.console.print(f"[red]Failed to load binary file: {self.target_file}[/red]")
+                return
+                
+            hex_viewer = HexViewer(self.config)
+            
+            # 𐑤𐑴𐑛 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩
+            with open(self.target_file, 'rb') as f:
+                binary_data = f.read()
+            hex_viewer.load_binary_data(binary_data)
+            
+            # 𐑨𐑛 𐑕𐑧𐑒𐑖𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
+            sections = rewriter.get_sections()
+            hex_viewer.add_section_annotations(sections)
+            
+            # 𐑮𐑳𐑯 𐑩𐑯𐑨𐑤𐑦𐑕𐑦𐑕 𐑯 𐑨𐑛 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
+            if Confirm.ask("Run analysis plugins for enhanced annotations?", default=True):
+                analysis_results = rewriter.run_plugin_analysis()
+                hex_viewer.add_analysis_annotations(analysis_results)
+                
+                # 𐑨𐑛 𐑪𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑜𐑧𐑕𐑑𐑩𐑯𐑟
+                suggestions = rewriter.suggest_obfuscation()
+                hex_viewer.add_suggestion_annotations(suggestions)
+            
+            self.console.print("[green]Launching interactive hex viewer...[/green]")
+            self.console.print("[dim]Use j/k or ↓/↑ to scroll, f/⁄ to search, a for annotations, q to quit[/dim]")
+            
+            # 𐑤𐑷𐑯𐑗 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑨𐑐
+            launch_textual_hex_viewer(hex_viewer)
+            
+        except ImportError:
+            self.console.print("[red]Textual package is required for interactive hex viewer.[/red]")
+            self.console.print("[yellow]Install with: pip install textual[/yellow]")
+        except Exception as e:
+            self.console.print(f"[red]Error launching textual hex viewer: {str(e)}[/red]")
     
     def execute_command(self, command: str):
         """𐑧𐑒𐑕𐑦𐑒𐑿𐑑 𐑩 Cumpyl 𐑒𐑩𐑥𐑭𐑯𐑛"""

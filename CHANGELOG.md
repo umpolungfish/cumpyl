@@ -5,6 +5,28 @@ All notable changes to the Cumpyl framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2025-08-21
+
+### Added
+- **Interactive Terminal Hex Viewer**: Complete TUI-based hex viewer using Textual framework
+  - Vim-like navigation controls (j/k/g/G for scrolling)
+  - Real-time search functionality for hex bytes and strings with n/N navigation
+  - Color-coded annotations showing sections (blue), strings (green), entropy (yellow), and obfuscation suggestions (red)
+  - Live annotation information display with 'a' command
+  - Performance-optimized rendering with configurable display limits
+  - Integration with existing analysis plugins and obfuscation suggestion system
+- Added Textual framework dependency to requirements.in
+- Extended HexViewer class with textual display methods and navigation state tracking
+- New InteractiveHexViewerApp with complete keyboard binding system
+- HexSearchDialog modal interface for hex/string search operations
+- Enhanced menu system integration for seamless TUI hex viewer launching
+
+### Changed
+- Updated interactive menu system to include Terminal hex viewer as option 3
+- Enhanced hex viewer menu with dual-mode options (Terminal TUI + HTML)
+- Updated documentation (README.md, CLAUDE.md) to highlight new TUI capabilities
+- Improved hex viewer architecture to support both HTML and terminal output modes
+
 ## [0.3.1] - 2025-08-19
 
 ### Fixed

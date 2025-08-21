@@ -64,6 +64,21 @@ class PerformanceConfig:
     memory_limit_mb: int = 512
 
 
+@dataclass
+class HexViewerConfig:
+    """𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯 𐑕𐑧𐑑𐑦𐑙𐑟"""
+    enabled: bool = True
+    default_bytes_per_row: int = 16
+    max_display_bytes: int = 2048
+    show_ascii: bool = True
+    show_offsets: bool = True
+    auto_add_section_annotations: bool = True
+    auto_add_analysis_annotations: bool = True
+    auto_add_suggestion_annotations: bool = True
+    color_scheme: str = "dark"  # "light" or "dark"
+    annotation_priority: List[str] = field(default_factory=lambda: ["suggestions", "entropy", "strings", "sections"])
+
+
 @dataclass  
 class OutputConfig:
     """𐑬𐑑𐑐𐑫𐑑 𐑯 𐑮𐑦𐑐𐑹𐑑 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯 𐑕𐑧𐑑𐑦𐑙𐑟"""
@@ -82,6 +97,9 @@ class OutputConfig:
     split_large_reports: bool = True
     max_report_size_mb: int = 50
     files_per_chunk: int = 10
+    
+    # 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑕𐑧𐑑𐑦𐑙𐑟
+    hex_viewer: HexViewerConfig = field(default_factory=HexViewerConfig)
 
 
 class ConfigManager:
