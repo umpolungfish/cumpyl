@@ -482,39 +482,60 @@ class CumpylMenu:
             from .hex_viewer import HexViewer, launch_textual_hex_viewer
             from .cumpyl import BinaryRewriter
             
-            self.console.print("[yellow]Loading binary for interactive hex viewer...[/yellow]")
+            self.console.print("[yellow]Loading file for interactive hex viewer...[/yellow]")
             
-            # 𐑤𐑴𐑛 𐑚𐑲𐑯𐑩𐑮𐑦 𐑯 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
-            rewriter = BinaryRewriter(self.target_file, self.config)
-            if not rewriter.load_binary():
-                self.console.print(f"[red]Failed to load binary file: {self.target_file}[/red]")
+            # ✅ 𐑤𐑴𐑛 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑛𐑲𐑮𐑧𐑒𐑑𐑤𐑦 (𐑯𐑴 𐑯𐑰𐑛 𐑓𐑹 𐑝𐑨𐑤𐑦𐑛 PE/ELF)
+            try:
+                with open(self.target_file, 'rb') as f:
+                    binary_data = f.read()
+                    
+                if not binary_data:
+                    self.console.print(f"[red]File is empty: {self.target_file}[/red]")
+                    return
+                    
+            except FileNotFoundError:
+                self.console.print(f"[red]File not found: {self.target_file}[/red]")
+                return
+            except Exception as e:
+                self.console.print(f"[red]Error reading file: {str(e)}[/red]")
                 return
                 
+            # 🔧 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑢𐑦𐑞 𐑛𐑱𐑑𐑩
             hex_viewer = HexViewer(self.config)
-            
-            # 𐑤𐑴𐑛 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩
-            with open(self.target_file, 'rb') as f:
-                binary_data = f.read()
             hex_viewer.load_binary_data(binary_data)
             
-            # 𐑨𐑛 𐑕𐑧𐑒𐑖𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
-            if rewriter.binary and hasattr(rewriter.binary, 'sections'):
-                sections = list(rewriter.binary.sections)
-                hex_viewer.add_section_annotations(sections)
-            
-            # 𐑮𐑳𐑯 𐑩𐑯𐑨𐑤𐑦𐑕𐑦𐑕 𐑯 𐑨𐑛 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
-            if Confirm.ask("Run analysis plugins for enhanced annotations?", default=True):
-                analysis_results = rewriter.run_plugin_analysis()
-                hex_viewer.add_analysis_annotations(analysis_results)
+            # 📊 𐑞𐑮𐑲 𐑑 𐑤𐑴𐑛 𐑨𐑟 𐑚𐑲𐑯𐑩𐑮𐑦 𐑓𐑹 𐑧𐑯𐑣𐑨𐑯𐑕𐑑 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 (𐑪𐑐𐑖𐑩𐑯𐑩𐑤)
+            rewriter = None
+            try:
+                rewriter = BinaryRewriter(self.target_file, self.config)
+                if rewriter.load_binary():
+                    self.console.print("[green]✅ Detected structured binary (PE/ELF/Mach-O)[/green]")
+                    # 𐑨𐑛 𐑕𐑧𐑒𐑖𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
+                    if rewriter.binary and hasattr(rewriter.binary, 'sections'):
+                        sections = list(rewriter.binary.sections)
+                        hex_viewer.add_section_annotations(sections)
+                        
+                    # 🔍 𐑩𐑕𐑒 𐑓𐑹 𐑧𐑯𐑣𐑨𐑯𐑕𐑑 𐑨𐑯𐑨𐑤𐑦𐑟𐑦𐑕
+                    if Confirm.ask("Run analysis plugins for enhanced annotations?", default=True):
+                        try:
+                            analysis_results = rewriter.run_plugin_analysis()
+                            hex_viewer.add_analysis_annotations(analysis_results)
+                            
+                            # 𐑨𐑛 𐑪𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑜𐑧𐑕𐑑𐑩𐑯𐑟
+                            suggestions = rewriter.suggest_obfuscation()
+                            hex_viewer.add_suggestion_annotations(suggestions)
+                        except Exception as e:
+                            self.console.print(f"[yellow]⚠️  Analysis failed, continuing with basic hex view: {str(e)}[/yellow]")
+                else:
+                    self.console.print("[blue]ℹ️  Raw binary file (no structured format detected)[/blue]")
+            except Exception as e:
+                self.console.print(f"[blue]ℹ️  Treating as raw binary file: {str(e)}[/blue]")
                 
-                # 𐑨𐑛 𐑪𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑜𐑧𐑕𐑑𐑩𐑯𐑟
-                suggestions = rewriter.suggest_obfuscation()
-                hex_viewer.add_suggestion_annotations(suggestions)
-            
+            self.console.print(f"[green]📁 Loaded {len(binary_data)} bytes for hex viewing[/green]")
             self.console.print("[green]Launching interactive hex viewer...[/green]")
-            self.console.print("[dim]Use j/k or ↓/↑ to scroll, f/⁄ to search, a for annotations, q to quit[/dim]")
+            self.console.print("[dim]Controls: j/k or ↓/↑ to scroll, f/‍/ to search, a for annotations, q to quit[/dim]")
             
-            # 𐑤𐑷𐑯𐑗 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑨𐑐
+            # 🚀 𐑤𐑷𐑯𐑗 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
             launch_textual_hex_viewer(hex_viewer)
             
         except ImportError:
@@ -522,6 +543,8 @@ class CumpylMenu:
             self.console.print("[yellow]Install with: pip install textual[/yellow]")
         except Exception as e:
             self.console.print(f"[red]Error launching textual hex viewer: {str(e)}[/red]")
+            import traceback
+            traceback.print_exc()
     
     def execute_command(self, command: str):
         """𐑧𐑒𐑕𐑦𐑒𐑿𐑑 𐑩 Cumpyl 𐑒𐑩𐑥𐑭𐑯𐑛"""

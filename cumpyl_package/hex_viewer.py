@@ -157,7 +157,10 @@ class HexViewer:
             
         # 𐑿𐑟 𐑒𐑩𐑯𐑓𐑦𐑜 𐑝𐑨𐑤𐑿 𐑦𐑓 𐑯𐑴 𐑥𐑨𐑒𐑕_𐑚𐑲𐑑𐑟 𐑦𐑟 𐑐𐑮𐑴𐑝𐑲𐑛𐑦𐑛
         if max_bytes is None:
-            max_bytes = self.config.output.hex_viewer.max_display_bytes
+            try:
+                max_bytes = self.config.output.hex_viewer.max_display_bytes if self.config else 2048
+            except AttributeError:
+                max_bytes = 2048
             
         # 𐑤𐑦𐑥𐑦𐑑 𐑛𐑱𐑑𐑩 𐑓𐑹 𐑐𐑻𐑓𐑹𐑥𐑩𐑯𐑕
         data_to_show = self.binary_data[:max_bytes]
@@ -509,7 +512,10 @@ class HexViewer:
             return "𐑯𐑴 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑤𐑴𐑛𐑦𐑛"
             
         if max_bytes is None:
-            max_bytes = min(self.config.output.hex_viewer.max_display_bytes if self.config else 2048, len(self.binary_data))
+            try:
+                max_bytes = min(self.config.output.hex_viewer.max_display_bytes if self.config else 2048, len(self.binary_data))
+            except AttributeError:
+                max_bytes = min(2048, len(self.binary_data))
             
         data_to_show = self.binary_data[self.current_offset:self.current_offset + max_bytes]
         hex_lines = []
@@ -825,6 +831,21 @@ def launch_textual_hex_viewer(hex_viewer: HexViewer):
     """𐑤𐑷𐑯𐑗 𐑞 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼"""
     if not TEXTUAL_AVAILABLE:
         raise ImportError("Textual package is required for interactive hex viewer. Install with: pip install textual")
+    
+    try:
+        # Ensure hex viewer has data
+        if not hex_viewer.binary_data:
+            raise ValueError("HexViewer has no binary data loaded")
+            
+        # Test the hex generation before launching the app
+        test_output = hex_viewer.generate_textual_hex_view(max_bytes=64)
+        if not test_output or "𐑯𐑴 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑤𐑴𐑛𐑦𐑛" in test_output:
+            raise ValueError("Failed to generate hex view output")
         
-    app = InteractiveHexViewerApp(hex_viewer)
-    app.run()
+        app = InteractiveHexViewerApp(hex_viewer)
+        app.run()
+    except Exception as e:
+        print(f"Error launching textual hex viewer: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
