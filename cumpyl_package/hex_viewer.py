@@ -99,427 +99,317 @@ class HexViewer:
             entropy_data = analysis_results['entropy_analysis']
             if isinstance(entropy_data, dict) and 'high_entropy_regions' in entropy_data:
                 for region in entropy_data['high_entropy_regions']:
-                    severity = "danger" if region.get('entropy', 0) > 7.5 else "warning"
                     annotation = HexViewAnnotation(
-                        start_offset=region.get('offset', 0),
-                        end_offset=region.get('offset', 0) + region.get('size', 0),
+                        start_offset=region['offset'],
+                        end_offset=region['offset'] + region['size'],
                         annotation_type="entropy",
-                        title=f"High Entropy Region (Score: {region.get('entropy', 0):.2f})",
-                        description=f"Potentially packed/encrypted data. Entropy: {region.get('entropy', 0):.2f}",
-                        severity=severity,
+                        title=f"High Entropy Region",
+                        description=f"Entropy: {region.get('entropy', 0):.2f} - Possibly packed/encrypted",
+                        severity="warning",
                         metadata=region
                     )
                     self.add_annotation(annotation)
                     
-        # 𐑨𐑛 𐑕𐑑𐑮𐑦𐑙 𐑦𐑒𐑕𐑑𐑮𐑨𐑒𐑖𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
+        # 𐑨𐑛 𐑕𐑑𐑮𐑦𐑙 𐑩𐑝𐑕𐑑𐑮𐑨𐑒𐑖𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
         if 'string_extraction' in analysis_results:
             string_data = analysis_results['string_extraction']
-            if isinstance(string_data, dict) and 'extracted_strings' in string_data:
-                for string_info in string_data['extracted_strings'][:50]:  # 𐑤𐑦𐑥𐑦𐑑 𐑑 50 𐑕𐑑𐑮𐑦𐑙𐑟
-                    annotation = HexViewAnnotation(
-                        start_offset=string_info.get('offset', 0),
-                        end_offset=string_info.get('offset', 0) + len(string_info.get('value', '')),
-                        annotation_type="string",
-                        title=f"String: {string_info.get('value', '')[:30]}{'...' if len(string_info.get('value', '')) > 30 else ''}",
-                        description=f"String found: '{string_info.get('value', '')}' (Type: {string_info.get('type', 'unknown')})",
-                        severity="info",
-                        metadata=string_info
-                    )
-                    self.add_annotation(annotation)
-                    
-    def add_suggestion_annotations(self, suggestions: List[Dict[str, Any]]):
-        """𐑨𐑛 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑓𐑹 𐑪𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑜𐑧𐑕𐑑𐑑𐑩𐑯𐑟"""
+            if isinstance(string_data, dict):
+                # ℌ𐑨𐑯𐑛𐑩𐑤 𐑯𐑿 𐑕𐑑𐑮𐑦𐑙 𐑩𐑝𐑕𐑑𐑮𐑨𐑒𐑖𐑩𐑯 𐑓𐑹𐑥𐑨𐑑
+                if 'strings' in string_data:
+                    for string_info in string_data['strings']:
+                        if isinstance(string_info, dict) and 'offset' in string_info:
+                            annotation = HexViewAnnotation(
+                                start_offset=string_info['offset'],
+                                end_offset=string_info['offset'] + len(string_info.get('value', '')),
+                                annotation_type="string",
+                                title=f"String: {string_info.get('value', '')[:20]}...",
+                                description=f"String: {string_info.get('value', '')}",
+                                severity="info",
+                                metadata=string_info
+                            )
+                            self.add_annotation(annotation)
+                            
+                # ℌ𐑨𐑯𐑛𐑩𐑤 𐑴𐑤𐑛 𐑕𐑑𐑮𐑦𐑙 𐑩𐑝𐑕𐑑𐑮𐑨𐑒𐑖𐑩𐑯 𐑓𐑹𐑥𐑨𐑑 𐑢𐑦𐑞 𐑕𐑧𐑒𐑖𐑩𐑯𐑟
+                elif 'sections' in string_data:
+                    for section_name, section_result in string_data['sections'].items():
+                        if isinstance(section_result, dict) and 'categorized_strings' in section_result:
+                            for category, category_strings in section_result['categorized_strings'].items():
+                                if isinstance(category_strings, list):
+                                    for string_obj in category_strings:
+                                        if isinstance(string_obj, dict) and 'offset' in string_obj:
+                                            annotation = HexViewAnnotation(
+                                                start_offset=string_obj['offset'],
+                                                end_offset=string_obj['offset'] + string_obj.get('length', len(string_obj.get('value', ''))),
+                                                annotation_type="string",
+                                                title=f"String ({category}): {string_obj.get('value', '')[:20]}...",
+                                                description=f"String: {string_obj.get('value', '')}",
+                                                severity="info",
+                                                metadata=string_obj
+                                            )
+                                            self.add_annotation(annotation)
+    
+    def add_obfuscation_suggestions(self, suggestions: List[Dict[str, Any]]):
+        """𐑨𐑛 𐑪𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑡𐑧𐑕𐑑𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟"""
         for suggestion in suggestions:
-            if 'section' in suggestion and 'tier' in suggestion:
+            if isinstance(suggestion, dict):
+                section_name = suggestion.get('section_name', 'Unknown')
+                start_offset = suggestion.get('start_offset', 0)
+                end_offset = suggestion.get('end_offset', 0)
+                tier = suggestion.get('tier', 'Unknown')
+                risk = suggestion.get('risk', 'Unknown')
+                
                 severity_map = {
-                    'green': 'success',
-                    'yellow': 'warning', 
-                    'blue': 'info',
-                    'red': 'danger'
+                    'Green (Advanced)': 'info',
+                    'Yellow (Intermediate)': 'warning', 
+                    'Blue (Basic)': 'info',
+                    'Red (Avoid)': 'danger'
                 }
-                severity = severity_map.get(suggestion['tier'].lower(), 'info')
+                severity = severity_map.get(tier, 'info')
                 
                 annotation = HexViewAnnotation(
-                    start_offset=suggestion.get('offset', 0),
-                    end_offset=suggestion.get('offset', 0) + suggestion.get('size', 0),
+                    start_offset=start_offset,
+                    end_offset=end_offset,
                     annotation_type="suggestion",
-                    title=f"Encoding Suggestion: {suggestion['section']} ({suggestion['tier'].upper()})",
-                    description=f"Tier: {suggestion['tier']} - {suggestion.get('reason', 'No reason provided')}",
+                    title=f"Obfuscation Suggestion: {section_name}",
+                    description=f"Tier: {tier}, Risk: {risk}",
                     severity=severity,
                     metadata=suggestion
                 )
                 self.add_annotation(annotation)
                 
-    def generate_html_hex_view(self, max_bytes: int = None) -> str:
-        """𐑡𐑧𐑯𐑼𐑱𐑑 HTML 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑣𐑧𐑒𐑕 𐑝𐑿"""
+    def generate_hex_dump_html(self, output_file: str = None, max_bytes: int = None) -> str:
+        """𐑡𐑧𐑯𐑼𐑱𐑑 𐑞 ℌ𐑑𐑥𐑩𐑤 𐑣𐑧𐑒𐑕 𐑛𐑳𐑥𐑐"""
         if not self.binary_data:
-            return "<p>𐑯𐑴 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑤𐑴𐑛𐑦𐑛</p>"
+            return "𐑯𐑴 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑤𐑴𐑛𐑦𐑛"
             
-        # 𐑿𐑟 𐑒𐑩𐑯𐑓𐑦𐑜 𐑝𐑨𐑤𐑿 𐑦𐑓 𐑯𐑴 𐑥𐑨𐑒𐑕_𐑚𐑲𐑑𐑟 𐑦𐑟 𐑐𐑮𐑴𐑝𐑲𐑛𐑦𐑛
         if max_bytes is None:
-            try:
-                max_bytes = self.config.output.hex_viewer.max_display_bytes if self.config else 2048
-            except AttributeError:
-                max_bytes = 2048
+            max_bytes = min(self.config.output.hex_viewer.max_display_bytes if self.config else 2048, len(self.binary_data))
             
-        # 𐑤𐑦𐑥𐑦𐑑 𐑛𐑱𐑑𐑩 𐑓𐑹 𐑐𐑻𐑓𐑹𐑥𐑩𐑯𐑕
-        data_to_show = self.binary_data[:max_bytes]
-        total_rows = math.ceil(len(data_to_show) / self.bytes_per_row)
+        import tempfile
+        if not output_file:
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.html')
+            output_file = temp_file.name
+            temp_file.close()
         
-        html = f"""
-        <div class="hex-viewer">
-            <div class="hex-viewer-header">
-                <h3>🔍 Interactive Hex View</h3>
-                <div class="hex-controls">
-                    <span class="hex-info">Showing {len(data_to_show)} of {len(self.binary_data)} bytes</span>
-                    <span class="hex-info">{len(self.annotations)} annotations</span>
-                </div>
-            </div>
-            <div class="hex-container">
-                <div class="hex-content">
-        """
+        data_to_show = self.binary_data[self.current_offset:self.current_offset + max_bytes]
         
-        # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑣𐑧𐑒𐑕 𐑮𐑴𐑟
-        for row in range(total_rows):
-            start_offset = row * self.bytes_per_row
-            end_offset = min(start_offset + self.bytes_per_row, len(data_to_show))
-            row_data = data_to_show[start_offset:end_offset]
-            
-            html += self._generate_hex_row(start_offset, row_data)
-            
-        html += """
-                </div>
-            </div>
-            <div class="annotation-tooltip" id="annotationTooltip"></div>
-        </div>
-        """
-        
-        return html
-        
-    def _generate_hex_row(self, offset: int, row_data: bytes) -> str:
-        """𐑡𐑧𐑯𐑼𐑱𐑑 𐑩 𐑕𐑦𐑙𐑜𐑩𐑤 𐑣𐑧𐑒𐑕 𐑮𐑴"""
-        hex_cells = []
-        ascii_cells = []
-        
-        for i, byte_val in enumerate(row_data):
-            byte_offset = offset + i
-            display_offset = self.base_offset + byte_offset  # 𐑨𐑒𐑗𐑫𐑩𐑤 𐑪𐑓𐑕𐑧𐑑 𐑦𐑯 𐑞 𐑓𐑲𐑤
-            annotations = self._get_annotations_for_offset(display_offset)
-            
-            # 𐑒𐑮𐑦𐑱𐑑 CSS 𐑒𐑤𐑭𐑕 𐑚𐑱𐑕𐑑 𐑪𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
-            css_classes = ["hex-byte"]
-            if annotations:
-                css_classes.append("annotated")
-                for ann in annotations:
-                    css_classes.append(f"severity-{ann.severity}")
-                    css_classes.append(f"type-{ann.annotation_type}")
-            
-            annotations_json = json.dumps([{
-                'title': ann.title,
-                'description': ann.description,
-                'type': ann.annotation_type,
-                'severity': ann.severity,
-                'metadata': ann.metadata
-            } for ann in annotations])
-            
-            class_string = " ".join(css_classes)
-            escaped_annotations = annotations_json.replace('"', '&quot;')
-            hex_cell = f'<span class="{class_string}" data-offset="{display_offset}" data-annotations="{escaped_annotations}">{byte_val:02x}</span>'
-            hex_cells.append(hex_cell)
-            
-            # ASCII 𐑮𐑦𐑐𐑮𐑦𐑟𐑧𐑯𐑑𐑱𐑖𐑩𐑯
-            if 32 <= byte_val <= 126:
-                ascii_char = chr(byte_val)
-            else:
-                ascii_char = "."
-                
-            ascii_cell = f'<span class="{class_string}" data-offset="{display_offset}" data-annotations="{escaped_annotations}">{ascii_char}</span>'
-            ascii_cells.append(ascii_cell)
-            
-        # 𐑐𐑨𐑛 𐑦𐑯𐑒𐑩𐑥𐑐𐑤𐑰𐑑 𐑮𐑴𐑟
-        while len(hex_cells) < self.bytes_per_row:
-            hex_cells.append('<span class="hex-byte empty">  </span>')
-            ascii_cells.append('<span class="hex-byte empty"> </span>')
-            
-        display_row_offset = self.base_offset + offset
-        offset_str = f"{display_row_offset:08x}" if self.show_offsets else ""
-        hex_str = " ".join(hex_cells)
-        ascii_str = "".join(ascii_cells) if self.show_ascii else ""
-        
-        return f"""
-        <div class="hex-row">
-            <span class="hex-offset">{offset_str}</span>
-            <span class="hex-data">{hex_str}</span>
-            <span class="hex-ascii">{ascii_str}</span>
-        </div>
-        """
-        
-    def _get_annotations_for_offset(self, offset: int) -> List[HexViewAnnotation]:
-        """𐑜𐑧𐑑 𐑷𐑤 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑞𐑨𐑑 𐑨𐑐𐑤𐑲 𐑑 𐑩 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑪𐑓𐑕𐑧𐑑"""
-        return [ann for ann in self.annotations 
-                if ann.start_offset <= offset < ann.end_offset]
-                
-    def get_css_styles(self) -> str:
-        """𐑜𐑧𐑑 CSS 𐑕𐑑𐑲𐑤𐑟 𐑓𐑹 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼"""
-        return """
-        .hex-viewer {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin: 20px 0;
-            background: #fff;
-            font-family: 'Courier New', Consolas, monospace;
-        }
-        
-        .hex-viewer-header {
-            background: #f8f9fa;
-            padding: 10px 15px;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .hex-viewer-header h3 {
-            margin: 0;
-            color: #333;
-        }
-        
-        .hex-controls {
-            display: flex;
-            gap: 15px;
-        }
-        
-        .hex-info {
+        # 𐑡𐑧𐑯𐑼𐑱𐑑 ℌ𐑑𐑥𐑩𐑤 𐑒𐑪𐑯𐑑𐑧𐑯𐑑
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>CUMPYL Hex Viewer</title>
+    <style>
+        body {{
+            font-family: 'Courier New', monospace;
+            background-color: #0f0f23;
+            color: #cccccc;
+            margin: 20px;
             font-size: 12px;
-            color: #666;
-            background: #e9ecef;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-        
-        .hex-container {
-            max-height: 600px;
-            overflow-y: auto;
-            padding: 10px;
-        }
-        
-        .hex-content {
-            font-size: 13px;
             line-height: 1.4;
-        }
-        
-        .hex-row {
-            display: flex;
-            margin-bottom: 2px;
-            align-items: center;
-        }
-        
-        .hex-offset {
-            color: #666;
-            margin-right: 15px;
-            min-width: 80px;
-            font-weight: bold;
-        }
-        
-        .hex-data {
-            margin-right: 15px;
-            min-width: 400px;
-        }
-        
-        .hex-ascii {
-            color: #333;
-            background: #f8f9fa;
-            padding: 0 5px;
-            border-radius: 3px;
-        }
-        
-        .hex-byte {
-            cursor: pointer;
-            padding: 1px 2px;
-            border-radius: 2px;
-            transition: all 0.2s ease;
-        }
-        
-        .hex-byte:hover {
-            background: #e3f2fd;
-            transform: scale(1.1);
-        }
-        
-        .hex-byte.annotated {
-            position: relative;
-            font-weight: bold;
-        }
-        
-        .hex-byte.severity-info {
-            background-color: #e3f2fd;
-            color: #1976d2;
-        }
-        
-        .hex-byte.severity-success {
-            background-color: #e8f5e8;
-            color: #2e7d32;
-        }
-        
-        .hex-byte.severity-warning {
-            background-color: #fff3cd;
-            color: #d68910;
-        }
-        
-        .hex-byte.severity-danger {
-            background-color: #f8d7da;
-            color: #dc3545;
-        }
-        
-        .hex-byte.type-section {
-            border-bottom: 2px solid #1976d2;
-        }
-        
-        .hex-byte.type-string {
-            border-bottom: 2px solid #2e7d32;
-        }
-        
-        .hex-byte.type-entropy {
-            border-bottom: 2px solid #d68910;
-        }
-        
-        .hex-byte.type-suggestion {
-            border-bottom: 2px solid #dc3545;
-        }
-        
-        .hex-byte.empty {
-            color: #ccc;
-            cursor: default;
-        }
-        
-        .annotation-tooltip {
-            position: absolute;
-            background: #333;
-            color: white;
+        }}
+        .hex-container {{
+            border: 1px solid #333;
             padding: 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            max-width: 300px;
-            z-index: 1000;
-            display: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .annotation-tooltip .tooltip-title {
+            background-color: #1a1a2e;
+            border-radius: 5px;
+            margin: 10px 0;
+        }}
+        .hex-line {{
+            margin: 2px 0;
+            white-space: pre;
+        }}
+        .offset {{
+            color: #66d9ef;
             font-weight: bold;
-            margin-bottom: 5px;
+        }}
+        .hex-byte {{
+            color: #e6e6e6;
+        }}
+        .hex-zero {{
+            color: #666666;
+        }}
+        .ascii-printable {{
+            color: #9fef00;
+        }}
+        .ascii-non-printable {{
+            color: #444444;
+        }}
+        
+        /* 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑒𐑩𐑤𐑼𐑟 */
+        .section {{ background-color: rgba(253, 151, 31, 0.3); }}
+        .string {{ background-color: rgba(166, 226, 46, 0.3); }}
+        .entropy {{ background-color: rgba(249, 38, 114, 0.3); }}
+        .suggestion {{ background-color: rgba(174, 129, 255, 0.3); }}
+        
+        .annotation-info {{
+            background-color: #16213e;
+            border: 1px solid #49483e;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }}
+        
+        .annotation-count {{
+            color: #a6e22e;
+            font-weight: bold;
+        }}
+        
+        .tooltip {{
+            position: relative;
+            display: inline;
+        }}
+        
+        .tooltip:hover::after {{
+            content: attr(data-tooltip);
+            position: absolute;
+            background: #000;
             color: #fff;
-        }
-        
-        .annotation-tooltip .tooltip-description {
-            margin-bottom: 5px;
-            line-height: 1.3;
-        }
-        
-        .annotation-tooltip .tooltip-metadata {
+            padding: 5px;
+            border-radius: 3px;
             font-size: 10px;
-            color: #ccc;
-            border-top: 1px solid #555;
-            padding-top: 5px;
-            margin-top: 5px;
-        }
-        """
+            white-space: nowrap;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+        }}
+    </style>
+</head>
+<body>
+    <h2>🔥 CUMPYL Interactive Hex Viewer</h2>
+    <div class="annotation-info">
+        <div class="annotation-count">Total annotations: {len(self.annotations)}</div>
+        <div>Displaying {len(data_to_show)} bytes (offset: 0x{self.base_offset + self.current_offset:08x})</div>
+    </div>
+    
+    <div class="hex-container">
+        <div class="hex-content">"""
         
-    def get_javascript(self) -> str:
-        """𐑜𐑧𐑑 JavaScript 𐑓𐑹 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑓𐑳𐑙𐑒𐑖𐑩𐑯𐑨𐑤𐑦𐑑𐑦"""
-        return """
-        document.addEventListener('DOMContentLoaded', function() {
-            const tooltip = document.getElementById('annotationTooltip');
-            const hexBytes = document.querySelectorAll('.hex-byte.annotated');
+        # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑣𐑧𐑒𐑕 𐑤𐑲𐑯𐑟
+        for i in range(0, len(data_to_show), self.bytes_per_row):
+            row_data = data_to_show[i:i + self.bytes_per_row]
+            row_offset = self.base_offset + self.current_offset + i
+            html_content += self._generate_hex_row_html(row_offset, row_data)
             
-            hexBytes.forEach(function(hexByte) {
-                hexByte.addEventListener('mouseenter', function(e) {
-                    const annotations = JSON.parse(e.target.getAttribute('data-annotations') || '[]');
-                    if (annotations.length > 0) {
-                        showTooltip(e, annotations);
-                    }
-                });
-                
-                hexByte.addEventListener('mouseleave', function() {
-                    hideTooltip();
-                });
-                
-                hexByte.addEventListener('mousemove', function(e) {
-                    updateTooltipPosition(e);
+        html_content += """
+        </div>
+    </div>
+    
+    <div class="annotation-info">
+        <h3>Legend:</h3>
+        <span class="section">■</span> Sections &nbsp;
+        <span class="string">■</span> Strings &nbsp;
+        <span class="entropy">■</span> High Entropy &nbsp;
+        <span class="suggestion">■</span> Suggestions
+    </div>
+    
+    <script>
+        // 𐑨𐑛 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝𐑦𐑑𐑦 𐑓𐑹 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
+        document.addEventListener('DOMContentLoaded', function() {
+            const tooltips = document.querySelectorAll('.tooltip');
+            tooltips.forEach(function(tooltip) {
+                tooltip.addEventListener('mouseenter', function() {
+                    // 𐑨𐑛 𐑨𐑯𐑦 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑚𐑦𐑣𐑱𐑝𐑘𐑼 ℎ𐑽
                 });
             });
-            
-            function showTooltip(event, annotations) {
-                let content = '';
-                
-                annotations.forEach(function(ann, index) {
-                    if (index > 0) content += '<hr style="margin: 8px 0; border-color: #555;">';
-                    
-                    content += '<div class="tooltip-title">' + escapeHtml(ann.title) + '</div>';
-                    content += '<div class="tooltip-description">' + escapeHtml(ann.description) + '</div>';
-                    
-                    if (ann.metadata && Object.keys(ann.metadata).length > 0) {
-                        content += '<div class="tooltip-metadata">';
-                        content += 'Type: ' + escapeHtml(ann.type) + '<br>';
-                        content += 'Severity: ' + escapeHtml(ann.severity) + '<br>';
-                        
-                        // 𐑕𐑴 𐑦𐑯𐑑𐑼𐑧𐑕𐑑𐑦𐑙 𐑥𐑧𐑑𐑩𐑛𐑱𐑑𐑩
-                        for (const [key, value] of Object.entries(ann.metadata)) {
-                            if (key !== 'type' && key !== 'severity' && value !== null && value !== undefined) {
-                                content += escapeHtml(key) + ': ' + escapeHtml(String(value)) + '<br>';
-                            }
-                        }
-                        content += '</div>';
-                    }
-                });
-                
-                tooltip.innerHTML = content;
-                tooltip.style.display = 'block';
-                updateTooltipPosition(event);
-            }
-            
-            function hideTooltip() {
-                tooltip.style.display = 'none';
-            }
-            
-            function updateTooltipPosition(event) {
-                const x = event.pageX + 10;
-                const y = event.pageY + 10;
-                
-                tooltip.style.left = x + 'px';
-                tooltip.style.top = y + 'px';
-                
-                // 𐑩𐑡𐑳𐑕𐑑 𐑦𐑓 𐑑𐑵𐑤𐑑𐑦𐑐 𐑣𐑦𐑑𐑟 𐑞 𐑧𐑡 𐑝 𐑞 𐑢𐑦𐑯𐑛𐑴
-                const rect = tooltip.getBoundingClientRect();
-                if (rect.right > window.innerWidth) {
-                    tooltip.style.left = (event.pageX - rect.width - 10) + 'px';
-                }
-                if (rect.bottom > window.innerHeight) {
-                    tooltip.style.top = (event.pageY - rect.height - 10) + 'px';
-                }
-            }
-            
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
         });
-        """
+    </script>
+</body>
+</html>"""
+        
+        # 𐑮𐑲𐑑 ℌ𐑑𐑥𐑩𐑤 𐑓𐑲𐑤
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        return output_file
+        
+    def _generate_hex_row_html(self, offset: int, row_data: bytes) -> str:
+        """𐑡𐑧𐑯𐑼𐑱𐑑 𐑩 𐑕𐑦𐑙𐑜𐑩𐑤 ℌ𐑑𐑥𐑩𐑤 𐑣𐑧𐑒𐑕 𐑮𐑴"""
+        # 𐑪𐑓𐑕𐑧𐑑 𐑒𐑩𐑤𐑩𐑥
+        offset_str = f'<span class="offset">{offset:08x}</span>'
+        
+        # ℌ𐑧𐑒𐑕 𐑚𐑲𐑑𐑟
+        hex_bytes = []
+        for i, byte_val in enumerate(row_data):
+            byte_offset = offset + i
+            annotations = self._get_annotations_for_offset(byte_offset)
+            css_classes = self._get_css_classes_for_annotations(annotations)
+            
+            byte_class = "hex-zero" if byte_val == 0 else "hex-byte"
+            
+            if annotations:
+                tooltip_text = "; ".join([ann.description for ann in annotations])
+                hex_byte_html = f'<span class="{css_classes} tooltip" data-tooltip="{tooltip_text}">{byte_val:02x}</span>'
+            else:
+                hex_byte_html = f'<span class="{byte_class}">{byte_val:02x}</span>'
+            
+            hex_bytes.append(hex_byte_html)
+            
+        # 𐑐𐑨𐑛 𐑦𐑯𐑒𐑩𐑥𐑐𐑤𐑰𐑑 𐑮𐑴𐑟
+        while len(hex_bytes) < self.bytes_per_row:
+            hex_bytes.append('<span class="hex-byte">  </span>')
+            
+        hex_str = " ".join(hex_bytes)
+        
+        # ASCII 𐑮𐑦𐑐𐑮𐑦𐑟𐑧𐑯𐑑𐑱𐑖𐑩𐑯
+        ascii_chars = []
+        if self.show_ascii:
+            for i, byte_val in enumerate(row_data):
+                byte_offset = offset + i
+                annotations = self._get_annotations_for_offset(byte_offset)
+                css_classes = self._get_css_classes_for_annotations(annotations)
+                
+                if 32 <= byte_val <= 126:
+                    char = chr(byte_val)
+                    char_class = "ascii-printable"
+                else:
+                    char = "."
+                    char_class = "ascii-non-printable"
+                
+                if annotations:
+                    tooltip_text = "; ".join([ann.description for ann in annotations])
+                    ascii_char_html = f'<span class="{css_classes} tooltip" data-tooltip="{tooltip_text}">{char}</span>'
+                else:
+                    ascii_char_html = f'<span class="{char_class}">{char}</span>'
+                
+                ascii_chars.append(ascii_char_html)
+            
+            # 𐑐𐑨𐑛 ASCII 𐑐𐑸𐑑
+            while len(ascii_chars) < self.bytes_per_row:
+                ascii_chars.append('<span class="ascii-non-printable"> </span>')
+                
+        ascii_str = "".join(ascii_chars)
+        
+        return f'<div class="hex-line">{offset_str}  {hex_str}  |{ascii_str}|</div>\n'
+        
+    def _get_annotations_for_offset(self, offset: int) -> List[HexViewAnnotation]:
+        """𐑜𐑧𐑑 𐑩𐑤 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑓𐑹 𐑩 𐑜𐑦𐑝𐑩𐑯 𐑪𐑓𐑕𐑧𐑑"""
+        annotations = []
+        for annotation in self.annotations:
+            if annotation.start_offset <= offset < annotation.end_offset:
+                annotations.append(annotation)
+        return annotations
+        
+    def _get_css_classes_for_annotations(self, annotations: List[HexViewAnnotation]) -> str:
+        """𐑜𐑧𐑑 CSS 𐑒𐑤𐑨𐑕𐑩𐑟 𐑓𐑹 𐑩 𐑤𐑦𐑕𐑑 𐑝 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟"""
+        if not annotations:
+            return ""
+        
+        classes = []
+        for annotation in annotations:
+            classes.append(annotation.annotation_type)
+            
+        return " ".join(set(classes))  # 𐑮𐑰𐑥𐑿𐑝 𐑛𐑿𐑐𐑤𐑦𐑒𐑩𐑑𐑕
         
     def generate_textual_hex_view(self, max_bytes: int = None) -> str:
         """𐑡𐑧𐑯𐑼𐑱𐑑 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑣𐑧𐑒𐑕 𐑝𐑿 𐑦𐑯 𐑓𐑹𐑥𐑨𐑑"""
         if not self.binary_data:
             return "𐑯𐑴 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑤𐑴𐑛𐑦𐑛"
             
-        # 𐑓𐑹 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑝𐑿𐑼, 𐑢𐑰 𐑢𐑪𐑯𐑑 𐑑 𐑛𐑦𐑕𐑐𐑤𐑱 𐑞 𐑒𐑻𐑩𐑯𐑑 𐑝𐑦𐑿 (display_rows)
         if max_bytes is None:
-            max_bytes = self.display_rows * self.bytes_per_row
+            max_bytes = min(self.config.output.hex_viewer.max_display_bytes if self.config else 2048, len(self.binary_data))
             
-        # 𐑧𐑯𐑖𐑫𐑼 𐑢𐑰 𐑛𐑴𐑯𐑑 𐑜𐑴 𐑚𐑦𐑘𐑪𐑯𐑛 𐑞 𐑧𐑯𐑛 𐑝 𐑞 𐑓𐑲𐑤
-        remaining_bytes = len(self.binary_data) - self.current_offset
-        bytes_to_show = min(max_bytes, remaining_bytes)
-        
-        data_to_show = self.binary_data[self.current_offset:self.current_offset + bytes_to_show]
+        data_to_show = self.binary_data[self.current_offset:self.current_offset + max_bytes]
         hex_lines = []
         
         for i in range(0, len(data_to_show), self.bytes_per_row):
@@ -535,15 +425,12 @@ class HexViewer:
         # 𐑪𐑓𐑕𐑧𐑑 𐑒𐑩𐑤𐑩𐑥
         offset_str = f"{offset:08x}"
         
-        # 𐑣𐑧𐑒𐑕 𐑚𐑲𐑑𐑟
+        # ℌ𐑧𐑒𐑕 𐑚𐑲𐑑𐑟
         hex_bytes = []
         for byte_val in row_data:
             annotations = self._get_annotations_for_offset(offset + len(hex_bytes))
             color_code = self._get_color_code_for_annotations(annotations)
-            if color_code:
-                hex_bytes.append(f"{color_code}{byte_val:02x}[/]")
-            else:
-                hex_bytes.append(f"{byte_val:02x}")
+            hex_bytes.append(f"{color_code}{byte_val:02x}[/]")
             
         # 𐑐𐑨𐑛 𐑦𐑯𐑒𐑩𐑥𐑐𐑤𐑰𐑑 𐑮𐑴𐑟
         while len(hex_bytes) < self.bytes_per_row:
@@ -555,349 +442,372 @@ class HexViewer:
         ascii_chars = []
         if self.show_ascii:
             for i, byte_val in enumerate(row_data):
-                annotations = self._get_annotations_for_offset(offset + i)
+                byte_offset = offset + i
+                annotations = self._get_annotations_for_offset(byte_offset)
                 color_code = self._get_color_code_for_annotations(annotations)
+                
                 if 32 <= byte_val <= 126:
                     char = chr(byte_val)
                 else:
                     char = "."
                     
-                if color_code:
-                    ascii_chars.append(f"{color_code}{char}[/]")
-                else:
-                    ascii_chars.append(char)
+                ascii_chars.append(f"{color_code}{char}[/]")
+            
+            # 𐑐𐑨𐑛 ASCII 𐑐𐑸𐑑 𐑓𐑹 𐑒𐑩𐑯𐑕𐑦𐑕𐑑𐑩𐑯𐑑 𐑢𐑦𐑛𐑔
             while len(ascii_chars) < self.bytes_per_row:
                 ascii_chars.append(" ")
                 
-        ascii_str = "".join(ascii_chars) if self.show_ascii else ""
+        ascii_str = "".join(ascii_chars)
         
-        return f"[cyan]{offset_str}[/] │ {hex_str} │ {ascii_str}"
+        return f'[cyan]{offset_str}[/]  {hex_str}  |{ascii_str}|'
         
     def _get_color_code_for_annotations(self, annotations: List[HexViewAnnotation]) -> str:
-        """𐑜𐑧𐑑 𐑒𐑳𐑤𐑼 𐑒𐑴𐑛 𐑚𐑱𐑕𐑑 𐑪𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑕𐑦𐑝𐑺𐑦𐑑𐑦"""
+        """𐑜𐑧𐑑 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑒𐑩𐑤𐑼 𐑒𐑴𐑛 𐑓𐑹 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟"""
         if not annotations:
-            return ""
+            return "[white]"
+        
+        # 𐑕𐑪𐑮𐑑 𐑚𐑲 𐑐𐑮𐑲𐑪𐑮𐑦𐑑𐑦: 𐑕𐑩𐑡𐑧𐑕𐑑𐑩𐑯 > 𐑩𐑯𐑑𐑮𐑴𐑐𐑦 > 𐑕𐑑𐑮𐑦𐑙 > 𐑕𐑧𐑒𐑖𐑩𐑯
+        priority_map = {
+            'suggestion': 4,
+            'entropy': 3,  
+            'string': 2,
+            'section': 1
+        }
+        
+        # 𐑓𐑦𐑯𐑛 𐑣𐑲𐑩𐑕𐑑 𐑐𐑮𐑲𐑪𐑮𐑦𐑑𐑦 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯
+        highest_annotation = max(annotations, key=lambda ann: priority_map.get(ann.annotation_type, 0))
+        
+        color_map = {
+            'section': '[blue]',
+            'string': '[green]', 
+            'entropy': '[yellow]',
+            'suggestion': '[red]'
+        }
+        
+        return color_map.get(highest_annotation.annotation_type, '[white]')
+        
+    def scroll_up(self):
+        """𐑕𐑒𐑮𐑴𐑤 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿 𐑳𐑐"""
+        if self.current_offset > 0:
+            self.current_offset = max(0, self.current_offset - self.bytes_per_row * self.display_rows // 2)
+    
+    def scroll_down(self):
+        """𐑕𐑒𐑮𐑴𐑤 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿 𐑛𐑬𐑯"""
+        max_offset = len(self.binary_data) - self.bytes_per_row * self.display_rows
+        if self.current_offset < max_offset:
+            self.current_offset = min(max_offset, self.current_offset + self.bytes_per_row * self.display_rows // 2)
             
-        # 𐑐𐑮𐑲𐑹𐑦𐑑𐑦 𐑹𐑛𐑼: 𐑛𐑱𐑯𐑡𐑼 > 𐑢𐑹𐑯𐑦𐑙 > 𐑦𐑯𐑓𐑴 > 𐑕𐑳𐑒𐑕𐑧𐑕
-        for ann in annotations:
-            if ann.severity == "danger":
-                return "[bold red]"
-            elif ann.severity == "warning":
-                return "[bold yellow]"
-            elif ann.severity == "success":
-                return "[bold green]"
-            elif ann.severity == "info":
-                return "[bold blue]"
-        return ""
-        
-    def search_bytes(self, pattern: bytes) -> List[int]:
-        """𐑕𐑻𐑗 𐑓𐑹 𐑚𐑲𐑑 𐑐𐑨𐑑𐑼𐑯 𐑦𐑯 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩"""
-        results = []
-        data_len = len(self.binary_data)
-        pattern_len = len(pattern)
-        
-        for i in range(data_len - pattern_len + 1):
-            if self.binary_data[i:i + pattern_len] == pattern:
-                results.append(i)
-                
-        self.search_results = results
-        self.search_index = 0
-        return results
-        
-    def search_string(self, pattern: str) -> List[int]:
-        """𐑕𐑻𐑗 𐑓𐑹 𐑕𐑑𐑮𐑦𐑙 𐑐𐑨𐑑𐑼𐑯 𐑦𐑯 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩"""
-        return self.search_bytes(pattern.encode('utf-8', errors='ignore'))
-        
-    def navigate_to_offset(self, offset: int):
-        """𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑪𐑓𐑕𐑧𐑑"""
-        # 𐑞 𐑪𐑓𐑕𐑧𐑑 𐑦𐑟 𐑞 𐑞𐑦𐑙 𐑢𐑰 𐑢𐑪𐑯𐑑 𐑑 𐑣𐑲𐑤𐑲𐑑, 𐑕𐑴 𐑨𐑤𐑲𐑯 𐑞 𐑝𐑦𐑿 𐑑 𐑦𐑯𐑒𐑤𐑵𐑛 𐑦𐑑
-        # 𐑩𐑤𐑲𐑯 𐑞 𐑝𐑦𐑿 𐑑 𐑖𐑴 𐑞 𐑤𐑦𐑯 𐑢𐑦𐑞 𐑞 𐑞𐑸𐑜𐑧𐑑 𐑪𐑓𐑕𐑧𐑑
-        target_row_start = (offset // self.bytes_per_row) * self.bytes_per_row
-        
-        # 𐑞𐑻𐑶 𐑨 𐑓𐑿 𐑮𐑴𐑟 𐑚𐑦𐑓𐑹 𐑞 𐑞𐑸𐑜𐑧𐑑 𐑓𐑹 𐑒𐑪𐑯𐑑𐑧𐑒𐑕𐑑
-        context_rows = 3
-        view_start = max(0, target_row_start - (context_rows * self.bytes_per_row))
-        
-        # 𐑧𐑯𐑖𐑫𐑼 𐑢𐑰 𐑛𐑴𐑯𐑑 𐑜𐑴 𐑚𐑦𐑘𐑪𐑯𐑛 𐑞 𐑧𐑯𐑛 𐑝 𐑞 𐑓𐑲𐑤
-        max_start = len(self.binary_data) - (self.display_rows * self.bytes_per_row)
-        self.current_offset = max(0, min(view_start, max_start))
-        
-    def navigate_next_search_result(self):
-        """𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑯𐑧𐑒𐑕𐑑 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
-        if self.search_results:
-            self.search_index = (self.search_index + 1) % len(self.search_results)
-            target_offset = self.search_results[self.search_index] 
-            self.navigate_to_offset(target_offset)
-            return target_offset
-        return None
-            
-    def navigate_previous_search_result(self):
-        """𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑐𐑮𐑰𐑝𐑦𐑩𐑕 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
-        if self.search_results:
-            self.search_index = (self.search_index - 1) % len(self.search_results)
-            target_offset = self.search_results[self.search_index]
-            self.navigate_to_offset(target_offset)
-            return target_offset
-        return None
-
-
-class TextualHexViewer(Static):
-    """𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑢𐑦𐑡𐑧𐑑"""
+    def goto_offset(self, offset: int):
+        """𐑜𐑴 𐑑 𐑩 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑪𐑓𐑕𐑧𐑑"""
+        if 0 <= offset < len(self.binary_data):
+            self.current_offset = offset - (offset % self.bytes_per_row)  # 𐑩𐑤𐑲𐑯 𐑑 𐑮𐑴 𐑚𐑬𐑯𐑛𐑼𐑦
     
-    def __init__(self, hex_viewer: HexViewer, **kwargs):
-        super().__init__(hex_viewer.generate_textual_hex_view(), id="hex-display", **kwargs)
-        self.hex_viewer = hex_viewer
-
-
-class HexSearchDialog(ModalScreen[str]):
-    """𐑣𐑧𐑒𐑕 𐑕𐑻𐑗 𐑛𐑲𐑩𐑤𐑪𐑜"""
-    
-    BINDINGS = [
-        Binding("escape", "dismiss", "Cancel"),
-        Binding("enter", "search", "Search"),
-    ]
-    
-    def compose(self) -> ComposeResult:
-        with Container(id="search-dialog"):
-            yield Label("Search for hex bytes or string:", id="search-label")
-            yield Input(placeholder="Enter hex (e.g. 4D5A) or string", id="search-input")
-            yield Button("Search Hex", variant="primary", id="search-hex")
-            yield Button("Search String", variant="primary", id="search-string")
-            yield Button("Cancel", variant="default", id="cancel")
-                
-    def action_dismiss(self):
-        self.dismiss("")
-        
-    def action_search(self):
-        search_input = self.query_one("#search-input")
-        self.dismiss(search_input.value)
-        
-    @on(Button.Pressed, "#search-hex")
-    def search_hex(self):
-        search_input = self.query_one("#search-input")
-        self.dismiss(f"hex:{search_input.value}")
-        
-    @on(Button.Pressed, "#search-string") 
-    def search_string(self):
-        search_input = self.query_one("#search-input")
-        self.dismiss(f"string:{search_input.value}")
-        
-    @on(Button.Pressed, "#cancel")
-    def cancel(self):
-        self.dismiss("")
-
-
-class InteractiveHexViewerApp(App):
-    """𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑨𐑐𐑤𐑦𐑒𐑱𐑖𐑩𐑯"""
-    
-    CSS_PATH = None
-    CSS = """
-    #search-dialog {
-        width: 50;
-        height: 10;
-        background: $surface;
-        border: thick $primary;
-    }
-    
-    #search-label {
-        margin: 1;
-        text-align: center;
-    }
-    
-    #search-input {
-        margin: 0 1;
-    }
-    
-    #hex-display {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 1;
-        border: none;
-        background: $surface;
-    }
-    """
-    
-    BINDINGS = [
-        Binding("j,down", "scroll_down", "Scroll Down"),
-        Binding("k,up", "scroll_up", "Scroll Up"),
-        Binding("ctrl+d", "page_down", "Page Down"),
-        Binding("ctrl+u", "page_up", "Page Up"),
-        Binding("g", "go_to_top", "Go to Top"),
-        Binding("G", "go_to_bottom", "Go to Bottom"),
-        Binding("f,/", "search", "Search"),
-        Binding("n", "next_search", "Next Match"),
-        Binding("N", "previous_search", "Previous Match"),
-        Binding("r", "refresh", "Refresh"),
-        Binding("a", "show_annotations", "Show Annotations"),
-        Binding("q", "quit", "Quit"),
-    ]
-    
-    def __init__(self, hex_viewer: HexViewer, **kwargs):
-        super().__init__(**kwargs)
-        self.hex_viewer = hex_viewer
-        
-    def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
-        yield TextualHexViewer(self.hex_viewer, id="hex-viewer")
-        yield Footer()
-        
-    def action_scroll_down(self):
-        """𐑕𐑒𐑮𐑴𐑤 𐑛𐑬𐑯 𐑦𐑯 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿"""
-        max_offset = len(self.hex_viewer.binary_data) - (self.hex_viewer.display_rows * self.hex_viewer.bytes_per_row)
-        new_offset = self.hex_viewer.current_offset + self.hex_viewer.bytes_per_row
-        self.hex_viewer.current_offset = min(new_offset, max(0, max_offset))
-        self._refresh_display()
-        
-    def action_scroll_up(self):
-        """𐑕𐑒𐑮𐑴𐑤 𐑳𐑐 𐑦𐑯 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿"""
-        self.hex_viewer.current_offset = max(0, self.hex_viewer.current_offset - self.hex_viewer.bytes_per_row)
-        self._refresh_display()
-        
-    def action_page_down(self):
-        """𐑐𐑱𐑡 𐑛𐑬𐑯 (𐑕𐑒𐑮𐑴𐑤 𐑩 𐑓𐑻𐑤 𐑕𐑒𐑮𐑰𐑯)"""
-        page_size = (self.hex_viewer.display_rows - 2) * self.hex_viewer.bytes_per_row
-        max_offset = len(self.hex_viewer.binary_data) - (self.hex_viewer.display_rows * self.hex_viewer.bytes_per_row)
-        new_offset = self.hex_viewer.current_offset + page_size
-        self.hex_viewer.current_offset = min(new_offset, max(0, max_offset))
-        self._refresh_display()
-        
-    def action_page_up(self):
-        """𐑐𐑱𐑡 𐑳𐑐 (𐑕𐑒𐑮𐑴𐑤 𐑩 𐑓𐑻𐑤 𐑕𐑒𐑮𐑰𐑯)"""
-        page_size = (self.hex_viewer.display_rows - 2) * self.hex_viewer.bytes_per_row
-        new_offset = self.hex_viewer.current_offset - page_size
-        self.hex_viewer.current_offset = max(0, new_offset)
-        self._refresh_display()
-        
-    def action_go_to_top(self):
-        """𐑜𐑴 𐑑 𐑑𐑪𐑐 𐑝 𐑓𐑲𐑤"""
-        self.hex_viewer.current_offset = 0
-        self._refresh_display()
-        
-    def action_go_to_bottom(self):
-        """𐑜𐑴 𐑑 𐑚𐑪𐑑𐑩𐑥 𐑝 𐑓𐑲𐑤"""
-        max_offset = len(self.hex_viewer.binary_data) - (self.hex_viewer.display_rows * self.hex_viewer.bytes_per_row)
-        self.hex_viewer.current_offset = max(0, max_offset)
-        self._refresh_display()
-        
-    def action_search(self):
-        """𐑴𐑐𐑧𐑯 𐑕𐑻𐑗 𐑛𐑲𐑩𐑤𐑪𐑜"""
-        self.push_screen(HexSearchDialog(), self._handle_search_result)
-        
-    def _handle_search_result(self, result: str):
-        """𐑣𐑨𐑯𐑛𐑩𐑤 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
-        if not result:
-            return
-            
+    def search_hex(self, hex_string: str) -> int:
+        """𐑕𐑻𐑗 𐑓𐑹 𐑣𐑧𐑒𐑕 𐑚𐑲𐑑𐑟 𐑦𐑯 𐑞 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩"""
         try:
-            if result.startswith("hex:"):
-                hex_string = result[4:].strip()
-                # 𐑮𐑦𐑥𐑵𐑝 𐑕𐑐𐑱𐑕𐑦𐑟 𐑯 𐑒𐑩𐑯𐑝𐑻𐑑 𐑣𐑧𐑒𐑕 𐑑 𐑚𐑲𐑑𐑟
-                hex_string = hex_string.replace(" ", "")
-                pattern = bytes.fromhex(hex_string)
-                results = self.hex_viewer.search_bytes(pattern)
-            elif result.startswith("string:"):
-                string_pattern = result[7:]
-                results = self.hex_viewer.search_string(string_pattern)
-            else:
-                # 𐑛𐑦𐑓𐑷𐑤𐑑 𐑑 𐑕𐑑𐑮𐑦𐑙 𐑕𐑻𐑗
-                results = self.hex_viewer.search_string(result)
+            search_bytes = bytes.fromhex(hex_string.replace(' ', ''))
+            self.search_results = []
+            
+            for i in range(len(self.binary_data) - len(search_bytes) + 1):
+                if self.binary_data[i:i + len(search_bytes)] == search_bytes:
+                    self.search_results.append(i)
+                    
+            self.search_index = 0
+            return len(self.search_results)
+        except ValueError:
+            return 0
+    
+    def search_string(self, search_string: str) -> int:
+        """𐑕𐑻𐑗 𐑓𐑹 𐑩 𐑕𐑑𐑮𐑦𐑙 𐑦𐑯 𐑞 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩"""
+        search_bytes = search_string.encode('utf-8', errors='ignore')
+        self.search_results = []
+        
+        for i in range(len(self.binary_data) - len(search_bytes) + 1):
+            if self.binary_data[i:i + len(search_bytes)] == search_bytes:
+                self.search_results.append(i)
                 
-            if results:
-                self.notify(f"Found {len(results)} matches - use n/N to navigate")
-                # 𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑓𐑻𐑕𐑑 𐑮𐑦𐑟𐑳𐑤𐑑 𐑯 𐑮𐑰𐑓𐑮𐑧𐑖
-                self.hex_viewer.navigate_to_offset(results[0])
+        self.search_index = 0
+        return len(self.search_results)
+    
+    def next_search_result(self):
+        """𐑜𐑴 𐑑 𐑞 𐑯𐑧𐑒𐑕𐑑 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
+        if self.search_results and self.search_index < len(self.search_results) - 1:
+            self.search_index += 1
+            self.goto_offset(self.search_results[self.search_index])
+            return True
+        return False
+            
+    def prev_search_result(self):
+        """𐑜𐑴 𐑑 𐑞 𐑐𐑮𐑰𐑝𐑦𐑩𐑕 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
+        if self.search_results and self.search_index > 0:
+            self.search_index -= 1
+            self.goto_offset(self.search_results[self.search_index])
+            return True
+        return False
+
+
+# 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 ℌ𐑧𐑒𐑕 𐑝𐑿𐑼 (if textual is available)
+if TEXTUAL_AVAILABLE:
+    
+    class TextualHexViewer(Static):
+        """𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 ℌ𐑧𐑒𐑕 𐑝𐑿𐑼 𐑢𐑦𐑡𐑧𐑑"""
+        
+        def __init__(self, hex_viewer: HexViewer, **kwargs):
+            # Initialize the Static widget with the hex content
+            hex_content = hex_viewer.generate_textual_hex_view()
+            super().__init__(hex_content, **kwargs)
+            self.hex_viewer = hex_viewer
+    
+    
+    class HexSearchDialog(ModalScreen[str]):
+        """ℌ𐑧𐑒𐑕 𐑕𐑻𐑗 𐑛𐑲𐑩𐑤𐑪𐑜"""
+        
+        BINDINGS = [
+            Binding("escape", "dismiss", "Cancel"),
+            Binding("enter", "search", "Search"),
+        ]
+        
+        def compose(self) -> ComposeResult:
+            with Container(id="search-dialog"):
+                yield Label("Search for hex bytes or string:", id="search-label")
+                yield Input(placeholder="Enter hex (e.g. 4D5A) or string", id="search-input")
+                with Horizontal():
+                    yield Button("Search Hex", variant="primary", id="search-hex")
+                    yield Button("Search String", variant="primary", id="search-string")
+                    yield Button("Cancel", variant="default", id="cancel")
+                    
+        def action_dismiss(self):
+            self.dismiss("")
+            
+        def action_search(self):
+            input_widget = self.query_one("#search-input", Input)
+            self.dismiss(input_widget.value)
+        
+        @on(Button.Pressed, "#search-hex")
+        def search_hex_pressed(self):
+            input_widget = self.query_one("#search-input", Input)
+            self.dismiss(f"hex:{input_widget.value}")
+            
+        @on(Button.Pressed, "#search-string")  
+        def search_string_pressed(self):
+            input_widget = self.query_one("#search-input", Input)
+            self.dismiss(f"string:{input_widget.value}")
+            
+        @on(Button.Pressed, "#cancel")
+        def cancel_pressed(self):
+            self.dismiss("")
+    
+    
+    class InteractiveHexViewerApp(App):
+        """𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 ℌ𐑧𐑒𐑕 𐑝𐑿𐑼 𐑨𐑐"""
+        
+        CSS = """
+        /* CUMPYL Enhanced Textual Hex Viewer Styles */
+        Screen {
+            background: $background;
+        }
+
+        /* Full-width hex display with proper padding */
+        #hex-display {
+            width: 100%;
+            height: 100%;
+            background: $surface;
+            margin: 0;
+            padding: 0 1;
+            scrollbar-size: 1 1;
+        }
+        
+        #search-dialog {
+            align: center middle;
+            background: $panel;
+            border: thick $primary;
+            width: 60;
+            height: auto;
+            padding: 1;
+        }
+        
+        #search-label {
+            margin-bottom: 1;
+        }
+        
+        #search-input {
+            margin-bottom: 1;
+        }
+        """
+        
+        TITLE = "🔥 CUMPYL Interactive Hex Viewer"
+        
+        BINDINGS = [
+            Binding("q", "quit", "Quit"),
+            Binding("j,down", "scroll_down", "Scroll down"),
+            Binding("k,up", "scroll_up", "Scroll up"),
+            Binding("g", "goto_top", "Go to top"),
+            Binding("shift+g", "goto_bottom", "Go to bottom"),
+            Binding("f,slash", "search", "Search"),
+            Binding("n", "next_search", "Next result"),
+            Binding("shift+n", "prev_search", "Previous result"),
+            Binding("r", "refresh", "Refresh"),
+            Binding("a", "show_annotations", "Show annotations"),
+        ]
+        
+        def __init__(self, hex_viewer: HexViewer, **kwargs):
+            super().__init__(**kwargs)
+            self.hex_viewer = hex_viewer
+            
+        def compose(self) -> ComposeResult:
+            """𐑒𐑩𐑥𐑐𐑴𐑟 𐑞 𐑨𐑐 𐑦𐑯𐑑𐑼𐑓𐑱𐑕"""
+            yield Header(show_clock=True)
+            yield TextualHexViewer(self.hex_viewer, id="hex-viewer")
+            yield Footer()
+            
+        def action_quit(self):
+            """𐑒𐑢𐑦𐑑 𐑞 𐑨𐑐"""
+            self.exit()
+            
+        def action_scroll_down(self):
+            """𐑕𐑒𐑮𐑴𐑤 𐑞 ℌ𐑧𐑒𐑕 𐑝𐑿 𐑛𐑬𐑯"""
+            self.hex_viewer.scroll_down()
+            self._refresh_display()
+            
+        def action_scroll_up(self):
+            """𐑕𐑒𐑮𐑴𐑤 𐑞 ℌ𐑧𐑒𐑕 𐑝𐑿 𐑳𐑐"""
+            self.hex_viewer.scroll_up()
+            self._refresh_display()
+            
+        def action_goto_top(self):
+            """𐑜𐑴 𐑑 𐑞 𐑑𐑪𐑐 𐑝 𐑞 ℌ𐑧𐑒𐑕 𐑝𐑿"""
+            self.hex_viewer.current_offset = 0
+            self._refresh_display()
+            
+        def action_goto_bottom(self):
+            """𐑜𐑴 𐑑 𐑞 𐑚𐑪𐑑𐑩𐑥 𐑝 𐑞 ℌ𐑧𐑒𐑕 𐑝𐑿"""
+            max_offset = max(0, len(self.hex_viewer.binary_data) - self.hex_viewer.bytes_per_row * self.hex_viewer.display_rows)
+            self.hex_viewer.current_offset = max_offset
+            self._refresh_display()
+            
+        def action_search(self):
+            """𐑴𐑐𐑩𐑯 𐑞 𐑕𐑻𐑗 𐑛𐑲𐑩𐑤𐑪𐑜"""
+            def handle_search_result(search_term: str) -> None:
+                if not search_term:
+                    return
+                    
+                if search_term.startswith("hex:"):
+                    hex_term = search_term[4:]
+                    results = self.hex_viewer.search_hex(hex_term)
+                    self.notify(f"Found {results} hex matches for: {hex_term}")
+                elif search_term.startswith("string:"):
+                    string_term = search_term[7:]
+                    results = self.hex_viewer.search_string(string_term)
+                    self.notify(f"Found {results} string matches for: {string_term}")
+                else:
+                    # 𐑑𐑮𐑲 𐑚𐑴𐑔 ℌ𐑧𐑒𐑕 𐑯 𐑕𐑑𐑮𐑦𐑙
+                    hex_results = self.hex_viewer.search_hex(search_term)
+                    string_results = self.hex_viewer.search_string(search_term)
+                    total_results = hex_results + string_results
+                    self.notify(f"Found {total_results} total matches (hex: {hex_results}, string: {string_results})")
+                
+                # 𐑜𐑴 𐑑 𐑞 𐑓𐑻𐑕𐑑 𐑮𐑦𐑟𐑳𐑤𐑑
+                if self.hex_viewer.search_results:
+                    self.hex_viewer.goto_offset(self.hex_viewer.search_results[0])
+                    self._refresh_display()
+            
+            self.push_screen(HexSearchDialog(), handle_search_result)
+            
+        def action_next_search(self):
+            """𐑜𐑴 𐑑 𐑞 𐑯𐑧𐑒𐑕𐑑 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
+            if self.hex_viewer.next_search_result():
                 self._refresh_display()
-                self.notify(f"Match 1/{len(results)} at offset 0x{results[0]:X}")
+                current = self.hex_viewer.search_index + 1
+                total = len(self.hex_viewer.search_results)
+                self.notify(f"Search result {current}/{total}")
             else:
-                self.notify("No matches found", severity="warning")
+                self.notify("No more search results")
                 
-        except Exception as e:
-            self.notify(f"Search error: {str(e)}", severity="error")
-            
-    def action_next_search(self):
-        """𐑯𐑧𐑒𐑕𐑑 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
-        if self.hex_viewer.search_results:
-            target_offset = self.hex_viewer.navigate_next_search_result()
+        def action_prev_search(self):
+            """𐑜𐑴 𐑑 𐑞 𐑐𐑮𐑰𐑝𐑦𐑩𐑕 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
+            if self.hex_viewer.prev_search_result():
+                self._refresh_display()
+                current = self.hex_viewer.search_index + 1
+                total = len(self.hex_viewer.search_results)
+                self.notify(f"Search result {current}/{total}")
+            else:
+                self.notify("No previous search results")
+                
+        def action_refresh(self):
+            """𐑮𐑰𐑓𐑮𐑧𐑖 𐑞 ℌ𐑧𐑒𐑕 𐑛𐑦𐑕𐑐𐑤𐑱 𐑯 𐑮𐑰𐑤𐑴𐑛 𐑒𐑩𐑤𐑼 𐑕𐑒𐑦𐑥"""
+            # Refresh the hex display and reload any color scheme changes
             self._refresh_display()
-            if target_offset is not None:
-                match_num = self.hex_viewer.search_index + 1
-                total_matches = len(self.hex_viewer.search_results)
-                self.notify(f"Match {match_num}/{total_matches} at offset 0x{target_offset:X}")
-            else:
-                self.notify("Navigation failed", severity="error")
-        else:
-            self.notify("No search results - perform search first (f or /)", severity="warning")
+            # Force a complete re-render by invalidating the screen
+            self.refresh(layout=True)
+            self.notify("Hex view and palette refreshed")
             
-    def action_previous_search(self):
-        """𐑐𐑮𐑰𐑝𐑦𐑩𐑕 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
-        if self.hex_viewer.search_results:
-            target_offset = self.hex_viewer.navigate_previous_search_result()
-            self._refresh_display()
-            if target_offset is not None:
-                match_num = self.hex_viewer.search_index + 1
-                total_matches = len(self.hex_viewer.search_results)
-                self.notify(f"Match {match_num}/{total_matches} at offset 0x{target_offset:X}")
-            else:
-                self.notify("Navigation failed", severity="error")
-        else:
-            self.notify("No search results - perform search first (f or /)", severity="warning")
+        def action_show_annotations(self):
+            """𐑖𐑴 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑦𐑯𐑓𐑹𐑥𐑱𐑖𐑩𐑯"""
+            annotation_count = len(self.hex_viewer.annotations)
             
-    def action_refresh(self):
-        """𐑮𐑰𐑓𐑮𐑧𐑖 𐑛𐑦𐑕𐑐𐑤𐑱"""
-        self._refresh_display()
-        self.notify("Display refreshed")
-        
-    def action_show_annotations(self):
-        """𐑕𐑴 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑦𐑯𐑓𐑹𐑥𐑱𐑖𐑩𐑯"""
-        annotation_count = len(self.hex_viewer.annotations)
-        current_annotations = []
-        
-        # 𐑓𐑲𐑯𐑛 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑦𐑯 𐑞 𐑒𐑻𐑩𐑯𐑑 𐑝𐑿
-        view_start = self.hex_viewer.current_offset
-        view_end = view_start + (self.hex_viewer.display_rows * self.hex_viewer.bytes_per_row)
-        
-        for ann in self.hex_viewer.annotations:
-            if ann.start_offset < view_end and ann.end_offset > view_start:
-                current_annotations.append(ann)
-                
-        # 𐑨𐑛 𐑛𐑦𐑑𐑱𐑤 𐑦𐑯𐑓𐑹𐑥𐑱𐑖𐑩𐑯
-        info_lines = [f"Total annotations: {annotation_count}, Visible: {len(current_annotations)}"]
-        info_lines.append(f"Current view: 0x{view_start:X} - 0x{view_end:X}")
-        info_lines.append(f"File size: {len(self.hex_viewer.binary_data)} bytes")
-        
-        if current_annotations:
-            info_lines.append("Visible annotations:")
-            for i, ann in enumerate(current_annotations[:5]):  # 𐑤𐑦𐑥𐑦𐑑 𐑑 5
-                info_lines.append(f"  {i+1}. {ann.annotation_type} at 0x{ann.start_offset:X}")
-                
-        self.notify("\n".join(info_lines))
-        
-    def _refresh_display(self):
-        """𐑮𐑰𐑓𐑮𐑧𐑖 𐑞 𐑣𐑧𐑒𐑕 𐑛𐑦𐑕𐑐𐑤𐑱"""
-        hex_display = self.query_one("#hex-display")
-        hex_display.update(self.hex_viewer.generate_textual_hex_view())
+            # 𐑒𐑬𐑯𐑑 𐑞 𐑞 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 ℌ𐑞 𐑤 𐑦 𐑞 𐑒𐑹𐑩𐑯𐑑 𐑦
+            current_annotations = []
+            start_offset = self.hex_viewer.base_offset + self.hex_viewer.current_offset
+            end_offset = start_offset + self.hex_viewer.bytes_per_row * self.hex_viewer.display_rows
+            
+            for annotation in self.hex_viewer.annotations:
+                if (annotation.start_offset <= end_offset and annotation.end_offset >= start_offset):
+                    current_annotations.append(annotation)
+                    
+            self.notify(f"Total annotations: {annotation_count}, Visible: {len(current_annotations)}")
+            
+        def _refresh_display(self):
+            """𐑮𐑰𐑓𐑮𐑧𐑖 𐑞 ℌ𐑧𐑒𐑕 𐑛𐑦𐑕𐑐𐑤𐑱"""
+            hex_viewer_widget = self.query_one("#hex-viewer", TextualHexViewer)
+            hex_viewer_widget.update(self.hex_viewer.generate_textual_hex_view())
 
 
-def launch_textual_hex_viewer(hex_viewer: HexViewer):
-    """𐑤𐑷𐑯𐑗 𐑞 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼"""
+def launch_textual_hex_viewer(file_path: str):
+    """𐑤𐑷𐑯𐑗 𐑞 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 ℌ𐑧𐑒𐑕 𐑝𐑿𐑼"""
     if not TEXTUAL_AVAILABLE:
         raise ImportError("Textual package is required for interactive hex viewer. Install with: pip install textual")
     
+    import os
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+    
     try:
-        # Ensure hex viewer has data
-        if not hex_viewer.binary_data:
-            raise ValueError("HexViewer has no binary data loaded")
+        # 𐑤𐑴𐑛 𐑞 𐑓𐑲𐑤 𐑯 𐑒𐑮𐑦𐑱𐑑 ℌ𐑧𐑒𐑕 𐑝𐑿𐑼
+        from .config import get_config
+        from .cumpyl import BinaryRewriter
+        
+        config = get_config()
+        hex_viewer = HexViewer(config)
+        
+        with open(file_path, 'rb') as f:
+            binary_data = f.read()
+        hex_viewer.load_binary_data(binary_data)
+        
+        # 𐑮𐑳𐑯 𐑩𐑯𐑨𐑤𐑦𐑕𐑦𐑕 𐑞 ℌ𐑧𐑒𐑕 𐑝𐑿𐑼
+        rewriter = BinaryRewriter(file_path, config)
+        if rewriter.load_binary():
+            # 𐑨𐑛 𐑕𐑧𐑒𐑖𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
+            hex_viewer.add_section_annotations(rewriter.binary.sections)
             
-        # Test the hex generation before launching the app
-        test_output = hex_viewer.generate_textual_hex_view(max_bytes=64)
-        if not test_output or "𐑯𐑴 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑤𐑴𐑛𐑦𐑛" in test_output:
-            raise ValueError("Failed to generate hex view output")
+            # 𐑮𐑳𐑯 𐑯𐑦𐑯 𐑦 𐑩𐑤 𐑞 𐑩𐑯 𐑩 𐑞 𐑞
+            analysis_results = rewriter.plugin_manager.run_all_plugins(rewriter)
+            hex_viewer.add_analysis_annotations(analysis_results)
+            
+            # 𐑨𐑛 𐑩𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑟 𐑞
+            suggestions = rewriter.get_obfuscation_suggestions()
+            hex_viewer.add_obfuscation_suggestions(suggestions)
+        
+        # 𐑤𐑷𐑯𐑗 𐑞 ℌ𐑧𐑒𐑕 𐑝𐑿 𐑨
+        app = InteractiveHexViewerApp(hex_viewer)
+        app.run()
+        
+    except ImportError:
+        # 𐑯 𐑤 𐑟 ℌ 𐑯 𐑤 𐑒 𐑞 𐑯 𐑩 𐑓 𐑞 𐑒 ℌ𐑤
+        hex_viewer = HexViewer()
+        
+        with open(file_path, 'rb') as f:
+            binary_data = f.read()
+        hex_viewer.load_binary_data(binary_data)
         
         app = InteractiveHexViewerApp(hex_viewer)
         app.run()
-    except Exception as e:
-        print(f"Error launching textual hex viewer: {e}")
-        import traceback
-        traceback.print_exc()
-        raise
