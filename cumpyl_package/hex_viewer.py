@@ -608,19 +608,27 @@ class HexViewer:
         
     def navigate_to_offset(self, offset: int):
         """𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑪𐑓𐑕𐑧𐑑"""
-        self.current_offset = max(0, min(offset, len(self.binary_data) - 1))
+        # 𐑩𐑤𐑲𐑯 𐑑 𐑮𐑴 𐑚𐑬𐑯𐑛𐑼𐑦 𐑓𐑹 𐑐𐑮𐑪𐑐𐑼 𐑛𐑦𐑕𐑐𐑤𐑱
+        aligned_offset = (offset // self.bytes_per_row) * self.bytes_per_row
+        self.current_offset = max(0, min(aligned_offset, len(self.binary_data) - 1))
         
     def navigate_next_search_result(self):
         """𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑯𐑧𐑒𐑕𐑑 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
         if self.search_results:
             self.search_index = (self.search_index + 1) % len(self.search_results)
-            self.navigate_to_offset(self.search_results[self.search_index])
+            target_offset = self.search_results[self.search_index] 
+            self.navigate_to_offset(target_offset)
+            return target_offset
+        return None
             
     def navigate_previous_search_result(self):
         """𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑐𐑮𐑰𐑝𐑦𐑩𐑕 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
         if self.search_results:
             self.search_index = (self.search_index - 1) % len(self.search_results)
-            self.navigate_to_offset(self.search_results[self.search_index])
+            target_offset = self.search_results[self.search_index]
+            self.navigate_to_offset(target_offset)
+            return target_offset
+        return None
 
 
 class TextualHexViewer(Static):
@@ -774,9 +782,11 @@ class InteractiveHexViewerApp(App):
                 results = self.hex_viewer.search_string(result)
                 
             if results:
-                self.notify(f"Found {len(results)} matches")
+                self.notify(f"Found {len(results)} matches - use n/N to navigate")
+                # 𐑯𐑨𐑝𐑦𐑜𐑱𐑑 𐑑 𐑓𐑻𐑕𐑑 𐑮𐑦𐑟𐑳𐑤𐑑 𐑯 𐑮𐑰𐑓𐑮𐑧𐑖
                 self.hex_viewer.navigate_to_offset(results[0])
                 self._refresh_display()
+                self.notify(f"Match 1/{len(results)} at offset 0x{results[0]:X}")
             else:
                 self.notify("No matches found", severity="warning")
                 
@@ -786,20 +796,30 @@ class InteractiveHexViewerApp(App):
     def action_next_search(self):
         """𐑯𐑧𐑒𐑕𐑑 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
         if self.hex_viewer.search_results:
-            self.hex_viewer.navigate_next_search_result()
+            target_offset = self.hex_viewer.navigate_next_search_result()
             self._refresh_display()
-            self.notify(f"Match {self.hex_viewer.search_index + 1}/{len(self.hex_viewer.search_results)}")
+            if target_offset is not None:
+                match_num = self.hex_viewer.search_index + 1
+                total_matches = len(self.hex_viewer.search_results)
+                self.notify(f"Match {match_num}/{total_matches} at offset 0x{target_offset:X}")
+            else:
+                self.notify("Navigation failed", severity="error")
         else:
-            self.notify("No search results", severity="warning")
+            self.notify("No search results - perform search first (f or /)", severity="warning")
             
     def action_previous_search(self):
         """𐑐𐑮𐑰𐑝𐑦𐑩𐑕 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
         if self.hex_viewer.search_results:
-            self.hex_viewer.navigate_previous_search_result()
+            target_offset = self.hex_viewer.navigate_previous_search_result()
             self._refresh_display()
-            self.notify(f"Match {self.hex_viewer.search_index + 1}/{len(self.hex_viewer.search_results)}")
+            if target_offset is not None:
+                match_num = self.hex_viewer.search_index + 1
+                total_matches = len(self.hex_viewer.search_results)
+                self.notify(f"Match {match_num}/{total_matches} at offset 0x{target_offset:X}")
+            else:
+                self.notify("Navigation failed", severity="error")
         else:
-            self.notify("No search results", severity="warning")
+            self.notify("No search results - perform search first (f or /)", severity="warning")
             
     def action_refresh(self):
         """𐑮𐑰𐑓𐑮𐑧𐑖 𐑛𐑦𐑕𐑐𐑤𐑱"""
