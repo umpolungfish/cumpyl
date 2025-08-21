@@ -532,7 +532,10 @@ class HexViewer:
         for byte_val in row_data:
             annotations = self._get_annotations_for_offset(offset + len(hex_bytes))
             color_code = self._get_color_code_for_annotations(annotations)
-            hex_bytes.append(f"{color_code}{byte_val:02x}[/]")
+            if color_code:
+                hex_bytes.append(f"{color_code}{byte_val:02x}[/]")
+            else:
+                hex_bytes.append(f"{byte_val:02x}")
             
         # 𐑐𐑨𐑛 𐑦𐑯𐑒𐑩𐑥𐑐𐑤𐑰𐑑 𐑮𐑴𐑟
         while len(hex_bytes) < self.bytes_per_row:
@@ -547,9 +550,14 @@ class HexViewer:
                 annotations = self._get_annotations_for_offset(offset + i)
                 color_code = self._get_color_code_for_annotations(annotations)
                 if 32 <= byte_val <= 126:
-                    ascii_chars.append(f"{color_code}{chr(byte_val)}[/]")
+                    char = chr(byte_val)
                 else:
-                    ascii_chars.append(f"{color_code}.[/]")
+                    char = "."
+                    
+                if color_code:
+                    ascii_chars.append(f"{color_code}{char}[/]")
+                else:
+                    ascii_chars.append(char)
             while len(ascii_chars) < self.bytes_per_row:
                 ascii_chars.append(" ")
                 
@@ -668,7 +676,7 @@ class InteractiveHexViewerApp(App):
     #search-dialog {
         width: 60;
         height: 8;
-        background: $background;
+        background: $surface;
         border: thick $primary;
     }
     
@@ -685,26 +693,7 @@ class InteractiveHexViewerApp(App):
         margin: 1;
         padding: 1;
         border: solid $primary;
-    }
-    
-    .annotation-info {
-        background: $info;
-        color: $text;
-    }
-    
-    .annotation-warning {
-        background: $warning;
-        color: $text;
-    }
-    
-    .annotation-danger {
-        background: $error;
-        color: $text;
-    }
-    
-    .annotation-success {
-        background: $success;
-        color: $text;
+        background: $surface;
     }
     """
     
