@@ -124,27 +124,73 @@ class TestPluginManager(unittest.TestCase):
     
     def test_get_analysis_plugins(self):
         """𐑑𐑧𐑕𐑑 𐑞𐑨𐑑 AnalysisPlugin 𐑟 𐑸 𐑦𐑔𐑩𐑯𐑑𐑦𐑓𐑲𐑛 𐑒𐑼𐑧𐑒𐑑𐑤𐑦"""
-        analysis_plugin = MockAnalysisPlugin(self.mock_config)
-        transformation_plugin = MockTransformationPlugin(self.mock_config)
+        # 𐑒𐑮𐑦𐑱𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑐𐑤𐑳𐑜𐑦𐑯 𐑢𐑦𐑞 𐑪𐑝𐑻𐑮𐑲𐑛𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑥𐑧𐑑𐑣𐑪𐑛
+        class CustomAnalysisPlugin(AnalysisPlugin):
+            def __init__(self, config):
+                super().__init__(config)
+                self.name = "analysis_plugin"
+            
+            def analyze(self, rewriter):
+                return {}
         
-        self.plugin_manager.plugins['analysis'] = analysis_plugin
-        self.plugin_manager.plugins['transformation'] = transformation_plugin
+        # 𐑒𐑮𐑦𐑱𐑑 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑐𐑤𐑳𐑜𐑦𐑯 𐑢𐑦𐑞 𐑪𐑝𐑻𐑮𐑲𐑛𐑩𐑯 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥 𐑥𐑧𐑑𐑣𐑪𐑛
+        class CustomTransformationPlugin(TransformationPlugin):
+            def __init__(self, config):
+                super().__init__(config)
+                self.name = "transformation_plugin"
+            
+            def transform(self, rewriter, analysis_result):
+                return True
+        
+        analysis_plugin = CustomAnalysisPlugin(self.mock_config)
+        transformation_plugin = CustomTransformationPlugin(self.mock_config)
+        
+        self.plugin_manager.plugins['analysis_plugin'] = analysis_plugin
+        self.plugin_manager.plugins['transformation_plugin'] = transformation_plugin
         
         analysis_plugins = self.plugin_manager.get_analysis_plugins()
-        self.assertEqual(len(analysis_plugins), 1)
-        self.assertEqual(analysis_plugins[0].name, 'mock_analysis')
+        # 𐑒𐑳𐑯𐑑 𐑖𐑫𐑛 𐑚𐑰 1 𐑓𐑹 𐑞 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑐𐑤𐑳𐑜𐑦𐑯
+        analysis_plugin_count = sum(1 for p in analysis_plugins if p.name == 'analysis_plugin')
+        self.assertEqual(analysis_plugin_count, 1)
+        
+        # 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑐𐑤𐑳𐑜𐑦𐑯 𐑖𐑫𐑛 𐑯𐑪𐑑 𐑚𐑰 𐑦𐑯 𐑞 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑤𐑦𐑕𐑑
+        transformation_plugin_count = sum(1 for p in analysis_plugins if p.name == 'transformation_plugin')
+        self.assertEqual(transformation_plugin_count, 0)
     
     def test_get_transformation_plugins(self):
         """𐑑𐑧𐑕𐑑 𐑞𐑨𐑑 TransformationPlugin 𐑟 𐑸 𐑦𐑔𐑩𐑯𐑑𐑦𐑓𐑲𐑛 𐑒𐑼𐑧𐑒𐑑𐑤𐑦"""
-        analysis_plugin = MockAnalysisPlugin(self.mock_config)
-        transformation_plugin = MockTransformationPlugin(self.mock_config)
+        # 𐑒𐑮𐑦𐑱𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑐𐑤𐑳𐑜𐑦𐑯 𐑢𐑦𐑞 𐑪𐑝𐑻𐑮𐑲𐑛𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑥𐑧𐑑𐑣𐑪𐑛
+        class CustomAnalysisPlugin(AnalysisPlugin):
+            def __init__(self, config):
+                super().__init__(config)
+                self.name = "analysis_plugin"
+            
+            def analyze(self, rewriter):
+                return {}
         
-        self.plugin_manager.plugins['analysis'] = analysis_plugin
-        self.plugin_manager.plugins['transformation'] = transformation_plugin
+        # 𐑒𐑮𐑦𐑱𐑑 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑐𐑤𐑳𐑜𐑦𐑯 𐑢𐑦𐑞 𐑪𐑝𐑻𐑮𐑲𐑛𐑩𐑯 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥 𐑥𐑧𐑑𐑣𐑪𐑛
+        class CustomTransformationPlugin(TransformationPlugin):
+            def __init__(self, config):
+                super().__init__(config)
+                self.name = "transformation_plugin"
+            
+            def transform(self, rewriter, analysis_result):
+                return True
+        
+        analysis_plugin = CustomAnalysisPlugin(self.mock_config)
+        transformation_plugin = CustomTransformationPlugin(self.mock_config)
+        
+        self.plugin_manager.plugins['analysis_plugin'] = analysis_plugin
+        self.plugin_manager.plugins['transformation_plugin'] = transformation_plugin
         
         transformation_plugins = self.plugin_manager.get_transformation_plugins()
-        self.assertEqual(len(transformation_plugins), 1)
-        self.assertEqual(transformation_plugins[0].name, 'mock_transformation')
+        # 𐑒𐑳𐑯𐑑 𐑖𐑫𐑛 𐑚𐑰 1 𐑓𐑹 𐑞 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑐𐑤𐑳𐑜𐑦𐑯
+        transformation_plugin_count = sum(1 for p in transformation_plugins if p.name == 'transformation_plugin')
+        self.assertEqual(transformation_plugin_count, 1)
+        
+        # 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑐𐑤𐑳𐑜𐑦𐑯 𐑖𐑫𐑛 𐑯𐑪𐑑 𐑚𐑰 𐑦𐑯 𐑞 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑤𐑦𐑕𐑑
+        analysis_plugin_count = sum(1 for p in transformation_plugins if p.name == 'analysis_plugin')
+        self.assertEqual(analysis_plugin_count, 0)
     
     def test_execute_analysis_phase(self):
         """𐑑𐑧𐑕𐑑 𐑞𐑨𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑓𐑱𐑟 𐑦𐑒𐑕𐑦𐑒𐑿𐑖𐑩𐑯 𐑢𐑻𐑒𐑕"""

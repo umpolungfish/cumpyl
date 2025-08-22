@@ -1,10 +1,42 @@
 # Cumpyl - Binary Analysis & Rewriting Framework
 
-[![Framework Version](https://img.shields.io/badge/version-0.3.0-brightgreen.svg)](https://github.com/yourusername/cumpyl)
+[![Framework Version](https://img.shields.io/badge/version-0.3.0-brightgreen.svg)](https://github.com/umpolungfish/cumpyl)
 [![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-Unlicense-green.svg)](LICENSE)
+[![CI](https://github.com/umpolungfish/cumpyl/actions/workflows/ci.yml/badge.svg)](https://github.com/umpolungfish/cumpyl/actions/workflows/ci.yml)
+[![Documentation](https://github.com/umpolungfish/cumpyl/actions/workflows/ci.yml/badge.svg?branch=docs)](https://umpolungfish.github.io/cumpyl/)
+
+![Cumpyl Demo](images/sexy1.png)
 
 Cumpyl is a Python-based binary analysis framework for analyzing, modifying, and rewriting binary files (PE, ELF, Mach-O). It features plugin architecture, batch processing, and comprehensive reporting capabilities.
+
+![Cumpyl Menu](images/sexy2.png)
+
+## Quickstart — Command Line Ready
+
+```bash
+# Clone and install (recommended via uv)
+git clone https://github.com/umpolungfish/cumpyl-framework
+cd cumpyl-framework
+uv sync --extra dev --extra test
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# Or the traditional way
+pip install -e ".[dev,test]"
+```
+
+```bash
+# Launch interactive menu for guided binary analysis
+cumpyl sample.bin --menu
+```
+
+```bash
+# Quick commands:
+cumpyl analyze file.exe                     # default analysis + report
+cumpyl view firmware.bin --theme tokyo-night  # hex viewer with entropy and theme
+cumpyl analyze sample.elf --report json > report.json
+cumpyl analyze ./bins/*.elf --report html --output ./reports/
+```
 
 ## Key Features
 

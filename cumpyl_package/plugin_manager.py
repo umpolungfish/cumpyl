@@ -223,11 +223,11 @@ class PluginManager:
     
     def get_analysis_plugins(self) -> List[PluginInterface]:
         """𐑜𐑧𐑑 𐑷𐑤 𐑤𐑴𐑛𐑦𐑛 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑐𐑤𐑳𐑜𐑦𐑯𐑟"""
-        return [p for p in self.plugins.values() if isinstance(p, AnalysisPlugin) or hasattr(p, 'analyze')]
+        return [p for p in self.plugins.values() if isinstance(p, AnalysisPlugin)]
     
     def get_transformation_plugins(self) -> List[PluginInterface]:
         """𐑜𐑧𐑑 𐑷𐑤 𐑤𐑴𐑛𐑦𐑛 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑐𐑤𐑳𐑜𐑦𐑯𐑟"""
-        return [p for p in self.plugins.values() if isinstance(p, TransformationPlugin) or hasattr(p, 'transform')]
+        return [p for p in self.plugins.values() if isinstance(p, TransformationPlugin)]
     
     def execute_analysis_phase(self, rewriter) -> Dict[str, Any]:
         """𐑮𐑳𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑓𐑱𐑟 𐑓𐑹 𐑷𐑤 𐑐𐑤𐑳𐑜𐑦𐑯𐑟"""

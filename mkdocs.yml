@@ -1,0 +1,26 @@
+site_name: Cumpyl Framework
+site_description: Binary analysis & rewriting framework
+repo_url: https://github.com/umpolungfish/cumpyl-framework
+theme:
+  name: material
+  features:
+    - navigation.expand
+    - navigation.sections
+    - toc.integrate
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - CLI Reference: cli.md
+  - Plugin Development: plugins.md
+  - API Reference: api.md
+  - Contributing: contributing.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
