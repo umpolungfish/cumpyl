@@ -121,9 +121,11 @@ class CumpylMenu:
             ("3", "🔧 Interactive Hex Viewer", "Explore binary with interactive hex dump"),
             ("4", "⚡ Batch Processing", "Process multiple files with automated workflows"),
             ("5", "🎯 Encoding Operations", "Obfuscate specific sections with various encodings"),
-            ("6", "📊 Generate Reports", "Create detailed analysis reports in multiple formats"),
-            ("7", "⚙️ Configuration", "View and modify framework settings"),
-            ("8", "📁 Change Target", "Select a different binary file"),
+            ("6", "🔓 Payload Transmutation", "Transform payloads with advanced obfuscation techniques"),
+            ("7", "📦 PE Packer (Real)", "Pack and obfuscate PE files with compression and encryption"),
+            ("8", "📊 Generate Reports", "Create detailed analysis reports in multiple formats"),
+            ("9", "⚙️ Configuration", "View and modify framework settings"),
+            ("10", "📁 Change Target", "Select a different binary file"),
             ("h", "❓ Help", "Show detailed help and examples"),
             ("q", "🚪 Quit", "Exit the menu system")
         ]
@@ -376,6 +378,64 @@ class CumpylMenu:
             cmd = options[int(choice) - 1][2]
             self.execute_command(cmd)
     
+    def pe_packer_menu(self):
+        """PE Packer menu"""
+        self.console.print(Panel("📦 Real PE Packer Options", style="bold magenta"))
+        
+        options = [
+            ("1", "Analyze for Packing Opportunities", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {{target_file}} --analyze"),
+            ("2", "Pack Binary with Default Settings", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {{target_file}} --pack -o packed_{{output_file}}"),
+            ("3", "Pack Binary with Custom Settings", "Pack with custom compression level and password"),
+            ("4", "Unpack Binary", "Restore a previously packed binary"),
+            ("b", "Back to Main Menu", "")
+        ]
+        
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Option", style="cyan", width=8)
+        table.add_column("Description", style="white", width=30)
+        table.add_column("Command Preview", style="dim")
+        
+        for opt, desc, cmd in options:
+            table.add_row(opt, desc, cmd)
+        
+        self.console.print(table)
+        
+        choice = Prompt.ask(
+            "\n[yellow]Select PE Packer option[/yellow]",
+            choices=[opt[0] for opt in options],
+            default="2"
+        )
+        
+        if choice == "b":
+            return
+        elif choice == "3":
+            # Custom packer settings
+            compression_level = Prompt.ask("Compression level (1-9)", default="6")
+            password = Prompt.ask("Encryption password (leave empty for random)", default="")
+            
+            output_file = Prompt.ask("Output file name", default=f"packed_{os.path.basename(self.target_file)}")
+            
+            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file} --compression-level {compression_level}"
+            if password:
+                cmd += f" --password {password}"
+                
+            self.execute_command(cmd)
+        elif choice == "4":
+            # Unpack binary
+            password = Prompt.ask("Encryption password", default="")
+            output_file = Prompt.ask("Output file name", default=f"unpacked_{os.path.basename(self.target_file)}")
+            
+            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --unpack -o {output_file}"
+            if password:
+                cmd += f" --password {password}"
+                
+            self.execute_command(cmd)
+        else:
+            # Format the command with the target file
+            cmd_template = options[int(choice) - 1][2]
+            cmd = cmd_template.format(target_file=self.target_file, output_file=f"packed_{os.path.basename(self.target_file)}")
+            self.execute_command(cmd)
+    
     def report_generation_menu(self):
         """𐑮𐑦𐑐𐑹𐑑 𐑡𐑧𐑯𐑼𐑱𐑖𐑩𐑯 𐑥𐑧𐑯𐑿"""
         self.console.print(Panel("📊 Report Generation Options", style="bold green"))
@@ -575,11 +635,22 @@ class CumpylMenu:
         
         try:
             # 𐑮𐑩𐑯 𐑞 𐑒𐑩𐑥𐑭𐑯𐑛 𐑦𐑯 𐑞 𐑕𐑱𐑥 Python 𐑧𐑯𐑝𐑲𐑼𐑩𐑯𐑥𐑩𐑯𐑑
-            result = subprocess.run(
-                ["python", "-m", "cumpyl_package.cumpyl"] + command.split()[1:],
-                capture_output=False,
-                text=True
-            )
+            # Check if this is a packer CLI command
+            if "packer_cli.py" in command or "real_packer.py" in command:
+                # Run the command directly without prepending cumpyl_package.cumpyl
+                result = subprocess.run(
+                    command,
+                    shell=True,
+                    capture_output=False,
+                    text=True
+                )
+            else:
+                # Run the command as a cumpyl command
+                result = subprocess.run(
+                    ["python", "-m", "cumpyl_package.cumpyl"] + command.split()[1:],
+                    capture_output=False,
+                    text=True
+                )
             
             self.console.print("─" * 80)
             if result.returncode == 0:
@@ -675,10 +746,24 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                 elif choice == "5":
                     self.encoding_operations_menu()
                 elif choice == "6":
-                    self.report_generation_menu()
+                    # Launch the new payload transmutation menu
+                    try:
+                        # Use absolute import instead of relative import to avoid issues
+                        from cumpyl_package.payload_transmutation_menu import PayloadTransmutationMenu
+                        pt_menu = PayloadTransmutationMenu(self.config)
+                        pt_menu.run()
+                    except ImportError as e:
+                        self.console.print(f"[red]❌ Import error: {e}[/red]")
+                        self.console.print("[yellow]Make sure the payload_transmutation_menu module is properly installed[/yellow]")
+                        Prompt.ask("Press Enter to continue", default="")
                 elif choice == "7":
-                    self.configuration_menu()
+                    # Launch the PE Packer menu
+                    self.pe_packer_menu()
                 elif choice == "8":
+                    self.report_generation_menu()
+                elif choice == "9":
+                    self.configuration_menu()
+                elif choice == "10":
                     self.select_target_file()
                 elif choice == "h":
                     self.show_help()

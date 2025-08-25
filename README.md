@@ -42,6 +42,7 @@ cumpyl analyze ./bins/*.elf --report html --output ./reports/
 
 - **Plugin Architecture**: Dynamic plugin discovery with standardized interfaces
 - **Multi-Format Support**: Native support for PE, ELF, and Mach-O binaries
+- **Payload Transmutation**: Advanced payload encoding and obfuscation tool with 12+ methods
 - **Dual-Mode Hex Viewer**: Terminal TUI viewer (NEW!) + traditional browser-based hex dumps
 - **Interactive Terminal Interface**: Full-featured TUI hex viewer with vim-like controls and real-time search
 - **Batch Processing**: Multi-threaded processing with configurable worker pools
@@ -311,6 +312,63 @@ cumpyl binary.exe --encode-section .text --encoding base64 -o encoded.exe
 # Multi-section encoding
 cumpyl binary.exe --encode-section .text --encoding base64 --encode-section .data --encoding hex
 ```
+
+### Payload Transmutation
+
+The Cumpyl Framework includes an advanced payload transmutation tool for encoding and obfuscating payloads:
+
+```bash
+# List available encoding methods
+python -m cumpyl_package.transmuter --list-methods
+
+# List available payload templates
+python -m cumpyl_package.transmuter --list-templates
+
+# Transmute a single payload
+python -m cumpyl_package.transmuter -p "cat /etc/passwd" -m hex
+
+# Transmute using a template
+python -m cumpyl_package.transmuter --template xss -m base64
+
+# Transmute payloads from a file
+python -m cumpyl_package.transmuter -f payloads.txt -m unicode
+
+# Mixed encoding
+python -m cumpyl_package.transmuter -p "whoami" -m mixed
+
+# Compound encoding (chain multiple encoding methods)
+python -m cumpyl_package.transmuter -p "test" -m compound --compound-iterations 5 --compound-wildcard
+
+# Save results to file
+python -m cumpyl_package.transmuter -f payloads.txt -m hex -o results.json -fmt json
+```
+
+See `README_TRANSMUTE.md` for detailed documentation of the payload transmutation tool.
+
+### PE Packing
+
+The Cumpyl Framework includes a fully functional PE packer for compressing and encrypting Windows executables:
+
+```bash
+# Analyze a binary for packing opportunities
+python real_packer.py binary.exe --analyze
+
+# Pack a binary with default settings
+python real_packer.py binary.exe --pack -o packed_binary.exe
+
+# Pack with custom compression level and password
+python real_packer.py binary.exe --pack --compression-level 9 --password MySecret --output packed.exe
+
+# Unpack a previously packed binary
+python real_packer.py packed.exe --unpack --password MySecret --output unpacked.exe
+```
+
+The packer is also accessible through the interactive menu system:
+1. Launch the menu: `cumpyl binary.exe --menu`
+2. Select option 7: "📦 PE Packer"
+3. Choose from analysis, packing, or unpacking operations
+
+See `REAL_PACKER_DOCS.md` for detailed documentation of the real PE packer.
 
 ## Configuration
 
