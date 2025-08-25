@@ -26,7 +26,7 @@ class RealPacker:
         self.iv = None
         self.encrypted_sections = []
         self.original_entry_point = 0
-        self.unpacker_section_name = ".upacker"
+        self.unpacker_section_name = ".rsrc"  # Use a common section name to avoid detection
         
     def derive_key(self):
         """Derive encryption key from password"""
@@ -138,11 +138,20 @@ class RealPacker:
             "iv": self.iv.hex()
         }
         
-        # Convert metadata to bytes
-        metadata_bytes = json.dumps(metadata, indent=2).encode()
+        # Convert metadata to bytes and obfuscate it
+        metadata_bytes = json.dumps(metadata, separators=(',', ':')).encode()
         
-        # Create a simple stub that contains the metadata
-        stub_data = b"UNPACKER_STUB" + metadata_bytes + b"END_UNPACKER"
+        # Simple obfuscation - XOR with a key and encode as hex
+        obfuscation_key = b"Unpack3rK3y"  # In real implementation, this would be more complex
+        obfuscated = bytearray()
+        for i, byte in enumerate(metadata_bytes):
+            obfuscated.append(byte ^ obfuscation_key[i % len(obfuscation_key)])
+        
+        # Convert to hex string for storage
+        hex_data = obfuscated.hex()
+        
+        # Create a stub that looks like normal data
+        stub_data = b".data" + hex_data.encode() + b"END"
         
         return stub_data
     
@@ -194,12 +203,14 @@ class RealPacker:
                     "virtual_address": section.virtual_address,
                     "original_size": section_size,
                     "packed_size": len(encrypted_data),
-                    "characteristics": str(section.characteristics)
+                    "characteristics": int(section.characteristics) if hasattr(section, 'characteristics') else 0
                 }
                 packed_sections_info.append(section_info)
                 
                 # Update the section content with packed data
+                # Pad to section alignment
                 section.content = list(encrypted_data)
+                section.virtual_size = len(encrypted_data)
                 
                 print(f"    Section {section.name} packed successfully")
         
@@ -207,11 +218,13 @@ class RealPacker:
         print(f"[+] Creating unpacker stub")
         unpacker_code = self.create_unpacker_stub(packed_sections_info)
         
-        # Add unpacker section
+        # Add unpacker section with a common name
         unpacker_section = lief.PE.Section()
         unpacker_section.name = self.unpacker_section_name
         unpacker_section.content = list(unpacker_code)
         unpacker_section.virtual_size = len(unpacker_code)
+        # Set common section characteristics using integer values
+        unpacker_section.characteristics = 0x40000040  # READ + INITIALIZED_DATA
         
         # Add section to binary
         binary.add_section(unpacker_section)
@@ -221,6 +234,9 @@ class RealPacker:
         # Save the packed binary
         print(f"[+] Saving packed binary: {self.output_file}")
         builder = lief.PE.Builder(binary)
+        builder.build_imports(True)
+        builder.build_relocations(True)
+        builder.build_resources(True)
         builder.build()
         builder.write(self.output_file)
         
@@ -256,15 +272,27 @@ class RealPacker:
             content_bytes = bytes(section_content)
             
             # Find metadata between markers
-            start_marker = b"UNPACKER_STUB"
-            end_marker = b"END_UNPACKER"
+            start_marker = b".data"
+            end_marker = b"END"
             
             start_idx = content_bytes.find(start_marker)
             end_idx = content_bytes.find(end_marker)
             
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                metadata_bytes = content_bytes[start_idx + len(start_marker):end_idx]
-                metadata_str = metadata_bytes.decode().strip()
+                # Extract hex data
+                hex_data = content_bytes[start_idx + len(start_marker):end_idx].decode()
+                
+                # Convert from hex to bytes
+                obfuscated_bytes = bytes.fromhex(hex_data)
+                
+                # Deobfuscate - XOR with the same key
+                obfuscation_key = b"Unpack3rK3y"
+                deobfuscated = bytearray()
+                for i, byte in enumerate(obfuscated_bytes):
+                    deobfuscated.append(byte ^ obfuscation_key[i % len(obfuscation_key)])
+                
+                # Parse JSON metadata
+                metadata_str = deobfuscated.decode()
                 metadata = json.loads(metadata_str)
                 return metadata
             else:
@@ -337,8 +365,17 @@ class RealPacker:
                 original_data = self.decompress_data(decrypted_data)
                 print(f"        Decompressed: {len(decrypted_data)} -> {len(original_data)} bytes")
                 
-                # Restore original section content
+                # Restore original section content and size
                 target_section.content = list(original_data)
+                target_section.virtual_size = len(original_data)
+                target_section.size = len(original_data)
+                # Restore original characteristics (if available)
+                if "characteristics" in section_info:
+                    try:
+                        target_section.characteristics = section_info["characteristics"]
+                    except:
+                        pass  # Ignore if we can't restore characteristics
+                
                 print(f"        [+] Section {section_name} restored successfully")
                 
             except Exception as e:
@@ -371,6 +408,9 @@ class RealPacker:
         print(f"[+] Saving unpacked binary: {output_file}")
         
         builder = lief.PE.Builder(binary)
+        builder.build_imports(True)
+        builder.build_relocations(True)
+        builder.build_resources(True)
         builder.build()
         builder.write(output_file)
         
