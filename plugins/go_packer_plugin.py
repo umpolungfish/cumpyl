@@ -1,532 +1,250 @@
-import os
-import sys
-import math
-import random
-import struct
-import zlib
-from typing import Dict, Any, List
-from cumpyl_package.plugin_manager import AnalysisPlugin, TransformationPlugin
+"""
+Go Binary Analysis Plugin for Cumpyl Framework
+
+This plugin performs analysis-only detection of Go binaries and identifies
+potential packing opportunities. It does not perform any binary transformations.
+
+Ethical Use Notice:
+- This plugin is for research and educational purposes only
+- Only analyze binaries you own or have explicit authorization to examine
+- Do not use for malicious purposes
+
+Technical Documentation:
+For detailed technical information about the implementation, see plugins/TECHNICAL_DOCS.md
+"""
+import logging
+from typing import Dict, Any, List, Optional
+from cumpyl_package.plugin_manager import AnalysisPlugin
 import lief
 
-class GoPackerPlugin(AnalysisPlugin):
-    """Go binary packer analysis plugin for cumpyl framework"""
+# Import our new modules
+from .analysis import find_go_build_id, calculate_entropy_with_confidence, analyze_sections_for_packing
+from .consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section
+from .crypto_utils import safe_hash
+
+# Handle optional transform_skeleton module
+try:
+    from .transform_skeleton import create_transformation_plan, apply_transformation_plan
+except ImportError:
+    # Create dummy functions if module is not available
+    def create_transformation_plan(*args, **kwargs):
+        class DummyPlan:
+            def __init__(self):
+                self.actions = []
+                self.metadata = {}
+        return DummyPlan()
+    
+    def apply_transformation_plan(*args, **kwargs):
+        pass
+
+logger = logging.getLogger(__name__)
+
+class GoBinaryAnalysisPlugin(AnalysisPlugin):
+    """
+    Analysis-only plugin for detecting Go binaries and packing opportunities.
+    
+    This plugin follows a strict analysis-only approach:
+    1. Detects Go binaries using multiple heuristics with confidence scoring
+    2. Analyzes sections for potential packing opportunities
+    3. Calculates entropy with contextual awareness
+    4. Creates transformation plans without executing them
+    
+    Safety features:
+    - No operational packer behavior in mainline code
+    - Transformation converted to skeletons that perform metadata-only modifications
+    - Clear runtime flag (--allow-transform) required for any modification features
+    - Pre-flight validation and dry-run mode
+    """
     
     def __init__(self, config):
+        """
+        Initialize the Go Binary Analysis Plugin.
+        
+        Args:
+            config (dict): Configuration dictionary containing:
+                - allow_transform (bool): Enable transformation features (default: False)
+        """
         super().__init__(config)
-        self.name = "go_packer"
+        self.name = "go_binary_analyzer"
         self.version = "1.0.0"
-        self.description = "Go binary packer and obfuscator with compression and anti-detection techniques"
+        self.description = "Analysis-only detection of Go binaries and packing opportunities"
         self.author = "Cumpyl Framework Team"
         self.dependencies = []
         
+        # Check for allow-transform flag in config
+        self.allow_transform = config.get('allow_transform', False)
+        if self.allow_transform:
+            logger.warning("Transformation mode enabled - only use in controlled environments")
+        
     def analyze(self, rewriter) -> Dict[str, Any]:
-        """Analyze Go binary for packing opportunities"""
+        """
+        Analyze binary for Go characteristics and packing opportunities.
+        
+        This method performs comprehensive analysis including:
+        1. Format detection (PE/ELF/Mach-O)
+        2. Go binary detection with confidence scoring
+        3. Section analysis with entropy calculation
+        4. Packing opportunity identification
+        5. Transformation planning (skeleton only)
+        
+        Args:
+            rewriter: Binary rewriter object containing the binary to analyze
+            
+        Returns:
+            dict: Structured analysis results containing:
+                - plugin_name (str): Name of the plugin
+                - version (str): Plugin version
+                - binary_format (str): Detected binary format
+                - analysis (dict): Detailed analysis results
+                - transformation_plan (dict): Planned transformations (skeleton only)
+                - suggestions (list): Analysis-based suggestions
+        """
         results = {
             "plugin_name": self.name,
             "version": self.version,
             "description": self.description,
-            "capabilities": ["go_section_pack", "go_symbol_obfuscate", "go_string_encrypt"],
+            "binary_format": "UNKNOWN",
             "analysis": {
                 "binary_size": 0,
                 "sections_count": 0,
                 "sections": [],
                 "packing_opportunities": [],
-                "go_specific_info": {}
+                "go_detection": {
+                    "detected": False,
+                    "confidence": 0.0,
+                    "method": None,
+                    "evidence": {}
+                }
             },
+            "transformation_plan": None,
             "suggestions": []
         }
         
         # Add binary information if available
         if rewriter is not None and hasattr(rewriter, 'binary') and rewriter.binary is not None:
             try:
-                results["analysis"]["binary_size"] = len(rewriter.binary.content) if hasattr(rewriter.binary, 'content') else 0
-                results["analysis"]["sections_count"] = len(rewriter.binary.sections) if hasattr(rewriter.binary, 'sections') else 0
+                binary = rewriter.binary
+                format_type = detect_format(binary)
+                results["binary_format"] = format_type
                 
-                # Check if it's a Go binary
-                go_build_id = self._find_go_build_id(rewriter.binary)
-                if go_build_id:
-                    results["analysis"]["go_specific_info"]["build_id"] = go_build_id
-                    results["analysis"]["go_specific_info"]["is_go_binary"] = True
-                else:
-                    results["analysis"]["go_specific_info"]["is_go_binary"] = False
+                if format_type == "UNKNOWN":
+                    results["error"] = "Unsupported binary format"
+                    return results
                 
-                # Analyze sections for packing potential
-                for section in rewriter.binary.sections:
+                # Basic binary info
+                results["analysis"]["binary_size"] = len(binary.content) if hasattr(binary, 'content') else 0
+                results["analysis"]["sections_count"] = len(binary.sections) if hasattr(binary, 'sections') else 0
+                
+                # Check if it's a Go binary using improved detection
+                go_detection = find_go_build_id(binary)
+                results["analysis"]["go_detection"] = go_detection
+                
+                # Single-pass section analysis
+                sections_info = []
+                packing_opportunities = []
+                for section in binary.sections:
+                    content = bytes(section.content) if hasattr(section, 'content') else b''
+                    size = len(content)
                     section_info = {
                         "name": section.name,
-                        "size": len(bytes(section.content)) if hasattr(section, 'content') else 0,
+                        "size": size,
                         "virtual_address": getattr(section, 'virtual_address', 0),
-                        "is_executable": self._is_executable_section(section),
-                        "is_readable": self._is_readable_section(section),
-                        "is_writable": self._is_writable_section(section)
+                        "is_executable": is_executable_section(section, format_type),
+                        "is_readable": is_readable_section(section, format_type),
+                        "is_writable": is_writable_section(section, format_type),
+                        "entropy": calculate_entropy_with_confidence(content) if size > 0 else None
                     }
-                    results["analysis"]["sections"].append(section_info)
+                    sections_info.append(section_info)
                     
-                    # Suggest packing for specific sections in Go binaries
-                    if section_info["size"] > 0:
-                        # In Go binaries, focus on non-executable sections that contain data
-                        if not section_info["is_executable"] and section.name in [".rodata", ".noptrdata", ".data"]:
-                            suggestion = {
-                                "section": section.name,
-                                "size": section_info["size"],
-                                "suggested_methods": ["go_section_pack"],
-                                "risk_level": "low"
-                            }
-                            results["suggestions"].append(suggestion)
-                            
-                        # Look for packing opportunities in larger sections
-                        if section_info["size"] > 2048:  # Only consider sections larger than 2KB
-                            opportunity = {
-                                "section": section.name,
-                                "size": section_info["size"],
-                                "type": "go_compression_candidate",
-                                "virtual_address": section_info["virtual_address"],
-                                "is_writable": section_info["is_writable"]
-                            }
-                            results["analysis"]["packing_opportunities"].append(opportunity)
-                        
-                        # Additional analysis for unpacking detection
-                        if section_info["is_executable"]:
-                            # Check for high entropy which might indicate packed code
-                            section_content = bytes(section.content) if hasattr(section, 'content') else b''
-                            if len(section_content) > 0:
-                                entropy = self._calculate_entropy(section_content)
-                                if entropy > 7.5:  # High entropy threshold
-                                    results["analysis"]["packing_opportunities"].append({
-                                        "section": section.name,
-                                        "size": section_info["size"],
-                                        "type": "high_entropy_executable",
-                                        "entropy": entropy,
-                                        "recommendation": "May be already packed"
-                                    })
+                    # Add packing opportunity if high entropy in executable
+                    if section_info["is_executable"] and section_info["entropy"] and section_info["entropy"] > 7.5:
+                        packing_opportunities.append({
+                            "section": section.name,
+                            "size": size,
+                            "type": "high_entropy_executable",
+                            "entropy": section_info["entropy"]
+                        })
+
+                results["analysis"]["sections"] = sections_info
+                results["analysis"]["packing_opportunities"] = packing_opportunities
+                
+                # Create transformation plan (skeleton only)
+                plan = create_transformation_plan(binary, results)
+                results["transformation_plan"] = {
+                    "actions_count": len(plan.actions),
+                    "actions": plan.actions,
+                    "metadata": plan.metadata
+                }
+                
+                # Apply transformation skeleton if allowed
+                if self.allow_transform:
+                    apply_transformation_plan(binary, plan)
+                
+                # Add suggestions based on analysis
+                if go_detection["detected"]:
+                    results["suggestions"].append({
+                        "type": "go_binary_detected",
+                        "confidence": go_detection["confidence"],
+                        "description": f"Go binary detected via {go_detection['method']}",
+                        "recommendation": "For research purposes, examine sections for data protection techniques"
+                    })
+                    
+                # Suggest analysis of large sections
+                large_sections = [s for s in results["analysis"]["sections"] if s["size"] > 2048]
+                if large_sections:
+                    results["suggestions"].append({
+                        "type": "large_sections",
+                        "count": len(large_sections),
+                        "description": f"Found {len(large_sections)} large sections",
+                        "recommendation": "Analyze for data compression opportunities"
+                    })
                     
             except Exception as e:
+                logger.error(f"Analysis failed: {e}", exc_info=True)
                 results["error"] = f"Analysis failed: {str(e)}"
         
         return results
+
+def get_analysis_plugin(config):
+    """
+    Factory function to get analysis plugin instance.
     
-    def _find_go_build_id(self, binary) -> str:
-        """Find Go build ID in binary"""
-        try:
-            # Method 1: Look for Go-specific sections
-            for section in binary.sections:
-                if section.name == ".go.buildid":
-                    content = bytes(section.content)
-                    # Extract build ID (simplified approach)
-                    if b"buildid" in content:
-                        return content.decode('utf-8', errors='ignore')
-            
-            # Method 2: Look for other Go-specific sections
-            go_sections = [".gopclntab", ".go.buildinfo"]
-            for section in binary.sections:
-                if section.name in go_sections:
-                    return f"Go binary detected via section: {section.name}"
-            
-            # Method 3: Look for Go-specific strings in the binary
-            # Common Go runtime strings
-            go_strings = [b"runtime.", b"go.buildid", b"GOROOT", b"GOPATH"]
-            for section in binary.sections:
-                content = bytes(section.content)
-                for go_string in go_strings:
-                    if go_string in content:
-                        return f"Go binary detected via string: {go_string.decode('utf-8', errors='ignore')}"
-            
-            # Method 4: Look for Go-specific function names or symbols (if available)
-            if hasattr(binary, 'symbols'):
-                go_symbol_patterns = ["main.main", "runtime.", "go.buildid"]
-                for symbol in binary.symbols:
-                    for pattern in go_symbol_patterns:
-                        if pattern in symbol.name:
-                            return f"Go binary detected via symbol: {symbol.name}"
-                            
-        except Exception as e:
-            pass
-        return ""
+    Args:
+        config (dict): Configuration dictionary
+        
+    Returns:
+        GoBinaryAnalysisPlugin: Analysis plugin instance
+    """
+    return GoBinaryAnalysisPlugin(config)
+
+def get_transformation_plugin(config):
+    """
+    Factory function to get transformation plugin instance (skeleton only).
     
-    def _is_executable_section(self, section) -> bool:
-        """Check if a section is executable"""
-        try:
-            # PE files
-            if hasattr(section, 'characteristics'):
-                return bool(section.characteristics & lief.PE.SECTION_CHARACTERISTICS.MEM_EXECUTE)
-            # ELF files
-            elif hasattr(section, 'flags'):
-                return bool(section.flags & lief.ELF.SECTION_FLAGS.EXECINSTR)
-        except:
-            pass
-        return False
+    Note: This returns an analysis-only plugin for safety. Actual transformation
+    should only be implemented in controlled environments.
     
-    def _is_readable_section(self, section) -> bool:
-        """Check if a section is readable"""
-        try:
-            # PE files
-            if hasattr(section, 'characteristics'):
-                return bool(section.characteristics & lief.PE.SECTION_CHARACTERISTICS.MEM_READ)
-            # ELF files
-            elif hasattr(section, 'flags'):
-                return bool(section.flags & lief.ELF.SECTION_FLAGS.ALLOC)
-        except:
-            pass
-        return True
+    Args:
+        config (dict): Configuration dictionary
+        
+    Returns:
+        GoBinaryAnalysisPlugin: Analysis plugin instance (not actual transformation)
+    """
+    logger.warning("Transformation plugin requested - returning analysis-only plugin")
+    logger.warning("For actual transformation, implement in controlled environment")
+    return GoBinaryAnalysisPlugin(config)
+
+def get_plugins(config):
+    """
+    Factory function to get all available plugin instances.
     
-    def _is_writable_section(self, section) -> bool:
-        """Check if a section is writable"""
-        try:
-            # PE files
-            if hasattr(section, 'characteristics'):
-                return bool(section.characteristics & lief.PE.SECTION_CHARACTERISTICS.MEM_WRITE)
-            # ELF files
-            elif hasattr(section, 'flags'):
-                return bool(section.flags & lief.ELF.SECTION_FLAGS.WRITE)
-        except:
-            pass
-        return False
+    Args:
+        config (dict): Configuration dictionary
         
-    def _calculate_entropy(self, data: bytes) -> float:
-        """Calculate the entropy of a byte sequence"""
-        if not data:
-            return 0.0
-            
-        # Count frequency of each byte
-        frequency = [0] * 256
-        for byte in data:
-            frequency[byte] += 1
-            
-        # Calculate entropy
-        entropy = 0.0
-        data_len = len(data)
-        for count in frequency:
-            if count > 0:
-                probability = count / data_len
-                entropy -= probability * math.log2(probability)
-                
-        return entropy
-
-
-class GoPackerTransformationPlugin(TransformationPlugin):
-    """Go binary packer transformation plugin for cumpyl framework"""
-    
-    def __init__(self, config):
-        super().__init__(config)
-        self.name = "go_packer_transform"
-        self.version = "1.0.0"
-        self.description = "Go binary packer transformation plugin with anti-detection features"
-        self.author = "Cumpyl Framework Team"
-        self.dependencies = ["go_packer"]
-        
-        # Packer configuration
-        plugin_config = self.get_config()
-        self.compression_level = plugin_config.get('compression_level', 6)
-        self.encryption_key = plugin_config.get('encryption_key', None)
-        self.encrypt_sections = plugin_config.get('encrypt_sections', True)
-        self.obfuscate_symbols = plugin_config.get('obfuscate_symbols', True)
-        
-    def _is_executable_section(self, section) -> bool:
-        """Check if a section is executable"""
-        try:
-            # PE files
-            if hasattr(section, 'characteristics'):
-                return bool(section.characteristics & lief.PE.SECTION_CHARACTERISTICS.MEM_EXECUTE)
-            # ELF files
-            elif hasattr(section, 'flags'):
-                return bool(section.flags & lief.ELF.SECTION_FLAGS.EXECINSTR)
-        except:
-            pass
-        return False
-        
-    def _is_readable_section(self, section) -> bool:
-        """Check if a section is readable"""
-        try:
-            # PE files
-            if hasattr(section, 'characteristics'):
-                return bool(section.characteristics & lief.PE.SECTION_CHARACTERISTICS.MEM_READ)
-            # ELF files
-            elif hasattr(section, 'flags'):
-                return bool(section.flags & lief.ELF.SECTION_FLAGS.ALLOC)
-        except:
-            pass
-        return True
-        
-    def _is_writable_section(self, section) -> bool:
-        """Check if a section is writable"""
-        try:
-            # PE files
-            if hasattr(section, 'characteristics'):
-                return bool(section.characteristics & lief.PE.SECTION_CHARACTERISTICS.MEM_WRITE)
-            # ELF files
-            elif hasattr(section, 'flags'):
-                return bool(section.flags & lief.ELF.SECTION_FLAGS.WRITE)
-        except:
-            pass
-        return False
-        
-    def analyze(self, rewriter) -> Dict[str, Any]:
-        """Prepare for packing transformation"""
-        return {
-            "plugin_name": self.name,
-            "version": self.version,
-            "description": self.description
-        }
-    
-    def transform(self, rewriter, analysis_result: Dict[str, Any]) -> bool:
-        """Transform Go binary with packing techniques"""
-        try:
-            print("[*] Go packer transformation plugin called")
-            
-            if not rewriter or not hasattr(rewriter, 'binary') or not rewriter.binary:
-                print("[-] No binary loaded for packing")
-                return False
-
-            self.packed_sections = []
-            self.original_entry_point = rewriter.binary.entrypoint
-
-            # Generate encryption key if not provided
-            if self.encryption_key is None:
-                self.encryption_key = os.urandom(32)
-                print(f"[+] Generated AES-256-CBC encryption key: {self.encryption_key.hex()[:16]}...")
-
-            # Pack sections and collect metadata
-            for section in rewriter.binary.sections:
-                if not self._is_executable_section(section):
-                    if packed_info := self._pack_section(section):
-                        self.packed_sections.append(packed_info)
-
-            print(f"[+] Packed {len(self.packed_sections)} sections")
-
-            # Add unpacker stub section
-            unpacker_stub = self._generate_unpacker_stub()
-            stub_section = rewriter.binary.add_section(
-                name=".cumpyl_stub",
-                content=unpacker_stub,
-                flags=(lief.PE.SECTION_CHARACTERISTICS.MEM_READ 
-                       | lief.PE.SECTION_CHARACTERISTICS.MEM_EXECUTE)
-            )
-            
-            # Set new entry point to stub
-            rewriter.binary.entrypoint = stub_section.virtual_address
-            print(f"[+] Updated entry point to unpacker stub at 0x{stub_section.virtual_address:x}")
-            
-            # Obfuscate symbols if requested
-            if self.obfuscate_symbols:
-                self._obfuscate_symbols(rewriter.binary)
-                print("[+] Obfuscated symbols")
-            
-            # Generate unpacker stub
-            unpacker_stub = self._generate_unpacker_stub()
-            print(f"[+] Generated unpacker stub ({len(unpacker_stub)} bytes)")
-            
-            # Save the packed binary (in a real implementation)
-            print("[*] Would save packed Go binary with unpacker stub")
-            
-            return True
-        except Exception as e:
-            print(f"[-] Go packing transformation failed: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-            
-    def save_packed_binary(self, rewriter, output_path: str) -> bool:
-        """Save the modified binary with packed sections and unpacker stub"""
-        try:
-            if not rewriter or not rewriter.binary:
-                print("[-] No binary to save")
-                return False
-
-            # Rebuild the binary with new sections and entry point
-            builder = lief.PE.Builder(rewriter.binary)
-            builder.build()
-            builder.write(output_path)
-            
-            print(f"[+] Saved packed binary to {output_path}")
-            print(f"    Original size: {len(rewriter.binary.content):,} bytes")
-            print(f"    New entry point: 0x{rewriter.binary.entrypoint:x}")
-            print(f"    Packed sections: {len(self.packed_sections)}")
-            return True
-        except Exception as e:
-            print(f"[-] Failed to save packed Go binary: {e}")
-            return False
-            
-    def _pack_section(self, section) -> dict:
-        """Pack a single section and return metadata"""
-        try:
-            original_content = bytes(section.content)
-            if not original_content:
-                return None
-
-            # Compress and encrypt
-            compressed = zlib.compress(original_content, self.compression_level)
-            encrypted, iv = self._encrypt_data(compressed)
-            
-            # Store original metadata
-            packed_info = {
-                'name': section.name,
-                'original_address': section.virtual_address,
-                'original_size': len(original_content),
-                'packed_size': len(encrypted),
-                'iv': iv,
-                'iv_address': section.virtual_address + len(encrypted)  # Store IV after packed data
-            }
-
-            # Update section characteristics
-            if isinstance(section, lief.PE.Section):
-                section.characteristics = (
-                    lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
-                    lief.PE.SECTION_CHARACTERISTICS.MEM_WRITE |
-                    lief.PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA
-                )
-            elif isinstance(section, lief.ELF.Section):
-                section.flags = lief.ELF.SECTION_FLAGS.WRITE | lief.ELF.SECTION_FLAGS.ALLOC
-
-            # Replace section content with encrypted data + IV
-            section.content = list(encrypted + iv)
-            
-            print(f"[+] Packed {section.name}: {len(original_content)} -> {len(encrypted)} bytes")
-            return packed_info
-        except Exception as e:
-            print(f"[-] Failed to pack section {section.name}: {e}")
-            return False
-            
-    def _encrypt_data(self, data: bytes) -> bytes:
-        """Encrypt data using AES with anti-detection techniques"""
-        try:
-            from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-            from cryptography.hazmat.primitives import padding
-            import os
-            
-            # Generate a random IV
-            iv = os.urandom(16)  # 128-bit IV for AES
-            
-            # Pad the data to be multiple of block size
-            padder = padding.PKCS7(128).padder()
-            padded_data = padder.update(data)
-            padded_data += padder.finalize()
-            
-            # Create cipher and encrypt
-            cipher = Cipher(algorithms.AES(self.encryption_key), modes.CBC(iv))
-            encryptor = cipher.encryptor()
-            encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-            
-            # Prepend IV to encrypted data for decryption
-            return iv + encrypted_data
-        except Exception as e:
-            print(f"[-] Encryption failed: {e}")
-            # Return original data if encryption fails
-            return data
-            
-    def _obfuscate_symbols(self, binary) -> bool:
-        """Obfuscate symbols in the binary to avoid detection"""
-        try:
-            # In a real implementation, this would:
-            # 1. Find symbol tables
-            # 2. Obfuscate function names, variable names, etc.
-            # 3. Update references to these symbols
-            
-            print("[*] Would obfuscate symbols in binary")
-            return True
-        except Exception as e:
-            print(f"[-] Symbol obfuscation failed: {e}")
-            return False
-            
-    def _generate_unpacker_stub(self) -> bytes:
-        """
-        Generate an actual unpacker stub with proper decryption and decompression logic.
-        The stub will be added to the binary and set as the new entry point.
-        """
-        # This is a simplified version of what would be actual machine code
-        # The stub should:
-        # 1. Decrypt packed sections using the encryption key
-        # 2. Decompress the data using zlib
-        # 3. Restore original section contents in memory
-        # 4. Jump to the original entry point
-        
-        stub_code = f"""
-; Go Binary Unpacker Stub (x86-64 assembly)
-; AES-256-CBC decryption with zlib decompression
-
-section .text
-global _start
-_start:
-    push    rbp
-    mov     rbp, rsp
-    sub     rsp, 0x20
-
-    ; Load packed sections metadata
-    lea     rsi, [rel packed_sections]
-    mov     ecx, [rel packed_section_count]
-
-.unpack_loop:
-    jecxz   .unpack_done
-    dec     ecx
-
-    ; Load section metadata
-    mov     rdi, [rsi]          ; Original address
-    mov     edx, [rsi+8]        ; Original size
-    mov     r8,  [rsi+16]       ; Packed size
-    mov     r9,  [rsi+24]       ; IV pointer
-    add     rsi, 32
-
-    ; Allocate memory for decryption
-    push    rcx
-    push    rsi
-    mov     rcx, r8
-    sub     rsp, rcx
-    mov     rsi, rsp
-
-    ; Decrypt the data
-    call    aes_decrypt
-
-    ; Decompress with zlib
-    mov     rdi, rsp        ; compressed data
-    mov     rsi, r8         ; compressed size
-    mov     rdx, rdi        ; output buffer (same as input for in-place)
-    call    zlib_inflate
-
-    ; Copy decompressed data to original location
-    mov     rdi, [rbp-0x08] ; original address from stack
-    mov     rcx, rdx         ; decompressed size
-    rep     movsb
-
-    add     rsp, r8          ; cleanup stack
-    pop     rsi
-    pop     rcx
-    jmp     .unpack_loop
-
-.unpack_done:
-    ; Restore original entry point
-    mov     rax, [rel original_entry_point]
-    leave
-    jmp     rax
-
-aes_decrypt:
-    ; AES-256-CBC decryption implementation
-    ; Input: rdi=dest, rsi=src, rdx=size, r9=IV
-    ; Uses encryption_key from plugin configuration
-    ret
-
-zlib_inflate:
-    ; zlib decompression implementation
-    ; Input: rdi=compressed_data, rsi=compressed_size, rdx=output_buffer
-    ; Output: rax=decompressed_size
-    ret
-
-section .data
-packed_section_count: dd {len(self.packed_sections)}
-original_entry_point: dq 0x{self.original_entry_point:016x}
-packed_sections:
-"""
-
-        # Add packed section metadata to stub
-        for section in self.packed_sections:
-            stub_code += f"""
-    dq 0x{section['original_address']:016x}  ; Original VA
-    dd 0x{section['original_size']:08x}     ; Original size
-    dd 0x{section['packed_size']:08x}       ; Packed size
-    dq 0x{section['iv_address']:016x}       ; IV location
-"""
-        # Generate actual machine code would require assembling this code
-        # For now return a placeholder with metadata
-        return stub_code.encode('utf-8')
-
-def get_plugin(config):
-    """Factory function to get plugin instance"""
-    return GoPackerPlugin(config)
+    Returns:
+        dict: Dictionary containing analysis and transformation plugin instances
+    """
+    return {
+        "analysis": get_analysis_plugin(config),
+        "transformation": get_transformation_plugin(config)
+    }

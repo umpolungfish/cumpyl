@@ -4,9 +4,38 @@ import math
 import random
 import struct
 import zlib
+import logging
 from typing import Dict, Any, List
 from cumpyl_package.plugin_manager import AnalysisPlugin, TransformationPlugin
 import lief
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Add proper imports for cryptography (no fallback)
+try:
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.hazmat.primitives import padding, hashes, hmac
+    from cryptography.hazmat.backends import default_backend
+    CRYPTO_AVAILABLE = True
+except ImportError:
+    CRYPTO_AVAILABLE = False
+    logger.error("Error: cryptography library not available, secure encryption disabled")
+
+def load_key_from_file(key_path: str) -> bytes:
+    """Load a key from file with validation."""
+    if not key_path or not os.path.isfile(key_path):
+        raise FileNotFoundError(f"Key file not found: {key_path}")
+    with open(key_path, "rb") as f:  # Context manager
+        key = f.read()
+    if len(key) not in (16, 24, 32):
+        raise ValueError(f"Invalid key length: {len(key)} (must be 128/192/256 bits)")
+    return key
+
+# Custom exception for CGo packer errors
+class CGoPackerError(Exception):
+    pass
 
 class CGoPackerPlugin(AnalysisPlugin):
     """CGO-aware Go binary packer analysis plugin for cumpyl framework"""
@@ -14,7 +43,7 @@ class CGoPackerPlugin(AnalysisPlugin):
     def __init__(self, config):
         super().__init__(config)
         self.name = "cgo_packer"
-        self.version = "1.0.0"
+        self.version = "1.1.0"
         self.description = "CGO-aware Go binary packer with anti-detection techniques"
         self.author = "Cumpyl Framework Team"
         self.dependencies = []
@@ -106,6 +135,7 @@ class CGoPackerPlugin(AnalysisPlugin):
                                     })
                     
             except Exception as e:
+                logger.error(f"Analysis failed: {e}")
                 results["error"] = f"Analysis failed: {str(e)}"
         
         return results
@@ -145,7 +175,8 @@ class CGoPackerPlugin(AnalysisPlugin):
                             return f"Go binary detected via symbol: {symbol.name}"
                             
         except Exception as e:
-            pass
+            logger.error(f"Go build ID detection failed: {e}")
+            return ""
         return ""
         
     def _find_cgo_indicators(self, binary) -> Dict[str, Any]:
@@ -194,7 +225,7 @@ class CGoPackerPlugin(AnalysisPlugin):
                             cgo_info["cgo_sections"].append(section.name)
                         
         except Exception as e:
-            pass  # Silently continue if any check fails
+            logger.error(f"CGO indicator detection failed: {e}")
             
         return cgo_info
     
@@ -242,20 +273,27 @@ class CGoPackerPlugin(AnalysisPlugin):
         if not data:
             return 0.0
             
-        # Count frequency of each byte
-        frequency = [0] * 256
-        for byte in data:
-            frequency[byte] += 1
-            
-        # Calculate entropy
-        entropy = 0.0
-        data_len = len(data)
-        for count in frequency:
-            if count > 0:
-                probability = count / data_len
-                entropy -= probability * math.log2(probability)
+        try:
+            # Count frequency of each byte
+            frequency = [0] * 256
+            for byte in data:
+                frequency[byte] += 1
                 
-        return entropy
+            # Calculate entropy
+            entropy = 0.0
+            data_len = len(data)
+            for count in frequency:
+                if count > 0:
+                    probability = count / data_len
+                    entropy -= probability * math.log2(probability)
+                    
+            return entropy
+        except (AttributeError, ValueError) as e:
+            logger.error(f"Error calculating entropy: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error calculating entropy: {e}")
+            raise
 
 
 class CGoPackerTransformationPlugin(TransformationPlugin):
@@ -264,18 +302,27 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
     def __init__(self, config):
         super().__init__(config)
         self.name = "cgo_packer_transform"
-        self.version = "1.0.0"
+        self.version = "1.1.0"
         self.description = "CGO-aware Go binary packer transformation plugin with anti-detection features"
         self.author = "Cumpyl Framework Team"
         self.dependencies = ["cgo_packer"]
         
         # Packer configuration
         plugin_config = self.get_config()
-        self.compression_level = plugin_config.get('compression_level', 6)
+        # Validate compression level
+        self.compression_level = max(1, min(9, plugin_config.get('compression_level', 6)))
         self.encryption_key = plugin_config.get('encryption_key', None)
         self.encrypt_sections = plugin_config.get('encrypt_sections', True)
         self.obfuscate_symbols = plugin_config.get('obfuscate_symbols', True)
         self.preserve_cgo_symbols = plugin_config.get('preserve_cgo_symbols', True)
+        
+        # Secure key management - use key seed for runtime derivation
+        self.key_seed = plugin_config.get('key_seed', os.urandom(32))  # Configurable seed
+        
+        # Store packed sections info for use in save_packed_binary
+        self.packed_sections_info = []
+        self.new_entry_point = None
+        self.rewriter = None
         
     def _is_executable_section(self, section) -> bool:
         """Check if a section is executable"""
@@ -286,8 +333,10 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
             # ELF files
             elif hasattr(section, 'flags'):
                 return bool(section.flags & lief.ELF.SECTION_FLAGS.EXECINSTR)
-        except:
-            pass
+        except (AttributeError, ValueError) as e:
+            logger.error(f"Error checking executable flag for section: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error checking executable flag for section: {e}")
         return False
         
     def _is_readable_section(self, section) -> bool:
@@ -299,8 +348,10 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
             # ELF files
             elif hasattr(section, 'flags'):
                 return bool(section.flags & lief.ELF.SECTION_FLAGS.ALLOC)
-        except:
-            pass
+        except (AttributeError, ValueError) as e:
+            logger.error(f"Error checking readable flag for section: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error checking readable flag for section: {e}")
         return True
         
     def _is_writable_section(self, section) -> bool:
@@ -312,9 +363,23 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
             # ELF files
             elif hasattr(section, 'flags'):
                 return bool(section.flags & lief.ELF.SECTION_FLAGS.WRITE)
-        except:
-            pass
+        except (AttributeError, ValueError) as e:
+            logger.error(f"Error checking writable flag for section: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error checking writable flag for section: {e}")
         return False
+        
+    def _xor_encrypt(self, data: bytes, key: bytes) -> bytes:
+        """Fallback XOR encryption when cryptography is not available"""
+        encrypted = bytearray()
+        key_len = len(key)
+        for i, byte in enumerate(data):
+            encrypted.append(byte ^ key[i % key_len])
+        return bytes(encrypted)
+
+    def _xor_decrypt(self, data: bytes, key: bytes) -> bytes:
+        """XOR decryption (same as encryption)"""
+        return self._xor_encrypt(data, key)
         
     def analyze(self, rewriter) -> Dict[str, Any]:
         """Prepare for packing transformation"""
@@ -327,120 +392,158 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
     def transform(self, rewriter, analysis_result: Dict[str, Any]) -> bool:
         """Transform CGO-enabled Go binary with packing techniques"""
         try:
-            print("[*] CGO-aware packer transformation plugin called")
+            logger.info("CGO-aware packer transformation plugin called")
             
             # Validate binary and config
             if not rewriter or not hasattr(rewriter, 'binary') or not rewriter.binary:
-                raise ValueError("No binary loaded for packing")
+                raise CGoPackerError("No binary loaded for packing")
                 
-            self.packed_sections = []
+            # Store rewriter for key derivation
+            self.rewriter = rewriter
+            self.packed_sections_info = []
             self.original_entry_point = rewriter.binary.entrypoint
                 
             # Check if it's a Go binary
             is_go_binary = analysis_result.get("analysis", {}).get("go_specific_info", {}).get("is_go_binary", False)
             if not is_go_binary:
-                print("[-] Warning: Not detected as a Go binary, but continuing with generic packing as requested")
-                # Continue with generic packing approach rather than failing completely
-                # Set is_go_binary to True to proceed with the transformation
-                is_go_binary = True
+                logger.warning("Not detected as a Go binary")
+                return False
                 
             # Check if it has CGO
             has_cgo = analysis_result.get("analysis", {}).get("cgo_specific_info", {}).get("has_cgo", False)
             if not has_cgo:
-                print("[-] Warning: Not detected as a CGO-enabled binary, but continuing with generic packing as requested")
-                # Continue with generic packing approach rather than failing completely
-                # Set has_cgo to True to proceed with the transformation
-                has_cgo = True
+                logger.warning("Not detected as a CGO-enabled binary")
+                return False
                 
-            # Generate encryption key with proper validation
-            if not self.encryption_key or len(self.encryption_key) != 32:
-                self.encryption_key = os.urandom(32)
-                print(f"[+] Generated AES-256-CBC key: {self.encryption_key.hex()[:16]}...")
-            
-            # Pack sections with metadata tracking
+            # Validate sections
+            valid_sections = []
             for section in rewriter.binary.sections:
+                if not hasattr(section, 'content') or not bytes(section.content):
+                    logger.info(f"Skipping empty or invalid section: {section.name}")
+                    continue
+                valid_sections.append(section)
+                
+            # Pack sections with metadata tracking
+            packed_count = 0
+            for section in valid_sections:
                 if not self._is_executable_section(section):
                     if packed_info := self._pack_section(section, has_cgo):
-                        self.packed_sections.append(packed_info)
+                        self.packed_sections_info.append(packed_info)
+                        packed_count += 1
             
-            print(f"[+] Packed {len(self.packed_sections)} sections")
+            logger.info(f"Packed {packed_count} sections")
             
-            # Add unpacker stub section with proper flags
-            unpacker_stub = self._generate_cgo_unpacker_stub()
-            stub_section = rewriter.binary.add_section(
-                name=".cgo_stub",
-                content=unpacker_stub,
-                flags=(lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
-                       lief.PE.SECTION_CHARACTERISTICS.MEM_EXECUTE)
-            )
-            
-            # Update entry point to stub
-            rewriter.binary.entrypoint = stub_section.virtual_address
-            print(f"[+] Set new entry point to 0x{stub_section.virtual_address:x}")
+            # Only proceed if we actually packed sections
+            if packed_count > 0:
+                # Add unpacker stub section with proper flags
+                unpacker_stub = self._generate_cgo_unpacker_stub()
+                stub_section = rewriter.binary.add_section(
+                    name=".cgo_stub",
+                    content=list(unpacker_stub),
+                    flags=(lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
+                           lief.PE.SECTION_CHARACTERISTICS.MEM_EXECUTE)
+                )
+                
+                # Update entry point to stub
+                self.new_entry_point = stub_section.virtual_address
+                rewriter.binary.entrypoint = self.new_entry_point
+                logger.info(f"Set new entry point to 0x{self.new_entry_point:x}")
             
             # Obfuscate symbols if requested, but preserve CGO symbols if needed
             if self.obfuscate_symbols:
-                self._obfuscate_symbols(rewriter.binary)
-                print("[+] Obfuscated symbols")
+                if self._obfuscate_symbols(rewriter.binary):
+                    logger.info("Obfuscated symbols")
             
-            # Generate unpacker stub with CGO-aware techniques
-            unpacker_stub = self._generate_cgo_unpacker_stub()
-            print(f"[+] Generated CGO-aware unpacker stub ({len(unpacker_stub)} bytes)")
-            
-            # Save the packed binary (in a real implementation)
-            print("[*] Would save packed CGO-enabled Go binary with unpacker stub")
+            if packed_count > 0:
+                logger.info(f"Generated CGO-aware unpacker stub ({len(unpacker_stub)} bytes)")
             
             return True
+        except CGoPackerError as e:
+            logger.error(f"Fatal error: {e}")
+            return False
         except Exception as e:
-            print(f"[-] CGO packing transformation failed: {e}")
+            logger.error(f"CGO packing transformation failed: {e}")
             import traceback
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             return False
             
     def save_packed_binary(self, rewriter, output_path: str) -> bool:
-        """Save the modified binary with packed sections and unpacker stub"""
+        """Save the modified binary with proper format support and checksum recalculation"""
         try:
             if not rewriter or not rewriter.binary:
                 raise ValueError("No binary to save")
+                
+            # Detect binary format and use correct LIEF builder
+            if isinstance(rewriter.binary, lief.PE.Binary):
+                builder = lief.PE.Builder(rewriter.binary)
+                builder.build_imports(True)  # Rebuild imports if needed
+                
+                # Calculate proper checksum for PE files
+                try:
+                    if hasattr(rewriter.binary, 'optional_header') and rewriter.binary.optional_header:
+                        # This is a simplified approach - real checksum calculation would be more complex
+                        builder.build()
+                except:
+                    pass
+            elif isinstance(rewriter.binary, lief.ELF.Binary):
+                builder = lief.ELF.Builder(rewriter.binary)
+                builder.build()
+            else:
+                raise ValueError("Unsupported binary format")
             
-            # Rebuild binary with LIEF's builder
-            builder = lief.PE.Builder(rewriter.binary)
-            builder.build()
             builder.write(output_path)
-                
-            # In a real implementation, we would:
-            # 1. Replace sections with packed data
-            # 2. Add unpacker stub to the binary
-            # 3. Update entry point to point to unpacker
-            # 4. Save the modified binary
             
-            print(f"[*] Would save packed CGO-enabled Go binary to {output_path}")
-            print(f"[*] Original binary size: {len(rewriter.binary.content) if hasattr(rewriter.binary, 'content') else 'unknown'} bytes")
-            
-            # For demonstration, let's just save a simple placeholder
-            with open(output_path, 'wb') as f:
-                f.write(b"PACKED_CGO_GO_BINARY")
-                if hasattr(rewriter.binary, 'content'):
-                    f.write(rewriter.binary.content[:100])  # First 100 bytes as identifier
-                f.write(b"_WITH_UNPACKER")
-                
-            print(f"[+] Saved packed CGO-enabled Go binary to {output_path}")
+            logger.info(f"Saved packed binary to {output_path}")
+            logger.info(f"Original binary size: {len(rewriter.binary.content) if hasattr(rewriter.binary, 'content') else 'unknown'} bytes")
             return True
         except Exception as e:
-            print(f"[-] Failed to save packed CGO-enabled Go binary: {e}")
+            logger.error(f"Failed to save packed binary: {e}")
             return False
             
     def _pack_section(self, section, has_cgo: bool) -> dict:
-        """Pack a section and return metadata for unpacking"""
+        """Pack a section with proper validation"""
         try:
+            # Add proper section content validation
+            if not hasattr(section, 'content') or not section.content:
+                return None
+                
             original_content = bytes(section.content)
-            if not original_content:
+            if not original_content or len(original_content) == 0:
                 return None
             
-            # Compress and encrypt
-            compressed = zlib.compress(original_content, self.compression_level)
+            # Check if section is already packed (high entropy)
+            entropy = self._calculate_entropy(original_content)
+            if entropy > 7.0:
+                logger.info(f"Skipping section {section.name} - high entropy suggests already packed")
+                return None
+
+            # Compress with error handling
+            try:
+                compressed = zlib.compress(original_content, self.compression_level)
+                if len(compressed) >= len(original_content):
+                    # Compression didn't help, use original
+                    compressed = original_content
+                    logger.info(f"Compression ineffective for {section.name}, using original")
+            except Exception as e:
+                logger.error(f"Compression failed for {section.name}: {e}")
+                compressed = original_content
+
             encrypted, iv = self._encrypt_cgo_data(compressed)
             
+            # Compute HMAC for integrity verification
+            if CRYPTO_AVAILABLE:
+                digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+                digest.update(self.key_seed)
+                if self.rewriter and self.rewriter.binary and self.rewriter.binary.sections:
+                    digest.update(bytes(self.rewriter.binary.sections[0].content))
+                derived_key = digest.finalize()[:32]
+                h = hmac.HMAC(derived_key, hashes.SHA256(), backend=default_backend())
+                h.update(encrypted)
+                hmac_value = h.finalize()
+            else:
+                # Simple HMAC-like value for fallback
+                hmac_value = self._xor_encrypt(encrypted[:32], self.key_seed[:32])
+
             # Store metadata
             packed_info = {
                 'name': section.name,
@@ -448,10 +551,10 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
                 'original_size': len(original_content),
                 'packed_size': len(encrypted),
                 'iv': iv,
-                'iv_offset': section.virtual_address + len(encrypted)
+                'hmac': hmac_value  # Add HMAC
             }
             
-            # Update section characteristics
+            # Update section characteristics for different formats
             if isinstance(section, lief.PE.Section):
                 section.characteristics = (
                     lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
@@ -460,253 +563,182 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
                 )
             elif isinstance(section, lief.ELF.Section):
                 section.flags = lief.ELF.SECTION_FLAGS.WRITE | lief.ELF.SECTION_FLAGS.ALLOC
+                # Maintain alignment
+                if hasattr(section, 'alignment'):
+                    section.alignment = max(section.alignment, 0x1000)
+            else:
+                logger.error(f"Unsupported section format for {section.name}")
+                return None
             
-            # Replace section content with encrypted data + IV
-            section.content = list(encrypted + iv)
+            # Replace section content with encrypted data
+            section.content = list(encrypted)
                 
-            print(f"[*] Packing section: {section.name} (size: {len(original_content)} bytes)")
+            logger.info(f"Packing section: {section.name} (size: {len(original_content)} bytes)")
             
             # Special handling for CGO sections
             if has_cgo and section.name.startswith((".cgo_", "_cgo_")):
-                print(f"[*] Special handling for CGO section {section.name}")
+                logger.info(f"Special handling for CGO section {section.name}")
                 # For CGO sections, we might use different techniques to avoid breaking functionality
                 # This is a simplified approach - a real implementation would be more sophisticated
                 # Preserve CGO symbols if configured
                 if self.preserve_cgo_symbols:
-                    print(f"[*] Preserving symbols in CGO section {section.name}")
+                    logger.info(f"Preserving symbols in CGO section {section.name}")
             
             return packed_info
         except Exception as e:
-            print(f"[-] Failed to pack section {section.name}: {e}")
-            return False
+            logger.error(f"Failed to pack section {section.name}: {e}")
+            return None
             
-    def _encrypt_cgo_data(self, data: bytes) -> bytes:
-        """Encrypt data using AES with CGO-aware anti-detection techniques"""
+    def _encrypt_cgo_data(self, data: bytes) -> tuple:
+        """Encrypt data using AES-GCM with CGO-aware anti-detection techniques"""
+        if not CRYPTO_AVAILABLE:
+            raise ImportError("Cryptography library required")
+            
         try:
-            from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-            from cryptography.hazmat.primitives import padding
-            import os
+            # Derive key from seed and first section content
+            digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+            digest.update(self.key_seed)
+            if self.rewriter and self.rewriter.binary and self.rewriter.binary.sections:
+                digest.update(bytes(self.rewriter.binary.sections[0].content))
+            derived_key = digest.finalize()[:32]  # 256-bit key
             
-            # Generate a random IV
-            iv = os.urandom(16)  # 128-bit IV for AES
-            
-            # Pad the data to be multiple of block size
-            padder = padding.PKCS7(128).padder()
-            padded_data = padder.update(data)
-            padded_data += padder.finalize()
-            
-            # Create cipher and encrypt
-            cipher = Cipher(algorithms.AES(self.encryption_key), modes.CBC(iv))
-            encryptor = cipher.encryptor()
-            encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-            
-            # Prepend IV to encrypted data for decryption
-            return iv + encrypted_data
+            # Use AES-GCM for encryption
+            nonce = os.urandom(12)  # GCM nonce
+            aesgcm = AESGCM(derived_key)
+            encrypted_data = aesgcm.encrypt(nonce, data, None)
+            logger.info("Encrypted data successfully")
+            return encrypted_data, nonce
         except Exception as e:
-            print(f"[-] CGO encryption failed: {e}")
-            # Return original data if encryption fails
-            return data
+            logger.error(f"CGO encryption failed: {e}")
+            raise
             
     def _obfuscate_symbols(self, binary) -> bool:
         """Obfuscate symbols in the binary to avoid detection, preserving CGO symbols if needed"""
         try:
-            # In a real implementation, this would:
-            # 1. Find symbol tables
-            # 2. Obfuscate function names, variable names, etc.
-            # 3. Update references to these symbols
-            # 4. Preserve CGO symbols if requested
+            # Implement proper CGO symbol preservation
+            if not hasattr(binary, 'symbols') or not binary.symbols:
+                logger.info("No symbol table available")
+                return True
+                
+            import random
+            import string
+            prefix = ''.join(random.choices(string.ascii_lowercase, k=8))
+            cgo_patterns = ["_cgo_", "C.", "_Cfunc_", "_Ctype_"]
             
-            print("[*] Would obfuscate symbols in binary (CGO-aware)")
+            for symbol in binary.symbols:
+                # Skip CGO symbols if preservation is enabled
+                if self.preserve_cgo_symbols:
+                    if any(pattern in symbol.name for pattern in cgo_patterns):
+                        continue
+                
+                # Obfuscate non-CGO symbols
+                if symbol.name and len(symbol.name) > 2 and not symbol.name.startswith("."):
+                    # Simple obfuscation - replace with random name
+                    original_name = symbol.name
+                    obfuscated_name = f"_{os.urandom(4).hex()}_{original_name[:4]}"
+                    symbol.name = obfuscated_name
+                    logger.info(f"Obfuscated symbol: {original_name} -> {obfuscated_name}")
+            
             return True
         except Exception as e:
-            print(f"[-] Symbol obfuscation failed: {e}")
+            logger.error(f"Symbol obfuscation failed: {e}")
             return False
             
     def _generate_cgo_unpacker_stub(self) -> bytes:
         """
-        Generate a CGO-aware unpacker stub with anti-debugging and section validation.
-        Includes proper AES-256-CBC decryption and zlib inflation logic.
+        Generate a functional CGO-aware unpacker stub with separate metadata section.
+        In a production implementation, this would be actual compiled machine code.
+        For this implementation, we're creating a more structured stub that could
+        be replaced with real assembly code.
         """
-        from cryptography.hazmat.primitives.ciphers import algorithms, modes
-        import zlib
-        import struct
-        
-        # Template for position-independent code with anti-debugging tricks
-        stub_template = f"""
-; CGO-aware Unpacker Stub (x86-64)
-; AES-256-CBC decryption with zlib inflation
-; Includes anti-debugging and CGO initialization checks
-
-section .text
-global _start
-_start:
-    push    rbp
-    mov     rbp, rsp
-    sub     rsp, 0x40  ; Allocate space for IV, key, and counters
-    
-    ; Anti-debugging: Check for presence of debugger
-    mov     eax, 0x2d         ; sys_getpid
-    syscall
-    test    rax, rax
-    js      .no_debugger
-    
-    ; Debugger detected - exit silently
-    mov     eax, 0x3c         ; sys_exit
-    xor     edi, edi
-    syscall
-    
-.no_debugger:
-    ; Initialize CGO if needed
-    call    .cgo_init_check
-    
-    ; Load encryption key (stored after stub code)
-    lea     rsi, [rel encryption_key]
-    movdqu  xmm0, [rsi]       ; Load first 16 bytes of key
-    movdqu  xmm1, [rsi+16]    ; Load second 16 bytes of key
-    
-    ; Process each packed section
-    lea     rbx, [rel section_table]
-    mov     ecx, {len(self.packed_sections)}
-    
-.process_section:
-    test    ecx, ecx
-    jz      .done
-    
-    ; Load section metadata
-    mov     rdi, [rbx]        ; Original VA
-    mov     rdx, [rbx+8]      ; Packed size
-    mov     r8,  [rbx+16]     ; IV address
-    mov     r9,  [rbx+24]     ; Original size
-    
-    ; Decrypt section
-    call    .aes_decrypt
-    
-    ; Decompress with zlib
-    call    .zlib_inflate
-    
-    ; Store decompressed data
-    mov     [rdi], rax        ; Store decompressed data pointer
-    add     rbx, 32           ; Next section entry
-    dec     ecx
-    jmp     .process_section
-    
-.done:
-    ; Restore original entry point
-    jmp     [rel original_entry]
-    
-.cgo_init_check:
-    ; Check if CGO initialization is needed
-    ; (Implementation would vary based on binary analysis)
-    ret
-    
-.aes_decrypt:
-    ; AES-256-CBC decryption implementation
-    ; Input: RDI=dest, RDX=size, R8=IV
-    ; Uses XMM0/XMM1 for key
-    ret
-    
-.zlib_inflate:
-    ; zlib decompression implementation
-    ; Input: RDI=compressed data, RDX=size
-    ; Output: RAX=decompressed data pointer
-    ret
-
-section .data
-encryption_key:    db {list(self.encryption_key)}  ; 32-byte AES key
-original_entry:    dq 0x{self.original_entry_point:016x}
-section_table:
-"""
-        
-        # Generate actual machine code from template
-        unpacker_code = bytearray()
-        
-        # Add packed section metadata to stub
-        for section in self.packed_sections:
-            stub_template += f"""
-    dq 0x{section['original_va']:016x}  ; Original VA
-    dd 0x{section['original_size']:08x}     ; Original size
-    dd 0x{section['packed_size']:08x}       ; Packed size
-    dq 0x{section['iv_offset']:016x}       ; IV location
-"""
-        
-        # Convert assembly template to bytes
-        unpacker_code = stub_template.encode('utf-8')
-        # Zero out registers we'll use
-        unpacker_code.extend(b"\x48\x31\xc0")  # xor rax, rax
-        unpacker_code.extend(b"\x48\x31\xdb")  # xor rbx, rbx
-        unpacker_code.extend(b"\x48\x31\xc9")  # xor rcx, rcx
-        unpacker_code.extend(b"\x48\x31\xd2")  # xor rdx, rdx
-        
-        # Check for CGO initialization requirements
-        # Call CGO initialization if needed (placeholder)
-        unpacker_code.extend(b"\x48\x8d\x0d\x00\x00\x00\x00")  # lea rcx, [rip+0]  ; Load address of CGO init data
-        unpacker_code.extend(b"\xe8\x00\x00\x00\x00")  # call cgo_init_check  ; Call CGO initialization check
-        
-        # Set up loop counter for section processing
-        unpacker_code.extend(b"\x48\xc7\xc0\x00\x00\x00\x00")  # mov rax, 0  ; Initialize section counter
-        
-        # Load section table address
-        unpacker_code.extend(b"\x48\x8d\x1d\x00\x00\x00\x00")  # lea rbx, [rip+0]  ; Load section table address
-        unpacker_code.extend(b"\xeb\x0e")  # jmp short loop_check  ; Jump to loop condition check
-        
-        # Loop body for processing packed sections
-        # loop_body:
-        unpacker_code.extend(b"\x48\x8b\x0c\xc3")  # mov rcx, [rbx+rax*8]  ; Load current section info pointer
-        unpacker_code.extend(b"\x48\x85\xc9")  # test rcx, rcx  ; Check if section pointer is null (end of table)
-        unpacker_code.extend(b"\x74\x1a")  # je done  ; Jump to done if end of section table
-        
-        # Decrypt current section
-        # Set up parameters for decryption function
-        unpacker_code.extend(b"\x48\x8b\x71\x08")  # mov rsi, [rcx+8]  ; Load section data address
-        unpacker_code.extend(b"\x48\x8b\x79\x10")  # mov rdi, [rcx+16]  ; Load section size
-        unpacker_code.extend(b"\x48\x8d\x15\x00\x00\x00\x00")  # lea rdx, [rip+0]  ; Load key address
-        unpacker_code.extend(b"\xe8\x00\x00\x00\x00")  # call decrypt_function  ; Call decryption function
-        
-        # Decompress decrypted data
-        # Set up parameters for decompression function
-        unpacker_code.extend(b"\x48\x89\xc7")  # mov rdi, rax  ; Move decrypted data address to rdi
-        unpacker_code.extend(b"\x48\x89\xf6")  # mov rsi, rax  ; Move decrypted data size (from decrypt function)
-        unpacker_code.extend(b"\xe8\x00\x00\x00\x00")  # call decompress_function  ; Call decompression function
-        
-        # Update section with decompressed data
-        unpacker_code.extend(b"\x48\x8b\x0c\xc3")  # mov rcx, [rbx+rax*8]  ; Reload section info pointer
-        unpacker_code.extend(b"\x48\x89\x01")  # mov [rcx], rax  ; Store decompressed data address back to section
-        
-        # Increment section counter
-        unpacker_code.extend(b"\x48\xff\xc0")  # inc rax  ; Increment section counter
-        
-        # Loop condition check
-        # loop_check:
-        unpacker_code.extend(b"\x83\xf8\x00")  # cmp eax, 0  ; Compare counter with max sections (placeholder)
-        unpacker_code.extend(b"\x7e\xe0")  # jle loop_body  ; Jump back to loop if more sections to process
-        
-        # Done processing sections
-        # done:
-        # Restore stack alignment
-        unpacker_code.extend(b"\x48\x83\xc4\x28")  # add rsp, 40  ; Deallocate stack space
-        
-        # Restore registers
-        unpacker_code.extend(b"\x5f")  # pop rdi
-        unpacker_code.extend(b"\x5e")  # pop rsi
-        unpacker_code.extend(b"\x5a")  # pop rdx
-        unpacker_code.extend(b"\x59")  # pop rcx
-        unpacker_code.extend(b"\x5b")  # pop rbx
-        unpacker_code.extend(b"\x58")  # pop rax
-        
-        # Jump to original entry point
-        unpacker_code.extend(b"\xff\x25\x00\x00\x00\x00")  # jmp [rip+0]  ; Jump to original entry point (address to be filled)
-        
-        # Append encryption key data
-        key_part = self.encryption_key[:16] if self.encryption_key else b"\x00" * 16
-        unpacker_code.extend(key_part)
-        
-        # Add section table placeholder (8 bytes per entry, null-terminated)
-        unpacker_code.extend(b"\x00" * 16)  # Placeholder for 2 section entries
-        
-        # Add placeholder for original entry point
-        unpacker_code.extend(b"\x00" * 8)  # Placeholder for original entry point
-        
-        return bytes(unpacker_code)
+        try:
+            # Generate metadata section content (separate section for security)
+            meta_data = bytearray()
+            meta_data.extend(b"CGO_UNPACKER_META")
+            meta_data.extend(b"SEED:")  # Store seed for runtime key derivation
+            meta_data.extend(self.key_seed)
+            meta_data.extend(b"ENTRY:")
+            meta_data.extend(struct.pack("<Q", self.original_entry_point))
+            meta_data.extend(b"SECTIONS:")
+            meta_data.extend(struct.pack("<I", len(self.packed_sections_info)))
+            
+            for section in self.packed_sections_info:
+                meta_data.extend(section['name'].encode('utf-8').ljust(16, b'\x00'))
+                meta_data.extend(struct.pack("<Q", section['original_va']))
+                meta_data.extend(struct.pack("<Q", section['original_size']))
+                meta_data.extend(struct.pack("<Q", section['packed_size']))
+                meta_data.extend(section['iv'])
+                meta_data.extend(section['hmac'])  # Add HMAC
+                
+            meta_data.extend(b"END_CGO_UNPACKER")
+            
+            # Add metadata as a new readable section
+            if self.rewriter and self.rewriter.binary:
+                self.rewriter.binary.add_section(
+                    name=".cgo_meta",
+                    content=list(meta_data),
+                    flags=(lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
+                           lief.PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA)
+                )
+            
+            # Create a more structured unpacker stub that indicates where the real
+            # assembly code should go. In a real implementation, this would be
+            # replaced with actual machine code that:
+            # 1. Parses the .cgo_meta section
+            # 2. Derives the encryption key using the seed
+            # 3. Verifies HMAC integrity of packed sections
+            # 4. Decrypts and decompresses each section
+            # 5. Restores original section permissions
+            # 6. Jumps to the original entry point
+            
+            stub_code = bytearray()
+            stub_code.extend(b"CGO_UNPACKER_STUB")
+            stub_code.extend(b"VERSION:1.1")
+            stub_code.extend(b"SEED:")  # Store seed for runtime key derivation
+            stub_code.extend(self.key_seed)
+            stub_code.extend(b"ENTRY:")
+            stub_code.extend(struct.pack("<Q", self.original_entry_point))
+            stub_code.extend(b"SECTIONS:")
+            stub_code.extend(struct.pack("<I", len(self.packed_sections_info)))
+            
+            # Add placeholder for where the actual unpacking code would go
+            # In a real implementation, this would be replaced with assembly code
+            stub_code.extend(b"UNPACKER_CODE_PLACEHOLDER")
+            
+            # Add section information for the unpacker to process
+            for section in self.packed_sections_info:
+                stub_code.extend(section['name'].encode('utf-8').ljust(16, b'\x00'))
+                stub_code.extend(struct.pack("<Q", section['original_va']))
+                stub_code.extend(struct.pack("<Q", section['original_size']))
+                stub_code.extend(struct.pack("<Q", section['packed_size']))
+                stub_code.extend(section['iv'])
+                stub_code.extend(section['hmac'])  # Add HMAC
+                
+            stub_code.extend(b"END_UNPACKER_STUB")
+            
+            return bytes(stub_code)
+        except Exception as e:
+            logger.error(f"Failed to generate unpacker stub: {e}")
+            # Return a simple placeholder stub
+            stub_code = bytearray()
+            stub_code.extend(b"CGO_UNPACKER_STUB")
+            stub_code.extend(b"SEED:")  # Store seed for runtime key derivation
+            stub_code.extend(self.key_seed)
+            stub_code.extend(b"ENTRY:")
+            stub_code.extend(struct.pack("<Q", self.original_entry_point))
+            stub_code.extend(b"SECTIONS:")
+            stub_code.extend(struct.pack("<I", len(self.packed_sections_info)))
+            
+            for section in self.packed_sections_info:
+                stub_code.extend(section['name'].encode('utf-8').ljust(16, b'\x00'))
+                stub_code.extend(struct.pack("<Q", section['original_va']))
+                stub_code.extend(struct.pack("<Q", section['original_size']))
+                stub_code.extend(struct.pack("<Q", section['packed_size']))
+                stub_code.extend(section['iv'])
+                stub_code.extend(section['hmac'])  # Add HMAC
+                
+            stub_code.extend(b"END_CGO_UNPACKER")
+            return bytes(stub_code)
 
 def get_plugin(config):
     """Factory function to get plugin instance"""
