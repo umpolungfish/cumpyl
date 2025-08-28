@@ -464,7 +464,7 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
             # Replace section content with encrypted data + IV
             section.content = list(encrypted + iv)
                 
-            print(f"[*] Packing section: {section.name} (size: {len(section_content)} bytes)")
+            print(f"[*] Packing section: {section.name} (size: {len(original_content)} bytes)")
             
             # Special handling for CGO sections
             if has_cgo and section.name.startswith((".cgo_", "_cgo_")):
@@ -478,8 +478,8 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
                 return False
                 
             # Compress the section content
-            compressed_data = zlib.compress(section_content, self.compression_level)
-            print(f"[*] Compressed {len(section_content)} bytes to {len(compressed_data)} bytes")
+            compressed_data = zlib.compress(original_content, self.compression_level)
+            print(f"[*] Compressed {len(original_content)} bytes to {len(compressed_data)} bytes")
             
             # Encrypt the compressed data with CGO-aware techniques
             encrypted_data = self._encrypt_cgo_data(compressed_data)
@@ -630,6 +630,9 @@ encryption_key:    db {list(self.encryption_key)}  ; 32-byte AES key
 original_entry:    dq 0x{self.original_entry_point:016x}
 section_table:
 """
+        
+        # Initialize byte array for unpacker code
+        unpacker_code = bytearray()
         
         # Preserve stack alignment
         unpacker_code.extend(b"\x48\x83\xec\x28")  # sub rsp, 40  ; Allocate stack space (32+8 for alignment)
