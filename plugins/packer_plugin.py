@@ -9,21 +9,18 @@ import random
 import struct
 
 # Use consolidated utilities
-from .consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy
-from .utils import fast_entropy
+from .consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy_with_confidence
+
+def calculate_entropy(data: bytes) -> float:
+    """Simple entropy calculation wrapper for backward compatibility."""
+    result = calculate_entropy_with_confidence(data)
+    return result["value"]
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-def load_key_from_file(key_path: str) -> bytes:
-    """Load a key from file with validation."""
-    if not key_path or not os.path.isfile(key_path):
-        raise FileNotFoundError(f"Key file not found: {key_path}")
-    with open(key_path, "rb") as f:  # Context manager
-        key = f.read()
-    if len(key) not in (16, 24, 32):
-        raise ValueError(f"Invalid key length: {len(key)} (must be 128/192/256 bits)")
-    return key
+# Use the new key loading function from crypto_utils
+from .crypto_utils import load_and_derive_key, derive_secure_key
 
 def sample_bytes(data: bytes, max_samples: int = 65536) -> bytes:
     """Return a deterministic sample up to max_samples for large blobs."""
@@ -33,22 +30,19 @@ def sample_bytes(data: bytes, max_samples: int = 65536) -> bytes:
     chunk = max_samples // 3
     return data[:chunk] + data[len(data)//2:len(data)//2 + chunk] + data[-chunk:]
 
-def load_key_from_file(key_path: str) -> bytes:
-    """Load a 256-bit key from a protected file. Fail loudly if missing or wrong size."""
-    if not key_path or not os.path.isfile(key_path):
-        raise FileNotFoundError(f"Key file not found: {key_path}")
-    with open(key_path, "rb") as f:  # Context manager
-        key = f.read()
-    if len(key) not in (16, 24, 32):
-        raise ValueError(f"Invalid key length: {len(key)} (must be 128/192/256 bits)")
-    return key
+
+def create_integrity_hash(data: bytes) -> str:
+    """Create an integrity hash for data verification."""
+    from .crypto_utils import safe_hash
+    return safe_hash(data)
 
 def encrypt_bytes_aesgcm(key: bytes, data: bytes) -> dict:
     """Return dict {ciphertext, nonce, tag} where AESGCM stores tag inside ciphertext in cryptography lib."""
     try:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        import secrets
         aesgcm = AESGCM(key)
-        nonce = os.urandom(12)  # recommended for GCM
+        nonce = secrets.token_bytes(12)  # recommended for GCM
         ct = aesgcm.encrypt(nonce, data, associated_data=None)
         return {"ciphertext": ct, "nonce": nonce}
     except Exception as e:
@@ -237,10 +231,14 @@ class PackerTransformationPlugin(TransformationPlugin):
             # build report here...
             return True
 
-        # If encryption requested, validate key
+        # If encryption requested, validate key with enhanced security
         if self.encryption_enabled:
             try:
-                key = load_key_from_file(self.key_path)
+                # Add binary-specific context for key derivation
+                import hashlib
+                binary_context = hashlib.sha256(binary.path.encode()).digest() if hasattr(binary, 'path') else b""
+                encryption_key, hmac_key, salts = derive_secure_key(self.key_path, binary_context=binary_context)
+                key = encryption_key  # Use the derived encryption key
             except Exception:
                 logger.exception("Invalid encryption key; aborting transform")
                 return False
@@ -294,8 +292,11 @@ class PackerTransformationPlugin(TransformationPlugin):
             # Encrypt metadata section if encryption is enabled
             if self.encryption_enabled:
                 try:
-                    key = load_key_from_file(self.key_path)
-                    encrypted_payload = encrypt_bytes_aesgcm(key, payload)["ciphertext"]
+                    # Add binary-specific context for key derivation
+                    import hashlib
+                    binary_context = hashlib.sha256(binary.path.encode()).digest() if hasattr(binary, 'path') else b""
+                    encryption_key, hmac_key, salts = derive_secure_key(self.key_path, binary_context=binary_context)
+                    encrypted_payload = encrypt_bytes_aesgcm(encryption_key, payload)["ciphertext"]
                     payload = encrypted_payload
                     logger.info("Encrypted metadata section")
                 except Exception as e:

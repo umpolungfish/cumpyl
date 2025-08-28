@@ -13,18 +13,22 @@ Technical Documentation:
 For detailed technical information about the implementation, see plugins/TECHNICAL_DOCS.md
 """
 import logging
+import os
 from typing import Dict, Any, List, Optional
 from cumpyl_package.plugin_manager import AnalysisPlugin
 import lief
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import our new modules
-from .analysis import find_go_build_id, calculate_entropy_with_confidence, analyze_sections_for_packing
-from .consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section
+from .analysis import find_go_build_id
+from .analysis_utils import analyze_binary_sections
+from .consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy_with_confidence
 from .crypto_utils import safe_hash
+from .config_manager import ConfigManager
 
-# Handle optional transform_skeleton module
+# Handle optional transform module
 try:
-    from .transform_skeleton import create_transformation_plan, apply_transformation_plan
+    from .transform import create_transformation_plan, apply_transformation_plan
 except ImportError:
     # Create dummy functions if module is not available
     def create_transformation_plan(*args, **kwargs):
@@ -35,8 +39,13 @@ except ImportError:
         return DummyPlan()
     
     def apply_transformation_plan(*args, **kwargs):
-        pass
+        return True, None
 
+# Import our new logging configuration
+from .logging_config import setup_logging
+
+# Set up structured logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
 class GoBinaryAnalysisPlugin(AnalysisPlugin):
@@ -65,6 +74,8 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
                 - allow_transform (bool): Enable transformation features (default: False)
         """
         super().__init__(config)
+        self.config_manager = ConfigManager(config)
+        self.config_manager.update_from_env()
         self.name = "go_binary_analyzer"
         self.version = "1.0.0"
         self.description = "Analysis-only detection of Go binaries and packing opportunities"
@@ -72,10 +83,53 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
         self.dependencies = []
         
         # Check for allow-transform flag in config
-        self.allow_transform = config.get('allow_transform', False)
+        self.allow_transform = self.config_manager.get('allow_transform')
         if self.allow_transform:
             logger.warning("Transformation mode enabled - only use in controlled environments")
-        
+            
+    def analyze_section(self, section, binary, format_type):
+        """Analyze a single section for Go characteristics and packing opportunities."""
+        try:
+            content = bytes(section.content) if hasattr(section, 'content') else b''
+            size = len(content)
+            entropy_result = calculate_entropy_with_confidence(content)
+            
+            section_info = {
+                "name": section.name,
+                "size": size,
+                "virtual_address": getattr(section, 'virtual_address', 0),
+                "is_executable": is_executable_section(section, format_type),
+                "is_readable": is_readable_section(section, format_type),
+                "is_writable": is_writable_section(section, format_type),
+                "entropy": entropy_result["value"],
+                "confidence": entropy_result["confidence"]
+            }
+            
+            packing_opportunity = None
+            if section_info["is_executable"] and entropy_result["value"] > 7.5 and entropy_result["confidence"] > 0.7:
+                packing_opportunity = {
+                    "section": section_info["name"],
+                    "size": size,
+                    "type": "high_entropy_executable",
+                    "entropy": entropy_result["value"],
+                    "confidence": entropy_result["confidence"],
+                    "recommendation": "May be already packed"
+                }
+            elif not section_info["is_executable"] and entropy_result["value"] < 6.0 and entropy_result["confidence"] > 0.7:
+                packing_opportunity = {
+                    "section": section_info["name"],
+                    "size": size,
+                    "type": "low_entropy_data",
+                    "entropy": entropy_result["value"],
+                    "confidence": entropy_result["confidence"],
+                    "recommendation": "Good candidate for compression"
+                }
+            
+            return section_info, packing_opportunity
+        except Exception as e:
+            logger.error(f"Failed to analyze section {section.name}: {e}")
+            return {"name": section.name, "size": 0, "virtual_address": 0, "is_executable": False, "is_readable": False, "is_writable": False, "entropy": 0.0, "confidence": 0.0}, None
+            
     def analyze(self, rewriter) -> Dict[str, Any]:
         """
         Analyze binary for Go characteristics and packing opportunities.
@@ -139,32 +193,8 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
                 go_detection = find_go_build_id(binary)
                 results["analysis"]["go_detection"] = go_detection
                 
-                # Single-pass section analysis
-                sections_info = []
-                packing_opportunities = []
-                for section in binary.sections:
-                    content = bytes(section.content) if hasattr(section, 'content') else b''
-                    size = len(content)
-                    section_info = {
-                        "name": section.name,
-                        "size": size,
-                        "virtual_address": getattr(section, 'virtual_address', 0),
-                        "is_executable": is_executable_section(section, format_type),
-                        "is_readable": is_readable_section(section, format_type),
-                        "is_writable": is_writable_section(section, format_type),
-                        "entropy": calculate_entropy_with_confidence(content) if size > 0 else None
-                    }
-                    sections_info.append(section_info)
-                    
-                    # Add packing opportunity if high entropy in executable
-                    if section_info["is_executable"] and section_info["entropy"] and section_info["entropy"] > 7.5:
-                        packing_opportunities.append({
-                            "section": section.name,
-                            "size": size,
-                            "type": "high_entropy_executable",
-                            "entropy": section_info["entropy"]
-                        })
-
+                # Use shared section analysis
+                sections_info, packing_opportunities = analyze_binary_sections(binary, format_type)
                 results["analysis"]["sections"] = sections_info
                 results["analysis"]["packing_opportunities"] = packing_opportunities
                 
@@ -178,7 +208,9 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
                 
                 # Apply transformation skeleton if allowed
                 if self.allow_transform:
-                    apply_transformation_plan(binary, plan)
+                    success, report = apply_transformation_plan(binary, plan, allow_transform=True)
+                    if report:
+                        results["transformation_report"] = report
                 
                 # Add suggestions based on analysis
                 if go_detection["detected"]:

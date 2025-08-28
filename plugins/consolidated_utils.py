@@ -2,10 +2,85 @@
 import lief
 import logging
 import math
+import secrets
+import hashlib
 from collections import Counter
 from typing import Dict, Any
+import numpy as np  # Optional for fast path
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
+
+def detect_format_enhanced(binary: Any) -> Dict[str, Any]:
+    """Enhanced binary format detection with confidence scoring."""
+    result = {
+        "format": "UNKNOWN",
+        "confidence": 0.0,
+        "details": {}
+    }
+    
+    # Method 1: LIEF format detection
+    try:
+        if hasattr(binary, 'format'):
+            fmt = binary.format
+            if fmt == lief.Binary.FORMATS.PE:
+                result["format"] = "PE"
+                result["confidence"] += 0.4
+            elif fmt == lief.Binary.FORMATS.ELF:
+                result["format"] = "ELF"
+                result["confidence"] += 0.4
+            elif fmt == lief.Binary.FORMATS.MACHO:
+                result["format"] = "MACHO"
+                result["confidence"] += 0.4
+    except:
+        pass
+    
+    # Method 2: Magic number detection
+    try:
+        if hasattr(binary, 'content') and binary.content:
+            content = bytes(binary.content[:4])
+            
+            # PE magic
+            if content.startswith(b'MZ'):
+                result["format"] = "PE"
+                result["confidence"] += 0.3
+                result["details"]["magic"] = "MZ"
+            
+            # ELF magic
+            elif content.startswith(b'\x7fELF'):
+                result["format"] = "ELF"
+                result["confidence"] += 0.3
+                result["details"]["magic"] = "ELF"
+            
+            # Mach-O magic
+            elif content.startswith((b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf', 
+                                   b'\xce\xfa\xed\xfe', b'\xcf\xfa\xed\xfe')):
+                result["format"] = "MACHO"
+                result["confidence"] += 0.3
+                result["details"]["magic"] = "Mach-O"
+    except:
+        pass
+    
+    # Method 3: Section-based detection
+    try:
+        if hasattr(binary, 'sections'):
+            sections = [s.name for s in binary.sections]
+            
+            # PE sections
+            pe_sections = [".text", ".data", ".rdata", ".rsrc"]
+            if any(s in sections for s in pe_sections):
+                result["format"] = "PE"
+                result["confidence"] += 0.2
+            
+            # ELF sections
+            elf_sections = [".text", ".data", ".bss", ".rodata"]
+            if any(s in sections for s in elf_sections):
+                result["format"] = "ELF"
+                result["confidence"] += 0.2
+    except:
+        pass
+    
+    return result
 
 def detect_format(binary: Any) -> str:
     """Detect binary format (PE, ELF, MACHO, or UNKNOWN)."""
@@ -20,11 +95,18 @@ def detect_format(binary: Any) -> str:
         elif fmt == lief.Binary.FORMATS.MACHO:
             return "MACHO"
     except AttributeError:
-        logger.warning("Binary lacks 'format' attribute; falling back to header check")
-        if hasattr(binary, "header") and hasattr(binary.header, "machine"):
-            return "ELF/PE"  # Crude fallback
-    except Exception as e:
-        logger.error(f"Format detection failed: {e}")
+        logger.warning("Binary lacks 'format' attribute; attempting header-based detection")
+        try:
+            if hasattr(binary, 'content') and binary.content:
+                magic = binary.content[:4]
+                if magic == b"\x7fELF":
+                    return "ELF"
+                elif magic[:2] == b"MZ":
+                    return "PE"
+                elif magic in (b"\xFE\xED\xFA\xCE", b"\xCE\xFA\xED\xFE", b"\xFE\xED\xFA\xCF", b"\xCF\xFA\xED\xFE"):
+                    return "MACHO"
+        except Exception as e:
+            logger.error(f"Header-based detection failed: {e}")
     return "UNKNOWN"
 
 def is_executable_section(section: Any, binary_format: str) -> bool:
@@ -83,14 +165,47 @@ def is_writable_section(section: Any, binary_format: str) -> bool:
         logger.error(f"Writable check failed for section: {e}")
     return False
 
-def calculate_entropy(data: bytes, max_samples: int = 65536) -> float:
-    """Calculate entropy with efficient sampling for large data."""
+@lru_cache(maxsize=128)
+def calculate_entropy_with_confidence(data: bytes, max_samples: int = 65536) -> Dict[str, Any]:
+    """Calculate entropy with stratified sampling, confidence, and interpretation."""
+    # Generate a hash of the data for caching
+    data_hash = hashlib.sha256(data).hexdigest()
+    logger.debug(f"Computing entropy for data hash {data_hash[:16]}...")
+    
     if not data:
-        return 0.0
-    sample = data if len(data) <= max_samples else (
-        data[:max_samples//3] + data[len(data)//2:len(data)//2 + max_samples//3] + data[-max_samples//3:]
-    )
-    counts = Counter(sample)
-    data_len = len(sample)
-    entropy = sum(- (count / data_len) * math.log2(count / data_len) for count in counts.values())
-    return entropy
+        return {"value": 0.0, "confidence": 0.0, "interpretation": "empty_data"}
+    
+    data_len = len(data)
+    if data_len <= 256:
+        return {"value": 0.0, "confidence": 0.1, "interpretation": "too_small_for_reliable_entropy"}
+    
+    # Stratified sampling
+    if data_len > max_samples:
+        chunk_size = data_len // (max_samples // 256)
+        sample = bytearray()
+        for i in range(0, data_len, chunk_size):
+            chunk = data[i:i + chunk_size]
+            sample.extend(chunk[:256] if len(chunk) > 256 else chunk)
+        sample = bytes(sample[:max_samples])
+    else:
+        sample = data
+    
+    try:
+        # Fast path with NumPy
+        counts = np.bincount(np.frombuffer(sample, dtype=np.uint8), minlength=256)
+        counts = counts[counts > 0]
+        if counts.size == 0:
+            return {"value": 0.0, "confidence": 0.1, "interpretation": "no_variety"}
+        p = counts / counts.sum()
+        entropy = -np.sum(p * np.log2(p))
+    except ImportError:
+        # Simplified fallback for small data
+        counts = {}
+        for b in sample:
+            counts[b] = counts.get(b, 0) + 1
+        entropy = sum(- (count / len(sample)) * math.log2(count / len(sample)) for count in counts.values() if count > 0)
+    
+    confidence = min(1.0, len(sample) / 1024 * 0.9)
+    interpretation = "high_entropy_packed" if entropy > 7.5 else "medium_entropy" if entropy > 6.0 else "low_entropy"
+    
+    return {"value": entropy, "confidence": confidence, "interpretation": interpretation}

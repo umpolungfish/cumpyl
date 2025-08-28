@@ -23,15 +23,15 @@ except ImportError:
     CRYPTO_AVAILABLE = False
     logger.error("Error: cryptography library not available, secure encryption disabled")
 
+# Use the new key loading function from crypto_utils
+from .crypto_utils import load_and_derive_key, derive_secure_key
+# Import shared analysis utilities
+from .analysis_utils import analyze_binary_sections
+from .consolidated_utils import detect_format
+
 def load_key_from_file(key_path: str) -> bytes:
     """Load a key from file with validation."""
-    if not key_path or not os.path.isfile(key_path):
-        raise FileNotFoundError(f"Key file not found: {key_path}")
-    with open(key_path, "rb") as f:  # Context manager
-        key = f.read()
-    if len(key) not in (16, 24, 32):
-        raise ValueError(f"Invalid key length: {len(key)} (must be 128/192/256 bits)")
-    return key
+    return load_and_derive_key(key_path)
 
 # Custom exception for CGo packer errors
 class CGoPackerError(Exception):
@@ -84,24 +84,20 @@ class CGoPackerPlugin(AnalysisPlugin):
                 cgo_indicators = self._find_cgo_indicators(rewriter.binary)
                 results["analysis"]["cgo_specific_info"] = cgo_indicators
                 
-                # Analyze sections for packing potential
-                for section in rewriter.binary.sections:
-                    section_info = {
-                        "name": section.name,
-                        "size": len(bytes(section.content)) if hasattr(section, 'content') else 0,
-                        "virtual_address": getattr(section, 'virtual_address', 0),
-                        "is_executable": self._is_executable_section(section),
-                        "is_readable": self._is_readable_section(section),
-                        "is_writable": self._is_writable_section(section)
-                    }
-                    results["analysis"]["sections"].append(section_info)
-                    
+                # Use shared section analysis
+                format_type = detect_format(rewriter.binary)
+                sections_info, packing_opportunities = analyze_binary_sections(rewriter.binary, format_type)
+                results["analysis"]["sections"] = sections_info
+                results["analysis"]["packing_opportunities"] = packing_opportunities
+                
+                # Add CGO-specific suggestions
+                for section_info in sections_info:
                     # Suggest packing for specific sections in CGO-enabled Go binaries
                     if section_info["size"] > 0:
                         # In CGO-enabled Go binaries, focus on non-executable sections that contain data
-                        if not section_info["is_executable"] and section.name in [".rodata", ".noptrdata", ".data", ".cgo_export", ".cgo_uninit"]:
+                        if not section_info["is_executable"] and section_info["name"] in [".rodata", ".noptrdata", ".data", ".cgo_export", ".cgo_uninit"]:
                             suggestion = {
-                                "section": section.name,
+                                "section": section_info["name"],
                                 "size": section_info["size"],
                                 "suggested_methods": ["cgo_section_pack"],
                                 "risk_level": "low"
@@ -111,28 +107,13 @@ class CGoPackerPlugin(AnalysisPlugin):
                         # Look for packing opportunities in larger sections
                         if section_info["size"] > 2048:  # Only consider sections larger than 2KB
                             opportunity = {
-                                "section": section.name,
+                                "section": section_info["name"],
                                 "size": section_info["size"],
                                 "type": "cgo_compression_candidate",
                                 "virtual_address": section_info["virtual_address"],
                                 "is_writable": section_info["is_writable"]
                             }
                             results["analysis"]["packing_opportunities"].append(opportunity)
-                        
-                        # Additional analysis for unpacking detection
-                        if section_info["is_executable"]:
-                            # Check for high entropy which might indicate packed code
-                            section_content = bytes(section.content) if hasattr(section, 'content') else b''
-                            if len(section_content) > 0:
-                                entropy = self._calculate_entropy(section_content)
-                                if entropy > 7.5:  # High entropy threshold
-                                    results["analysis"]["packing_opportunities"].append({
-                                        "section": section.name,
-                                        "size": section_info["size"],
-                                        "type": "high_entropy_executable",
-                                        "entropy": entropy,
-                                        "recommendation": "May be already packed"
-                                    })
                     
             except Exception as e:
                 logger.error(f"Analysis failed: {e}")
@@ -595,15 +576,30 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
             raise ImportError("Cryptography library required")
             
         try:
-            # Derive key from seed and first section content
-            digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-            digest.update(self.key_seed)
-            if self.rewriter and self.rewriter.binary and self.rewriter.binary.sections:
-                digest.update(bytes(self.rewriter.binary.sections[0].content))
-            derived_key = digest.finalize()[:32]  # 256-bit key
+            # Use enhanced key derivation if key path is provided
+            if self.encryption_key:
+                try:
+                    encryption_key, hmac_key, salts = derive_secure_key(self.encryption_key)
+                    derived_key = encryption_key
+                except Exception as e:
+                    logger.error(f"Secure key derivation failed, using fallback: {e}")
+                    # Fallback to original method
+                    digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+                    digest.update(self.key_seed)
+                    if self.rewriter and self.rewriter.binary and self.rewriter.binary.sections:
+                        digest.update(bytes(self.rewriter.binary.sections[0].content))
+                    derived_key = digest.finalize()[:32]  # 256-bit key
+            else:
+                # Original method when no key path is provided
+                digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+                digest.update(self.key_seed)
+                if self.rewriter and self.rewriter.binary and self.rewriter.binary.sections:
+                    digest.update(bytes(self.rewriter.binary.sections[0].content))
+                derived_key = digest.finalize()[:32]  # 256-bit key
             
-            # Use AES-GCM for encryption
-            nonce = os.urandom(12)  # GCM nonce
+            # Use AES-GCM for encryption with secure random nonce
+            import secrets
+            nonce = secrets.token_bytes(12)  # GCM nonce
             aesgcm = AESGCM(derived_key)
             encrypted_data = aesgcm.encrypt(nonce, data, None)
             logger.info("Encrypted data successfully")
