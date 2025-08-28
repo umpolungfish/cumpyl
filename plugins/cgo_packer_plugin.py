@@ -329,10 +329,12 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
         try:
             print("[*] CGO-aware packer transformation plugin called")
             
-            # Check if binary is loaded
+            # Validate binary and config
             if not rewriter or not hasattr(rewriter, 'binary') or not rewriter.binary:
-                print("[-] No binary loaded for packing")
-                return False
+                raise ValueError("No binary loaded for packing")
+                
+            self.packed_sections = []
+            self.original_entry_point = rewriter.binary.entrypoint
                 
             # Check if it's a Go binary
             is_go_binary = analysis_result.get("analysis", {}).get("go_specific_info", {}).get("is_go_binary", False)
@@ -350,19 +352,31 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
                 # Set has_cgo to True to proceed with the transformation
                 has_cgo = True
                 
-            # Generate encryption key if not provided
-            if self.encryption_key is None:
-                self.encryption_key = os.urandom(32)  # 256-bit key for AES
-                print(f"[+] Generated random encryption key")
+            # Generate encryption key with proper validation
+            if not self.encryption_key or len(self.encryption_key) != 32:
+                self.encryption_key = os.urandom(32)
+                print(f"[+] Generated AES-256-CBC key: {self.encryption_key.hex()[:16]}...")
             
-            # Pack each section with CGO-aware techniques
-            packed_sections = 0
+            # Pack sections with metadata tracking
             for section in rewriter.binary.sections:
-                # Focus on non-executable sections for Go binaries, with special handling for CGO sections
-                if not self._is_executable_section(section) and self._pack_section(section, has_cgo):
-                    packed_sections += 1
-                    
-            print(f"[+] Packed {packed_sections} sections")
+                if not self._is_executable_section(section):
+                    if packed_info := self._pack_section(section, has_cgo):
+                        self.packed_sections.append(packed_info)
+            
+            print(f"[+] Packed {len(self.packed_sections)} sections")
+            
+            # Add unpacker stub section with proper flags
+            unpacker_stub = self._generate_cgo_unpacker_stub()
+            stub_section = rewriter.binary.add_section(
+                name=".cgo_stub",
+                content=unpacker_stub,
+                flags=(lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
+                       lief.PE.SECTION_CHARACTERISTICS.MEM_EXECUTE)
+            )
+            
+            # Update entry point to stub
+            rewriter.binary.entrypoint = stub_section.virtual_address
+            print(f"[+] Set new entry point to 0x{stub_section.virtual_address:x}")
             
             # Obfuscate symbols if requested, but preserve CGO symbols if needed
             if self.obfuscate_symbols:
@@ -384,13 +398,15 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
             return False
             
     def save_packed_binary(self, rewriter, output_path: str) -> bool:
-        """
-        Save the packed binary to a file.
-        """
+        """Save the modified binary with packed sections and unpacker stub"""
         try:
-            if not rewriter or not hasattr(rewriter, 'binary') or not rewriter.binary:
-                print("[-] No binary to save")
-                return False
+            if not rewriter or not rewriter.binary:
+                raise ValueError("No binary to save")
+            
+            # Rebuild binary with LIEF's builder
+            builder = lief.PE.Builder(rewriter.binary)
+            builder.build()
+            builder.write(output_path)
                 
             # In a real implementation, we would:
             # 1. Replace sections with packed data
@@ -414,13 +430,39 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
             print(f"[-] Failed to save packed CGO-enabled Go binary: {e}")
             return False
             
-    def _pack_section(self, section, has_cgo: bool) -> bool:
-        """Pack a single section with compression and encryption, CGO-aware"""
+    def _pack_section(self, section, has_cgo: bool) -> dict:
+        """Pack a section and return metadata for unpacking"""
         try:
-            # Get section content
-            section_content = bytes(section.content)
-            if len(section_content) == 0:
-                return False
+            original_content = bytes(section.content)
+            if not original_content:
+                return None
+            
+            # Compress and encrypt
+            compressed = zlib.compress(original_content, self.compression_level)
+            encrypted, iv = self._encrypt_cgo_data(compressed)
+            
+            # Store metadata
+            packed_info = {
+                'name': section.name,
+                'original_va': section.virtual_address,
+                'original_size': len(original_content),
+                'packed_size': len(encrypted),
+                'iv': iv,
+                'iv_offset': section.virtual_address + len(encrypted)
+            }
+            
+            # Update section characteristics
+            if isinstance(section, lief.PE.Section):
+                section.characteristics = (
+                    lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
+                    lief.PE.SECTION_CHARACTERISTICS.MEM_WRITE |
+                    lief.PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA
+                )
+            elif isinstance(section, lief.ELF.Section):
+                section.flags = lief.ELF.SECTION_FLAGS.WRITE | lief.ELF.SECTION_FLAGS.ALLOC
+            
+            # Replace section content with encrypted data + IV
+            section.content = list(encrypted + iv)
                 
             print(f"[*] Packing section: {section.name} (size: {len(section_content)} bytes)")
             
