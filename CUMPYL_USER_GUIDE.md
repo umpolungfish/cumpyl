@@ -1,24 +1,25 @@
-# Cumpyl Framework
+# Cumpyl User Guide
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Installation](#installation)
+3. [Quick Start](#quick-start)
+4. [Interactive Menu System](#interactive-menu-system)
+5. [Command Line Interface](#command-line-interface)
+6. [Binary Analysis](#binary-analysis)
+7. [Hex Viewer](#hex-viewer)
+8. [Batch Processing](#batch-processing)
+9. [Encoding and Obfuscation](#encoding-and-obfuscation)
+10. [Reporting](#reporting)
+11. [Configuration](#configuration)
+
+## Introduction
 
 Cumpyl is a powerful Python-based binary analysis framework for analyzing, modifying, and rewriting binary files (PE, ELF, Mach-O). It features a plugin architecture, batch processing capabilities, and comprehensive reporting functions.
 
-## Key Features
-
-- **Multi-format Support**: Native support for PE, ELF, and Mach-O binaries
-- **Plugin Architecture**: Extensible plugin system for analysis and transformation
-- **Interactive Menu System**: Guided interface for all framework capabilities
-- **Batch Processing**: Multi-threaded processing of multiple files
-- **Advanced Encoding**: Multiple encoding methods for obfuscation
-- **Dual-Mode Hex Viewer**: Terminal TUI and browser-based hex viewing
-- **Comprehensive Reporting**: HTML, JSON, YAML, and XML report generation
-- **YAML Configuration**: Flexible configuration with predefined profiles
+Whether you're a security researcher, reverse engineer, or malware analyst, Cumpyl provides the tools you need to understand and manipulate binary files.
 
 ## Installation
-
-### Prerequisites
-
-- Python 3.9 or higher
-- pip or uv package manager
 
 ### Modern Installation (Recommended with uv)
 
@@ -55,7 +56,21 @@ This will launch a guided interface that provides access to all of Cumpyl's feat
 
 ## Interactive Menu System
 
-Cumpyl features a rich interactive menu system that provides guided access to all framework capabilities:
+Cumpyl features a rich interactive menu system that provides guided access to all framework capabilities through an intuitive console interface.
+
+### Launching the Menu
+
+```bash
+cumpyl binary.exe --menu
+```
+
+Or without a target file:
+
+```bash
+cumpyl --menu
+```
+
+### Menu Options
 
 1. **Quick Analysis**: Fast section analysis and obfuscation suggestions
 2. **Deep Analysis**: Comprehensive plugin-based analysis with reporting
@@ -75,11 +90,36 @@ The Binary Packers option includes a plugin-based packer menu that supports:
 - Real packer integration as fallback
 - Support for PE, ELF, and Mach-O formats
 
+#### Using the Plugin Packer Menu
+
 To access the plugin packer menu directly, run:
 
 ```bash
 python3 plugin_packer_menu.py [binary_file]
 ```
+
+The menu provides:
+1. **Analyze Binary**: Run analysis plugins on your binary to identify packing opportunities
+2. **Transform Binary**: Apply transformation plugins to modify your binary
+3. **Change Binary File**: Switch to a different target binary
+4. **List Available Plugins**: View all registered analysis and transformation plugins
+
+Each plugin can be configured with options such as:
+- Compression level (1-9)
+- Encryption key path for secure transformations
+- Safe mode and dry run options for testing
+- Section skipping preferences
+
+The menu system automatically detects available plugins in the `plugins/` directory and provides a guided interface for their use.
+
+#### Plugin Menu Improvements
+
+Recent improvements to the plugin packer menu include:
+- Fixed binary saving functionality in transformation plugins
+- Enhanced compatibility with Go and CGO packer plugins
+- Improved error handling and user feedback
+- Better configuration options for different plugin types
+- Support for dry run mode to test transformations without modifying files
 
 ## Command Line Interface
 
@@ -125,9 +165,13 @@ cumpyl binary.exe --run-analysis --report-format html --report-output analysis.h
 
 Run comprehensive analysis with HTML report output.
 
-## Plugin System
+## Binary Analysis
 
-Cumpyl's plugin system allows for extensible analysis and transformation capabilities:
+Cumpyl provides comprehensive binary analysis capabilities through its plugin system.
+
+### Plugin-Based Analysis
+
+Cumpyl's plugin system allows for extensible analysis capabilities:
 
 - **Entropy Analysis**: Calculate Shannon entropy for packed binary detection
 - **String Extraction**: Advanced string extraction with context scoring
@@ -136,11 +180,46 @@ Cumpyl's plugin system allows for extensible analysis and transformation capabil
 - **Go Binary Analysis**: Specialized analysis for Go binaries
 - **CGO Analysis**: Analysis for CGO-enabled Go binaries
 
-Each plugin can be configured with options such as:
-- Compression level (1-9)
-- Encryption key path for secure transformations
-- Safe mode and dry run options for testing
-- Section skipping preferences
+### Analysis Results
+
+Analysis results include:
+- Binary format detection (PE/ELF/Mach-O)
+- Section information and characteristics
+- Entropy calculations
+- Packing opportunities
+- Obfuscation suggestions
+- Security-related findings
+
+## Hex Viewer
+
+Cumpyl features a dual-mode hex viewer for comprehensive binary exploration.
+
+### Terminal TUI Viewer
+
+The new Textual-based terminal hex viewer provides:
+- Vim-like navigation controls
+- Real-time search functionality
+- Color-coded annotations
+- Section overview panel
+- Interactive range selection
+
+Launch with:
+```bash
+cumpyl binary.exe --hex-view --hex-view-interactive
+```
+
+### Browser-Based Viewer
+
+Traditional browser-based hex viewer with:
+- Interactive tooltips
+- Color-coded annotations
+- Section highlighting
+- Entropy visualization
+
+Generate with:
+```bash
+cumpyl binary.exe --hex-view
+```
 
 ## Batch Processing
 
@@ -170,6 +249,10 @@ cumpyl --batch-directory /dataset --batch-extensions ".exe,.dll" --batch-recursi
 
 Recursive processing with custom extensions.
 
+### Multi-threaded Processing
+
+Cumpyl supports multi-threaded batch processing with configurable worker pools for improved performance.
+
 ## Encoding and Obfuscation
 
 Cumpyl provides advanced encoding and obfuscation capabilities for binary sections.
@@ -197,6 +280,41 @@ cumpyl binary.exe --encode-section .text --encoding base64 --encode-section .dat
 ```
 
 Apply encodings to multiple sections.
+
+### Obfuscation Suggestions
+
+Cumpyl provides intelligent obfuscation suggestions based on section analysis:
+- **Advanced Tier**: Large read-only data sections suitable for heavy obfuscation
+- **Intermediate Tier**: Medium-size data sections good for moderate obfuscation
+- **Basic Tier**: Small sections suitable for light obfuscation
+- **Avoid Tier**: Critical sections that should not be obfuscated
+
+## Reporting
+
+Cumpyl generates comprehensive analysis reports in multiple formats.
+
+### Supported Formats
+
+- **HTML**: Rich, interactive reports with visualizations
+- **JSON**: Structured data for programmatic processing
+- **YAML**: Human-readable structured data
+- **XML**: Standardized format for enterprise integration
+
+### Report Generation
+
+```bash
+cumpyl binary.exe --run-analysis --report-format html --report-output analysis.html
+```
+
+Generate HTML report.
+
+### Batch Reporting
+
+```bash
+cumpyl --batch-directory /samples --batch-operation plugin_analysis --report-format json --report-output reports/
+```
+
+Generate reports for multiple files.
 
 ## Configuration
 
@@ -240,19 +358,8 @@ Use profiles with:
 cumpyl binary.exe --profile malware_analysis --run-analysis
 ```
 
-## Documentation
+### Custom Configuration
 
-For detailed information about Cumpyl's features and usage, please refer to the documentation:
-
-- [User Guide](CUMPYL_USER_GUIDE.md) - Comprehensive guide for using Cumpyl
-- [Developer Guide](CUMPYL_DEVELOPER_GUIDE.md) - Information for extending Cumpyl with custom plugins
-- [API Reference](CUMPYL_API_REFERENCE.md) - Detailed API documentation
-- [Release Notes](CUMPYL_RELEASE_NOTES.md) - Version history and changes
-
-## Contributing
-
-We welcome contributions to Cumpyl! Please see the [Developer Guide](CUMPYL_DEVELOPER_GUIDE.md) for information on how to contribute.
-
-## License
-
-This project is released into the public domain under the Unlicense.
+```bash
+cumpyl binary.exe --config custom.yaml --run-analysis
+```
