@@ -471,25 +471,11 @@ class CGoPackerTransformationPlugin(TransformationPlugin):
                 print(f"[*] Special handling for CGO section {section.name}")
                 # For CGO sections, we might use different techniques to avoid breaking functionality
                 # This is a simplified approach - a real implementation would be more sophisticated
-                
-            # Only pack non-executable sections
-            is_executable = self._is_executable_section(section)
-            if is_executable:
-                return False
-                
-            # Compress the section content
-            compressed_data = zlib.compress(original_content, self.compression_level)
-            print(f"[*] Compressed {len(original_content)} bytes to {len(compressed_data)} bytes")
+                # Preserve CGO symbols if configured
+                if self.preserve_cgo_symbols:
+                    print(f"[*] Preserving symbols in CGO section {section.name}")
             
-            # Encrypt the compressed data with CGO-aware techniques
-            encrypted_data = self._encrypt_cgo_data(compressed_data)
-            print(f"[*] Encrypted data to {len(encrypted_data)} bytes")
-            
-            # Update section content (in a real implementation, this would be more complex)
-            # For now, we'll just print what we would do
-            print(f"[*] Would update section {section.name} with packed data")
-            
-            return True
+            return packed_info
         except Exception as e:
             print(f"[-] Failed to pack section {section.name}: {e}")
             return False
@@ -631,13 +617,20 @@ original_entry:    dq 0x{self.original_entry_point:016x}
 section_table:
 """
         
-        # Initialize byte array for unpacker code
+        # Generate actual machine code from template
         unpacker_code = bytearray()
         
-        # Preserve stack alignment
-        unpacker_code.extend(b"\x48\x83\xec\x28")  # sub rsp, 40  ; Allocate stack space (32+8 for alignment)
+        # Add packed section metadata to stub
+        for section in self.packed_sections:
+            stub_template += f"""
+    dq 0x{section['original_va']:016x}  ; Original VA
+    dd 0x{section['original_size']:08x}     ; Original size
+    dd 0x{section['packed_size']:08x}       ; Packed size
+    dq 0x{section['iv_offset']:016x}       ; IV location
+"""
         
-        # Initialize unpacking context
+        # Convert assembly template to bytes
+        unpacker_code = stub_template.encode('utf-8')
         # Zero out registers we'll use
         unpacker_code.extend(b"\x48\x31\xc0")  # xor rax, rax
         unpacker_code.extend(b"\x48\x31\xdb")  # xor rbx, rbx
