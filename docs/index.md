@@ -36,4 +36,18 @@ cumpyl sample.exe --menu
 
 ## Documentation
 
-Check out the rest of this documentation for detailed information on installation, usage, configuration, and development.
+Cumpyl includes comprehensive documentation to help you get started and make the most of its features:
+
+### User Guide
+- **[CUMPYL_USER_GUIDE.md](../CUMPYL_USER_GUIDE.md)** - Complete guide for end users covering installation, basic usage, menu system, CLI commands, and all major features
+
+### Developer Guide
+- **[CUMPYL_DEVELOPER_GUIDE.md](../CUMPYL_DEVELOPER_GUIDE.md)** - Detailed guide for developers covering plugin development, API usage, testing, and contribution guidelines
+
+### API Reference
+- **[CUMPYL_API_REFERENCE.md](../CUMPYL_API_REFERENCE.md)** - Technical documentation of all core modules, classes, methods, and interfaces
+
+### Release Notes
+- **[CUMPYL_RELEASE_NOTES.md](../CUMPYL_RELEASE_NOTES.md)** - Detailed release notes for all versions, including new features, breaking changes, bug fixes, and upgrade guides
+
+Check out these documentation files for detailed information on installation, usage, configuration, and development.

@@ -19,6 +19,9 @@ plugins:
     - "entropy_analysis" 
     - "string_extraction"
     - "packer_detection"
+    - "transmuter"
+    - "packer"
+    - "go_packer"
   
   # Individual plugin settings
   encoding:
@@ -36,21 +39,44 @@ plugins:
     max_string_length: 200
     include_unicode: true
     extract_patterns: true
+  
+  transmuter:
+    default_method: "null_padding"
+    compression_level: 6
+    preserve_spacing: true
+
+  packer:
+    compression_level: 6
+    encrypt_sections: true
+    encryption_key: null
+
+  go_packer:
+    compression_level: 6
+    encrypt_sections: true
+    encryption_key: null
+    obfuscate_symbols: true
+
+  cgo_packer:
+    compression_level: 6
+    encrypt_sections: true
+    encryption_key: null
+    obfuscate_symbols: true
+    preserve_cgo_symbols: true
 
 # Analysis Profiles
 profiles:
   malware_analysis:
-    plugins: ["encoding", "entropy_analysis", "string_extraction", "packer_detection"]
+    plugins: ["encoding", "entropy_analysis", "string_extraction", "packer_detection", "transmuter"]
     safety_checks: true
     detailed_reporting: true
     
   forensics:
-    plugins: ["string_extraction", "entropy_analysis"]
+    plugins: ["string_extraction", "entropy_analysis", "transmuter"]
     preserve_timestamps: true
     create_backups: true
     
   research:
-    plugins: ["encoding", "entropy_analysis", "string_extraction"]
+    plugins: ["encoding", "entropy_analysis", "string_extraction", "transmuter"]
     experimental_features: true
     verbose_output: true
 

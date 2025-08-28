@@ -128,32 +128,33 @@ class RealPacker:
             raise Exception(f"Failed to analyze binary: {str(e)}")
     
     def create_unpacker_stub(self, packed_sections_info):
-        """Create a simple unpacker stub"""
-        # Create a simple unpacker that contains the metadata
+        """Create a functional unpacker stub with metadata"""
+        # Create metadata for the unpacker
         metadata = {
             "packed_sections": packed_sections_info,
             "original_entry_point": self.original_entry_point,
-            "password": self.password,  # In a real packer, this would be hidden/stored elsewhere
+            "password": self.password,
             "key": self.key.hex(),
             "iv": self.iv.hex()
         }
         
-        # Convert metadata to bytes and obfuscate it
+        # Serialize metadata
         metadata_bytes = json.dumps(metadata, separators=(',', ':')).encode()
         
-        # Simple obfuscation - XOR with a key and encode as hex
-        obfuscation_key = b"Unpack3rK3y"  # In real implementation, this would be more complex
+        # Simple obfuscation - XOR with a key
+        obfuscation_key = b"RealPackerKey123"
         obfuscated = bytearray()
         for i, byte in enumerate(metadata_bytes):
             obfuscated.append(byte ^ obfuscation_key[i % len(obfuscation_key)])
         
-        # Convert to hex string for storage
-        hex_data = obfuscated.hex()
+        # Create a stub that contains the obfuscated metadata
+        stub_data = bytearray()
+        stub_data.extend(b"REAL_PACKER_STUB")
+        stub_data.extend(struct.pack("<I", len(obfuscated)))
+        stub_data.extend(obfuscated)
+        stub_data.extend(b"END_STUB")
         
-        # Create a stub that looks like normal data
-        stub_data = b".data" + hex_data.encode() + b"END"
-        
-        return stub_data
+        return bytes(stub_data)
     
     def pack_binary(self):
         """Main packing function"""
@@ -208,7 +209,6 @@ class RealPacker:
                 packed_sections_info.append(section_info)
                 
                 # Update the section content with packed data
-                # Pad to section alignment
                 section.content = list(encrypted_data)
                 section.virtual_size = len(encrypted_data)
                 
@@ -271,22 +271,23 @@ class RealPacker:
             # Convert to bytes
             content_bytes = bytes(section_content)
             
-            # Find metadata between markers
-            start_marker = b".data"
-            end_marker = b"END"
+            # Find metadata markers
+            start_marker = b"REAL_PACKER_STUB"
+            end_marker = b"END_STUB"
             
             start_idx = content_bytes.find(start_marker)
             end_idx = content_bytes.find(end_marker)
             
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                # Extract hex data
-                hex_data = content_bytes[start_idx + len(start_marker):end_idx].decode()
+                # Extract length of obfuscated data
+                length_offset = start_idx + len(start_marker)
+                data_length = struct.unpack("<I", content_bytes[length_offset:length_offset+4])[0]
                 
-                # Convert from hex to bytes
-                obfuscated_bytes = bytes.fromhex(hex_data)
+                # Extract obfuscated data
+                obfuscated_bytes = content_bytes[length_offset+4:length_offset+4+data_length]
                 
                 # Deobfuscate - XOR with the same key
-                obfuscation_key = b"Unpack3rK3y"
+                obfuscation_key = b"RealPackerKey123"
                 deobfuscated = bytearray()
                 for i, byte in enumerate(obfuscated_bytes):
                     deobfuscated.append(byte ^ obfuscation_key[i % len(obfuscation_key)])

@@ -9,7 +9,8 @@ import random
 import struct
 
 # Use consolidated utilities
-from .consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy_with_confidence
+from plugins.consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy_with_confidence
+from plugins.base_plugin import BasePlugin
 
 def calculate_entropy(data: bytes) -> float:
     """Simple entropy calculation wrapper for backward compatibility."""
@@ -20,7 +21,7 @@ def calculate_entropy(data: bytes) -> float:
 logger = logging.getLogger(__name__)
 
 # Use the new key loading function from crypto_utils
-from .crypto_utils import load_and_derive_key, derive_secure_key
+from plugins.crypto_utils import load_and_derive_key, derive_secure_key
 
 def sample_bytes(data: bytes, max_samples: int = 65536) -> bytes:
     """Return a deterministic sample up to max_samples for large blobs."""
@@ -33,7 +34,7 @@ def sample_bytes(data: bytes, max_samples: int = 65536) -> bytes:
 
 def create_integrity_hash(data: bytes) -> str:
     """Create an integrity hash for data verification."""
-    from .crypto_utils import safe_hash
+    from plugins.crypto_utils import safe_hash
     return safe_hash(data)
 
 def encrypt_bytes_aesgcm(key: bytes, data: bytes) -> dict:
@@ -84,11 +85,11 @@ def save_packed_binary(binary, output_path: str, fmt: str) -> bool:
         raise
 
 
-class PackerPlugin(AnalysisPlugin):
+class PackerPlugin(AnalysisPlugin, BasePlugin):
     """Universal binary packer analysis plugin for cumpyl framework"""
     
     def __init__(self, config):
-        super().__init__(config)
+        BasePlugin.__init__(self, config)
         self.name = "packer"
         self.version = "1.1.0"
         self.description = "Universal binary packer and obfuscator with compression and encryption"
@@ -117,7 +118,7 @@ class PackerPlugin(AnalysisPlugin):
                 binary = rewriter.binary
                 fmt = detect_format(binary)
                 results["analysis"]["binary_format"] = fmt
-                results["analysis"]["binary_size"] = len(binary.content) if hasattr(binary, 'content') else 0
+                results["analysis"]["binary_size"] = getattr(binary, 'original_size', 0) or (len(binary.content) if hasattr(binary, 'content') else 0)
                 results["analysis"]["sections_count"] = len(getattr(binary, 'sections', []))
                 
                 # Analyze sections for packing potential
@@ -177,30 +178,24 @@ class PackerPlugin(AnalysisPlugin):
         return results
 
 
-class PackerTransformationPlugin(TransformationPlugin):
+class PackerTransformationPlugin(TransformationPlugin, BasePlugin):
     """Universal binary packer transformation plugin for cumpyl framework"""
     
     def __init__(self, config):
-        super().__init__(config)
+        BasePlugin.__init__(self, config)
         self.name = "packer_transform"
         self.version = "1.1.0"
         self.description = "Universal binary packer transformation plugin"
         self.author = "Cumpyl Framework Team"
         self.dependencies = ["packer"]
         
-        # Packer configuration - handle both ConfigManager and dict
-        try:
-            plugin_config = self.get_config()
-        except AttributeError:
-            # If config is a dict (for testing)
-            plugin_config = config if isinstance(config, dict) else {}
-            
-        self.compression_level = plugin_config.get('compression_level', 6)
-        self.key_path = plugin_config.get('key_path', None)  # key must be provided; we will not generate/print keys
-        self.encrypt_sections = plugin_config.get('encrypt_sections', True)
-        self.safe_mode = plugin_config.get("safe_mode", True)
-        self.dry_run = plugin_config.get("dry_run", True)
-        self.skip_pointer_sections = plugin_config.get("skip_pointer_sections", True)
+        # Packer configuration
+        self.compression_level = self.get_config_value('compression_level', 6)
+        self.key_path = self.get_config_value('key_path', None)  # key must be provided; we will not generate/print keys
+        self.encrypt_sections = self.get_config_value('encrypt_sections', True)
+        self.safe_mode = self.get_config_value("safe_mode", True)
+        self.dry_run = self.get_config_value("dry_run", True)
+        self.skip_pointer_sections = self.get_config_value("skip_pointer_sections", True)
         self.encryption_enabled = bool(self.key_path)
         self.format = None
         # metadata sidecar
@@ -216,114 +211,147 @@ class PackerTransformationPlugin(TransformationPlugin):
     
     def transform(self, rewriter, analysis_result: Dict[str, Any]) -> bool:
         """Transform binary with packing techniques"""
-        # Validate inputs
-        if not rewriter or not getattr(rewriter, "binary", None):
-            logger.error("No binary provided")
-            return False
-
-        binary = rewriter.binary
-        self.format = detect_format(binary)
-        logger.info("Detected format: %s", self.format)
-
-        # Dry-run: collect what *would* be changed and return without writing
-        if self.dry_run:
-            logger.info("Dry-run mode: reporting changes without modifying binary")
-            # build report here...
-            return True
-
-        # If encryption requested, validate key with enhanced security
-        if self.encryption_enabled:
-            try:
-                # Add binary-specific context for key derivation
-                import hashlib
-                binary_context = hashlib.sha256(binary.path.encode()).digest() if hasattr(binary, 'path') else b""
-                encryption_key, hmac_key, salts = derive_secure_key(self.key_path, binary_context=binary_context)
-                key = encryption_key  # Use the derived encryption key
-            except Exception:
-                logger.exception("Invalid encryption key; aborting transform")
+        try:
+            # Validate inputs
+            if not rewriter or not getattr(rewriter, "binary", None):
+                logger.error("No binary provided for transformation")
                 return False
 
-        # Iterate sections safely
-        for section in getattr(binary, "sections", []):
-            name = getattr(section, "name", "<unnamed>")
-            size = len(bytes(getattr(section, "content", b"")))
-            logger.debug("Considering section %s size=%d", name, size)
+            binary = rewriter.binary
+            self.format = detect_format(binary)
+            logger.info("Detected format: %s", self.format)
 
-            # Skip pointer-heavy sections
-            if self.skip_pointer_sections and name in (".noptrdata", ".data", ".gopclntab", ".go.buildid"):
-                logger.info("Skipping pointer/GC-critical section %s", name)
-                continue
+            # Dry-run: collect what *would* be changed and return without writing
+            if self.dry_run:
+                logger.info("Dry-run mode: reporting changes without modifying binary")
+                # build report here...
+                return True
 
-            # Only pack non-exec, non-empty sections in this safe mode
-            if is_executable_section(section, self.format):
-                logger.debug("Skipping executable section %s", name)
-                continue
-
-            # Read content safely
-            content = bytes(getattr(section, "content", b""))
-            if not content:
-                continue
-
-            # Entropy sampling
-            sample = sample_bytes(content)
-            ent = calculate_entropy(sample)
-            logger.debug("Sample entropy for %s = %.3f", name, ent)
-            # Configurable threshold
-            ent_threshold = self.get_config().get("entropy_threshold", 7.8)
-            if ent > ent_threshold:
-                logger.info("High entropy in %s (%.3f) - skipping packing to avoid corruption", name, ent)
-                continue
-
-            # Do not actually encrypt/modify here without explicit opt-in
-            # Instead, record metadata in sidecar and optionally write to a non-exec section
-            self.packed_metadata.append({
-                "section": name,
-                "size": size,
-                "entropy": ent,
-                "action": "would_pack"  # actionable, not performed
-            })
-
-        # If we made it here and not dry-run, optionally create a metadata-only non-exec section
-        if not self.dry_run:
-            # create metadata payload (JSON) and add to a non-exec section
-            import json
-            payload = json.dumps({"packed_metadata": self.packed_metadata}).encode("utf-8")
-            
-            # Encrypt metadata section if encryption is enabled
+            # If encryption requested, validate key with enhanced security
             if self.encryption_enabled:
                 try:
                     # Add binary-specific context for key derivation
                     import hashlib
                     binary_context = hashlib.sha256(binary.path.encode()).digest() if hasattr(binary, 'path') else b""
                     encryption_key, hmac_key, salts = derive_secure_key(self.key_path, binary_context=binary_context)
-                    encrypted_payload = encrypt_bytes_aesgcm(encryption_key, payload)["ciphertext"]
-                    payload = encrypted_payload
-                    logger.info("Encrypted metadata section")
-                except Exception as e:
-                    logger.error("Failed to encrypt metadata section: %s", e)
+                    key = encryption_key  # Use the derived encryption key
+                except FileNotFoundError:
+                    logger.error(f"Key file not found: {self.key_path}")
                     return False
-            
-            # Add new section safely as readable non-exec
-            try:
-                # For PE, use add_section; for ELF, use appropriate builder calls
-                # Use duck-typing and LIEF API for your format
-                new_section_name = ".cgo_meta"
-                if self.format == "PE":
-                    sec = binary.add_section(name=new_section_name, content=list(payload))
-                    # ensure non-exec flags
-                    sec.characteristics &= ~lief.PE.SECTION_CHARACTERISTICS.MEM_EXECUTE
-                else:
-                    sec = binary.add_section(name=new_section_name, content=list(payload))
-                logger.info("Added metadata section %s (len=%d)", new_section_name, len(payload))
-            except Exception:
-                logger.exception("Failed to add metadata section")
-                return False
+                except ValueError as e:
+                    logger.error(f"Invalid encryption key: {e}")
+                    return False
+                except Exception as e:
+                    logger.exception("Unexpected error during key derivation")
+                    return False
 
-            # Save using builder helper
-            out = self.get_config().get("output_path", "packed_output.bin")
-            return save_packed_binary(binary, out, self.format)
+            # Iterate sections safely
+            for section in getattr(binary, "sections", []):
+                try:
+                    name = getattr(section, "name", "<unnamed>")
+                    size = len(bytes(getattr(section, "content", b"")))
+                    logger.debug("Considering section %s size=%d", name, size)
 
-        return True
+                    # Skip pointer-heavy sections
+                    if self.skip_pointer_sections and name in (".noptrdata", ".data", ".gopclntab", ".go.buildid"):
+                        logger.info("Skipping pointer/GC-critical section %s", name)
+                        continue
+
+                    # Only pack non-exec, non-empty sections in this safe mode
+                    if is_executable_section(section, self.format):
+                        logger.debug("Skipping executable section %s", name)
+                        continue
+
+                    # Read content safely
+                    content = bytes(getattr(section, "content", b""))
+                    if not content:
+                        continue
+
+                    # Entropy sampling
+                    sample = sample_bytes(content)
+                    ent = calculate_entropy(sample)
+                    logger.debug("Sample entropy for %s = %.3f", name, ent)
+                    # Configurable threshold
+                    ent_threshold = self.get_config_value("entropy_threshold", 7.8)
+                    if ent > ent_threshold:
+                        logger.info("High entropy in %s (%.3f) - skipping packing to avoid corruption", name, ent)
+                        continue
+
+                    # Do not actually encrypt/modify here without explicit opt-in
+                    # Instead, record metadata in sidecar and optionally write to a non-exec section
+                    self.packed_metadata.append({
+                        "section": name,
+                        "size": size,
+                        "entropy": ent,
+                        "action": "would_pack"  # actionable, not performed
+                    })
+                except AttributeError as e:
+                    logger.error(f"Failed to process section {name}: {e}")
+                    continue
+                except Exception as e:
+                    logger.exception(f"Unexpected error processing section {name}")
+                    continue
+
+            # If we made it here and not dry-run, optionally create a metadata-only non-exec section
+            if not self.dry_run:
+                try:
+                    # create metadata payload (JSON) and add to a non-exec section
+                    import json
+                    payload = json.dumps({"packed_metadata": self.packed_metadata}).encode("utf-8")
+                    
+                    # Encrypt metadata section if encryption is enabled
+                    if self.encryption_enabled:
+                        try:
+                            # Add binary-specific context for key derivation
+                            import hashlib
+                            binary_context = hashlib.sha256(binary.path.encode()).digest() if hasattr(binary, 'path') else b""
+                            encryption_key, hmac_key, salts = derive_secure_key(self.key_path, binary_context=binary_context)
+                            encrypted_payload = encrypt_bytes_aesgcm(encryption_key, payload)["ciphertext"]
+                            payload = encrypted_payload
+                            logger.info("Encrypted metadata section")
+                        except Exception as e:
+                            logger.error(f"Failed to encrypt metadata section: {e}")
+                            return False
+                    
+                    # Add new section safely as readable non-exec
+                    try:
+                        # For PE, use add_section; for ELF, use appropriate builder calls
+                        # Use duck-typing and LIEF API for your format
+                        new_section_name = ".cgo_meta"
+                        if self.format == "PE":
+                            # Create a proper Section object
+                            section_obj = lief.PE.Section(new_section_name)
+                            section_obj.content = list(payload)
+                            sec = binary.add_section(section_obj)
+                            # ensure non-exec flags
+                            sec.characteristics &= ~lief.PE.Section.CHARACTERISTICS.MEM_EXECUTE.value
+                        else:
+                            # Create a proper Section object
+                            section_obj = lief.PE.Section(new_section_name)
+                            section_obj.content = list(payload)
+                            sec = binary.add_section(section_obj)
+                        logger.info("Added metadata section %s (len=%d)", new_section_name, len(payload))
+                    except Exception as e:
+                        logger.error(f"Failed to modify binary: {e}")
+                        return False
+                    except Exception as e:
+                        logger.error(f"Failed to add metadata section: {e}")
+                        return False
+
+                    # Save using builder helper
+                    out = self.get_config_value("output_path", "packed_output.bin")
+                    return save_packed_binary(binary, out, self.format)
+                except IOError as e:
+                    logger.error(f"Failed to save binary: {e}")
+                    return False
+                except Exception as e:
+                    logger.exception("Unexpected error during binary saving")
+                    return False
+
+            return True
+        except Exception as e:
+            logger.exception("Unexpected transformation error")
+            return False
             
     def save_packed_binary(self, rewriter, output_path: str) -> bool:
         """
@@ -350,8 +378,28 @@ class PackerTransformationPlugin(TransformationPlugin):
 
 def get_plugin(config):
     """Factory function to get analysis plugin instance"""
-    return PackerPlugin(config)
+    # Extract the config dictionary from ConfigManager
+    if hasattr(config, 'config_data'):
+        # Framework ConfigManager
+        config_dict = config.config_data
+    elif hasattr(config, 'config'):
+        # Plugin ConfigManager or dict-like object
+        config_dict = config.config
+    else:
+        # Assume it's already a dictionary
+        config_dict = config
+    return PackerPlugin(config_dict)
 
 def get_transform_plugin(config):
     """Factory function to get transformation plugin instance"""
-    return PackerTransformationPlugin(config)
+    # Extract the config dictionary from ConfigManager
+    if hasattr(config, 'config_data'):
+        # Framework ConfigManager
+        config_dict = config.config_data
+    elif hasattr(config, 'config'):
+        # Plugin ConfigManager or dict-like object
+        config_dict = config.config
+    else:
+        # Assume it's already a dictionary
+        config_dict = config
+    return PackerTransformationPlugin(config_dict)

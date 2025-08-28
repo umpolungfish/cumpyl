@@ -5,7 +5,8 @@ import os
 import time
 import json
 from typing import Any, Dict, List, Tuple, Optional, Union
-from .crypto_utils import safe_hash
+from plugins.crypto_utils import safe_hash
+from jsonschema import validate, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -123,51 +124,14 @@ def validate_transformation_plan_schema(plan: Union[TransformationPlan, Dict[str
         Tuple[bool, Optional[str]]: (is_valid, error_message)
     """
     try:
-        # Convert plan to dict if it's an object
-        if hasattr(plan, 'actions') and hasattr(plan, 'metadata'):
-            plan_dict = {
-                "actions": plan.actions,
-                "metadata": plan.metadata
-            }
-        else:
-            plan_dict = plan
-            
-        # Simple validation without jsonschema dependency
-        if not isinstance(plan_dict, dict):
-            return False, "Plan must be a dictionary or TransformationPlan object"
-            
-        if "actions" not in plan_dict or "metadata" not in plan_dict:
-            return False, "Invalid plan structure: missing actions or metadata"
-            
-        if not isinstance(plan_dict["actions"], list):
-            return False, "Actions must be a list"
-            
-        if not isinstance(plan_dict["metadata"], dict):
-            return False, "Metadata must be a dictionary"
-            
-        # Validate each action
-        for action in plan_dict["actions"]:
-            if not isinstance(action, dict):
-                return False, f"Action must be a dictionary: {action}"
-                
-            if "type" not in action:
-                return False, f"Invalid action: missing 'type' field in {action}"
-                
-            if action["type"] not in ["go_binary_detected", "packing_opportunity"]:
-                return False, f"Unsupported action type: {action['type']}"
-                
-            if action["type"] == "packing_opportunity":
-                required_fields = ["section", "size", "entropy", "confidence"]
-                for field in required_fields:
-                    if field not in action:
-                        return False, f"Missing required field '{field}' in packing opportunity action: {action}"
-        
-        # Validate metadata
-        metadata = plan_dict["metadata"]
-        if "plugin_name" not in metadata or "timestamp" not in metadata:
-            return False, "Metadata missing required fields: plugin_name, timestamp"
-            
+        plan_dict = {
+            "actions": plan.actions,
+            "metadata": plan.metadata
+        } if hasattr(plan, 'actions') and hasattr(plan, 'metadata') else plan
+        validate(instance=plan_dict, schema=TRANSFORMATION_SCHEMA)
         return True, None
+    except ValidationError as e:
+        return False, f"Schema validation failed: {str(e)}"
     except Exception as e:
         return False, f"Validation error: {str(e)}"
 

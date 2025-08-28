@@ -20,29 +20,13 @@ import lief
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import our new modules
-from .analysis import find_go_build_id
-from .analysis_utils import analyze_binary_sections
-from .consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy_with_confidence
-from .crypto_utils import safe_hash
-from .config_manager import ConfigManager
-
-# Handle optional transform module
-try:
-    from .transform import create_transformation_plan, apply_transformation_plan
-except ImportError:
-    # Create dummy functions if module is not available
-    def create_transformation_plan(*args, **kwargs):
-        class DummyPlan:
-            def __init__(self):
-                self.actions = []
-                self.metadata = {}
-        return DummyPlan()
-    
-    def apply_transformation_plan(*args, **kwargs):
-        return True, None
-
-# Import our new logging configuration
-from .logging_config import setup_logging
+from plugins.analysis import find_go_build_id
+from plugins.analysis_utils import analyze_binary_sections
+from plugins.consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy_with_confidence
+from plugins.crypto_utils import safe_hash
+from plugins.config_manager import ConfigManager
+from plugins.transform import create_transformation_plan, apply_transformation_plan
+from plugins.logging_config import setup_logging
 
 # Set up structured logging
 setup_logging()
@@ -70,12 +54,9 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
         Initialize the Go Binary Analysis Plugin.
         
         Args:
-            config (dict): Configuration dictionary containing:
-                - allow_transform (bool): Enable transformation features (default: False)
+            config (ConfigManager): Framework configuration manager
         """
         super().__init__(config)
-        self.config_manager = ConfigManager(config)
-        self.config_manager.update_from_env()
         self.name = "go_binary_analyzer"
         self.version = "1.0.0"
         self.description = "Analysis-only detection of Go binaries and packing opportunities"
@@ -83,7 +64,14 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
         self.dependencies = []
         
         # Check for allow-transform flag in config
-        self.allow_transform = self.config_manager.get('allow_transform')
+        # Extract config dict from ConfigManager
+        config_dict = {}
+        if hasattr(config, 'config_data'):
+            config_dict = config.config_data
+        elif hasattr(config, 'config'):
+            config_dict = config.config
+            
+        self.allow_transform = config_dict.get('allow_transform', False)
         if self.allow_transform:
             logger.warning("Transformation mode enabled - only use in controlled environments")
             
@@ -186,7 +174,7 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
                     return results
                 
                 # Basic binary info
-                results["analysis"]["binary_size"] = len(binary.content) if hasattr(binary, 'content') else 0
+                results["analysis"]["binary_size"] = getattr(binary, 'original_size', 0) or (len(binary.content) if hasattr(binary, 'content') else 0)
                 results["analysis"]["sections_count"] = len(binary.sections) if hasattr(binary, 'sections') else 0
                 
                 # Check if it's a Go binary using improved detection
@@ -247,24 +235,31 @@ def get_analysis_plugin(config):
     Returns:
         GoBinaryAnalysisPlugin: Analysis plugin instance
     """
-    return GoBinaryAnalysisPlugin(config)
+    # Extract the config dictionary from ConfigManager
+    config_dict = config.config if hasattr(config, 'config') else config
+    return GoBinaryAnalysisPlugin(config_dict)
 
 def get_transformation_plugin(config):
     """
-    Factory function to get transformation plugin instance (skeleton only).
-    
-    Note: This returns an analysis-only plugin for safety. Actual transformation
-    should only be implemented in controlled environments.
+    Factory function to get transformation plugin instance.
     
     Args:
         config (dict): Configuration dictionary
         
     Returns:
-        GoBinaryAnalysisPlugin: Analysis plugin instance (not actual transformation)
+        GoBinaryAnalysisPlugin: Transformation plugin instance
     """
-    logger.warning("Transformation plugin requested - returning analysis-only plugin")
-    logger.warning("For actual transformation, implement in controlled environment")
-    return GoBinaryAnalysisPlugin(config)
+    # Extract the config dictionary from ConfigManager
+    if hasattr(config, 'config_data'):
+        # Framework ConfigManager
+        config_dict = config.config_data
+    elif hasattr(config, 'config'):
+        # Plugin ConfigManager or dict-like object
+        config_dict = config.config
+    else:
+        # Assume it's already a dictionary
+        config_dict = config
+    return GoBinaryAnalysisPlugin(config_dict)
 
 def get_plugins(config):
     """
@@ -276,7 +271,9 @@ def get_plugins(config):
     Returns:
         dict: Dictionary containing analysis and transformation plugin instances
     """
+    # Extract the config dictionary from ConfigManager
+    config_dict = config.config if hasattr(config, 'config') else config
     return {
-        "analysis": get_analysis_plugin(config),
-        "transformation": get_transformation_plugin(config)
+        "analysis": get_analysis_plugin(config_dict),
+        "transformation": get_transformation_plugin(config_dict)
     }

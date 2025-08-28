@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-194688-3"></script>
+  <script>
+   window.dataLayer = window.dataLayer || [];
+   function gtag(){dataLayer.push(arguments);}
+   gtag('js', new Date());
+   gtag('config', 'UA-194688-3');
+  </script>
+  <meta content="Evasion techniques" property="og:site_name">
+
+  <meta content="Evasions: Generic OS queries" property="og:title">
+
+
+  <meta name="twitter:title" content="Malware Evasion Encyclopedia" />
+  <meta name="twitter:image" content="https://research.checkpoint.com/wp-content/uploads/2020/02/evasions.jpg" />
+
+
+  <meta content="article" property="og:type">
+
+
+  <meta content="Evasion techniques
+" property="og:description">
+
+
+  <meta content="https://evasions.checkpoint.com/src/Evasions/techniques/generic-os-queries.html" property="og:url">
+
+
+  <meta content="2024-07-10T07:20:28+00:00" property="article:published_time">
+  <meta content="https://evasions.checkpoint.com/about/" property="article:author">
+
+
+  <meta property="og:image" content="">
+
+
+  
+  <meta content="evasions" property="article:section">
+  
+
+
+  
+  <meta content="generic-os-queries" property="article:tag">
+  
+
+  <title>Evasions: Generic OS queries</title>
+  <meta name="description" content="Contents">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://evasions.checkpoint.com/assets/css/main.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Fira+Mono' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,200,300,500,600,700,900' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Gentium+Basic:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Alegreya:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Lora:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Fira+Sans:400,300,500,700' rel='stylesheet' type='text/css'>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-hQpvDQiCJaD2H465dQfA717v7lu5qHWtDbWNPvaTJ0ID5xnPUlVXnKzq7b8YUkbN" crossorigin="anonymous">
+  <link rel="canonical" href="https://evasions.checkpoint.com/src/Evasions/techniques/generic-os-queries.html">
+  <link rel="alternate" type="application/rss+xml" title="Evasion techniques" href="https://evasions.checkpoint.com/feed.xml">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.charorder.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.charorder.min.js"></script>
+  <script type="text/javascript" async src="//platform.twitter.com/widgets.js"></script>
+
+
+
+
+</head>
+
+
+  <body>
+<section>
+<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <div class="jumbotron">
+    <div class="container">
+      <h1 class="post-title-main" itemprop="name headline">Evasions: Generic OS queries</h1>
+    </div>
+</div>
+
+  <div class="post-content container" itemprop="articleBody">
+    <div style="text-align: left">
+        <a href="..">Go back</a>
+        <br>
+        <br>
+    </div>
+    <h1>Contents</h1>
+
+<p><a href="#generic-os-queries">Generic OS queries</a>
+<br />
+  <a href="#check-if-username-is-specific">1. Check if the username is specific</a>
+<br />
+  <a href="#check-if-computer-name-is-specific">2. Check if the computer name is specific</a>
+<br />
+  <a href="#check-if-host-name-is-specific">3. Check if the host name is specific</a>
+<br />
+  <a href="#check-if-total-ram-is-low">4. Check if the total RAM is low</a>
+<br />
+  <a href="#check-if-screen-res">5. Check if the screen resolution is non-usual for host OS</a>
+<br />
+  <a href="#check-if-number-of-processors">6. Check if the number of processors is low</a>
+<br />
+  <a href="#check-if-quantity-of-monitors">7. Check if the quantity of monitors is small</a>
+<br />
+  <a href="#check-if-hard-disk">8. Check if the hard disk drive size and free space are small</a>
+<br />
+  <a href="#check-if-system-uptime">9. Check if the system uptime is small</a>
+<br />
+  <a href="#check-if-os-was-boot-from-virtual-disk">10. Check if the OS was boot from virtual hard disk (Win8+)</a>
+<br />
+<a href="#countermeasures">Countermeasures</a>
+<br />
+<a href="#credits">Credits</a>
+<br />
+<br /></p>
+
+<h3>Signature recommendations are general</h3>
+<p>Signature recommendations are general for each technique: hook the function used and track if it is called. It’s pretty hard to tell why application wants to get user name, for example. It doesn’t necessarily mean applying evasion technique. So the best what can be done in this situation is intercepting target functions and tracking their calls.</p>
+
+<p><br /></p>
+<h2><a class="a-dummy" name="generic-os-queries">Detection via generic OS checks</a></h2>
+
+<p>Usual hosts have meaningful and non-standard usernames/computer names. Particular virtual environments assign some predefined names to default users as well as computer names.
+Other differences between host OS and VMs include RAM size, HDD size, quantity of monitors - and so on.
+While these may be not the most reliable ways to detect virtual environments, they are still commonly used in malware samples.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-username-is-specific">1. Check if the username is specific</a></h3>
+
+<p>Please note that checks are not case-sensitive.</p>
+
+<p>Function used:</p>
+<ul>
+<li><tt>GetUserNameA/W</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">bool</span> <span class="nf">is_user_name_match</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">auto</span> <span class="n">out_length</span> <span class="o">=</span> <span class="n">MAX_PATH</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span> <span class="n">user_name</span><span class="p">(</span><span class="n">out_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="o">::</span><span class="n">GetUserNameA</span><span class="p">((</span><span class="n">LPSTR</span><span class="p">)</span><span class="n">user_name</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="p">(</span><span class="n">LPDWORD</span><span class="p">)</span><span class="o">&amp;</span><span class="n">out_length</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="o">!</span><span class="n">lstrcmpiA</span><span class="p">((</span><span class="n">LPCSTR</span><span class="p">)</span><span class="n">user_name</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">s</span><span class="p">.</span><span class="n">c_str</span><span class="p">()));</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Code sample is taken from <a href="https://github.com/CheckPointSW/InviZzzible">InviZzzible tool</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+<p>Change user name to non-suspicious one.</p>
+<p></p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:62%">
+  <tr>
+  	<td colspan="2">Check if username is one of the following:</td>
+  </tr>
+  <tr>
+  	<th style="text-align:center">Detect</th>
+  	<th style="text-align:center">String</th>
+  </tr>
+  <tr>
+  	<th rowspan="16">[general]</th>
+  	<td>admin</td>
+  </tr>
+  <tr>
+  	<td>andy</td>
+  </tr>
+  <tr>
+  	<td>honey</td>
+  </tr>
+  <tr>
+  	<td>john</td>
+  </tr>
+  <tr>
+  	<td>john doe</td>
+  </tr>
+  <tr>
+  	<td>malnetvm</td>
+  </tr>
+  <tr>
+  	<td>maltest</td>
+  </tr>
+  <tr>
+  	<td>malware</td>
+  </tr>
+  <tr>
+  	<td>roo</td>
+  </tr>
+  <tr>
+  	<td>sandbox</td>
+  </tr>
+  <tr>
+  	<td>snort</td>
+  </tr>
+  <tr>
+  	<td>tequilaboomboom</td>
+  </tr>
+  <tr>
+  	<td>test</td>
+  </tr>
+  <tr>
+  	<td>virus</td>
+  </tr>
+  <tr>
+  	<td>virusclone</td>
+  </tr>
+  <tr>
+  	<td>wilbert</td>
+  </tr>
+  <tr>
+  	<th rowspan="1">Nepenthes</th>
+  	<td>nepenthes</td>
+  </tr>
+  <tr>
+  	<th rowspan="1">Norman</th>
+  	<td>currentuser</td>
+  </tr>
+  <tr>
+  	<th rowspan="1">ThreatExpert</th>
+  	<td>username</td>
+  </tr>
+  <tr>
+  	<th rowspan="1">Sandboxie</th>
+  	<td>user</td>
+  </tr>
+  <tr>
+  	<th rowspan="1">VMware</th>
+  	<td>vmware</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-computer-name-is-specific">2. Check if the computer name is specific</a></h3>
+
+<p>Please note that checks are not case-sensitive.</p>
+
+<p>Function used:</p>
+<ul>
+<li><tt>GetComputerNameA/W</tt></li>
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">bool</span> <span class="nf">is_computer_name_match</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">auto</span> <span class="n">out_length</span> <span class="o">=</span> <span class="n">MAX_PATH</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span> <span class="n">comp_name</span><span class="p">(</span><span class="n">out_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="o">::</span><span class="n">GetComputerNameA</span><span class="p">((</span><span class="n">LPSTR</span><span class="p">)</span><span class="n">comp_name</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="p">(</span><span class="n">LPDWORD</span><span class="p">)</span><span class="o">&amp;</span><span class="n">out_length</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="o">!</span><span class="n">lstrcmpiA</span><span class="p">((</span><span class="n">LPCSTR</span><span class="p">)</span><span class="n">comp_name</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">s</span><span class="p">.</span><span class="n">c_str</span><span class="p">()));</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Code sample is taken from <a href="https://github.com/CheckPointSW/InviZzzible">InviZzzible tool</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+<p>Change computer name to non-suspicious one.</p>
+<p></p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:62%">
+  <tr>
+  	<td colspan="2">Check if computer name is one of the following:</td>
+  </tr>
+  <tr>
+  	<th style="text-align:center">Detect</th>
+  	<th style="text-align:center">String</th>
+  </tr>
+  <tr>
+  	<th rowspan="2">[generic]</th>
+  	<td>klone_x64-pc</td>
+  </tr>
+  <tr>
+  	<td>tequilaboomboom</td>
+  </tr>
+
+  <tr>
+  	<th rowspan="2">Anubis</th>
+  	<td>TU-4NH09SMCG1HC</td>
+  </tr>
+  <tr>
+  	<td>InsideTm</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-host-name-is-specific">3. Check if the host name is specific</a></h3>
+
+<p>Please note that checks are not case-sensitive.</p>
+
+<p>Function used:</p>
+<ul>
+<li><tt>GetComputerNameExA/W</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">bool</span> <span class="nf">is_host_name_match</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">auto</span> <span class="n">out_length</span> <span class="o">=</span> <span class="n">MAX_PATH</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span> <span class="n">dns_host_name</span><span class="p">(</span><span class="n">out_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="o">::</span><span class="n">GetComputerNameExA</span><span class="p">(</span><span class="n">ComputerNameDnsHostname</span><span class="p">,</span> <span class="p">(</span><span class="n">LPSTR</span><span class="p">)</span><span class="n">dns_host_name</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="p">(</span><span class="n">LPDWORD</span><span class="p">)</span><span class="o">&amp;</span><span class="n">out_length</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="o">!</span><span class="n">lstrcmpiA</span><span class="p">((</span><span class="n">LPCSTR</span><span class="p">)</span><span class="n">dns_host_name</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">s</span><span class="p">.</span><span class="n">c_str</span><span class="p">()));</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Code sample is taken from <a href="https://github.com/CheckPointSW/InviZzzible">InviZzzible tool</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+<p>Change host name to non-suspicious one.</p>
+<p></p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:62%">
+  <tr>
+  	<td colspan="2">Check if host name is one of the following:</td>
+  </tr>
+  <tr>
+  	<th style="text-align:center">Detect</th>
+  	<th style="text-align:center">String</th>
+  </tr>
+  <tr>
+  	<th rowspan="1">[generic]</th>
+  	<td>SystemIT</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-total-ram-is-low">4. Check if the total RAM is low</a></h3>
+
+<p>Functions used to get executable path:</p>
+<ul>
+<li><tt>GetMemoryStatusEx</tt></li>
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">BOOL</span> <span class="nf">memory_space</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">DWORDLONG</span> <span class="n">ullMinRam</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1024LL</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1024LL</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1024LL</span> <span class="o">*</span> <span class="mi">1LL</span><span class="p">)));</span> <span class="c1">// 1GB</span>
+    
+    <span class="n">MEMORYSTATUSEX</span> <span class="n">statex</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    <span class="n">statex</span><span class="p">.</span><span class="n">dwLength</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">statex</span><span class="p">);</span>
+    <span class="n">GlobalMemoryStatusEx</span><span class="p">(</span><span class="o">&amp;</span><span class="n">statex</span><span class="p">);</span> <span class="c1">// calls NtQuerySystemInformation</span>
+    
+    <span class="k">return</span> <span class="p">(</span><span class="n">statex</span><span class="p">.</span><span class="n">ullTotalPhys</span> <span class="o">&lt;</span> <span class="n">ullMinRam</span><span class="p">)</span> <span class="o">?</span> <span class="n">TRUE</span> <span class="o">:</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/LordNoteworthy/al-khaser">al-khaser project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+<p>Patch/hook <font face="Courier New">NtQuerySystemInformation</font> to return new number of <font face="Courier New">PhysicalPages</font> in <font face="Courier New">SystemBasicInformation</font>.</p>
+
+<p></p>
+<p>Tip: in this case its 1st argument is equal to 2 - SystemPerformanceInformation enum value.</p>
+
+<p></p>
+<p>Alternatively, patch <font face="Courier New">NumberOfPhysicalPages</font> in <font face="Courier New">KUSER_SHARED_DATA</font>.</p>
+<p></p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-screen-res">5. Check if the screen resolution is non-usual for host OS</a></h3>
+
+<p>The following set of functions is used:</p>
+<ul>
+<li><tt>GetDesktopWindow</tt></li>
+<li><tt>GetWindowRect</tt></li> 
+</ul>
+
+<p>Alternatively:</p>
+<ul>
+<li><tt>GetSystemMetrics</tt></li>
+<li><tt>SystemParametersInfo</tt></li> 
+<li><tt>GetMonitorInfo</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<p>Take a look at this <a href="https://stackoverflow.com/questions/4631292/how-detect-current-screen-resolution">StackOverflow thread</a>.</p>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+
+<p>Change screen resolution for it to match the resolution of usual host (1600x900, for example).</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-number-of-processors">6. Check if the number of processors is low</a></h3>
+
+<p>Function used:</p>
+<ul>
+<li><tt>GetSystemInfo</tt></li>
+</ul>
+
+<p>Besides this function numbers of processors can be obtained from PEB, via either asm inline or intrinsic function, see code samples below.
+It can be also obtained (ActiveProcessorCount flag) from the KUSER_SHARED_DATA structure.</p>
+
+<hr class="space" />
+
+<p><b>Code sample (variant 1, al-khaser project)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">BOOL</span> <span class="nf">NumberOfProcessors</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="cp">#if defined (ENV64BIT)
+</span>	<span class="n">PULONG</span> <span class="n">ulNumberProcessors</span> <span class="o">=</span> <span class="p">(</span><span class="n">PULONG</span><span class="p">)(</span><span class="n">__readgsqword</span><span class="p">(</span><span class="mh">0x30</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0xB8</span><span class="p">);</span>
+<span class="cp">#elif defined(ENV32BIT)
+</span>	<span class="n">PULONG</span> <span class="n">ulNumberProcessors</span> <span class="o">=</span> <span class="p">(</span><span class="n">PULONG</span><span class="p">)(</span><span class="n">__readfsdword</span><span class="p">(</span><span class="mh">0x30</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0x64</span><span class="p">);</span>
+<span class="cp">#endif
+</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">ulNumberProcessors</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+    <span class="k">else</span>
+        <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/LordNoteworthy/al-khaser">al-khaser project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Code sample (variant 2, al-khaser project, asm inline)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kr">__declspec</span><span class="p">(</span><span class="kr">naked</span><span class="p">)</span>
+<span class="n">DWORD</span> <span class="nf">get_number_of_processors</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kr">__asm</span> <span class="p">{</span>
+        <span class="p">;</span> <span class="n">get</span> <span class="n">pointer</span> <span class="n">to</span> <span class="n">Process</span> <span class="n">Environment</span> <span class="n">Block</span> <span class="p">(</span><span class="n">PEB</span><span class="p">)</span>
+        <span class="n">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="n">fs</span><span class="o">:</span><span class="mh">0x30</span>
+
+        <span class="p">;</span> <span class="n">read</span> <span class="n">the</span> <span class="n">field</span> <span class="n">containing</span> <span class="n">target</span> <span class="n">number</span>
+        <span class="n">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="p">[</span><span class="n">eax</span> <span class="o">+</span> <span class="mh">0x64</span><span class="p">]</span>
+
+        <span class="p">;</span> <span class="k">return</span> <span class="n">from</span> <span class="n">function</span>
+        <span class="n">retn</span>
+    <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/LordNoteworthy/al-khaser">al-khaser project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Code sample (variant 3, pafish project)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">gensandbox_one_cpu_GetSystemInfo</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">SYSTEM_INFO</span> <span class="n">si</span><span class="p">;</span>
+    <span class="n">GetSystemInfo</span><span class="p">(</span><span class="o">&amp;</span><span class="n">si</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">si</span><span class="p">.</span><span class="n">dwNumberOfProcessors</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="o">?</span> <span class="n">TRUE</span> <span class="o">:</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/a0rtega/pafish">pafish project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Code sample (variant 4)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kr">__declspec</span><span class="p">(</span><span class="kr">naked</span><span class="p">)</span>
+    <span class="n">DWORD</span> <span class="nf">get_number_of_active_processors</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kr">__asm</span> <span class="p">{</span>
+        <span class="n">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0x7ffe0000</span>  <span class="p">;</span> <span class="n">KUSER_SHARED_DATA</span> <span class="n">structure</span> <span class="n">fixed</span> <span class="n">address</span>
+        <span class="n">mov</span> <span class="n">eax</span><span class="p">,</span> <span class="n">byte</span> <span class="n">ptr</span> <span class="p">[</span><span class="n">eax</span><span class="o">+</span><span class="mh">0x3c0</span><span class="p">]</span> <span class="p">;</span> <span class="n">checking</span> <span class="n">ActiveProcessorCount</span>
+        <span class="n">retn</span>  <span class="p">;</span> <span class="k">return</span> <span class="n">from</span> <span class="n">function</span>
+    <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+
+<p>Assign two or more cores for Virtual Machine.</p>
+<p></p>
+<p>As an alternative solution, patch/hook <font face="Courier New">NtCreateThread</font> to assign specific core for each new thread.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-quantity-of-monitors">7. Check if the quantity of monitors is small</a></h3>
+
+<p>Functions used:</p>
+<ul>
+<li><tt>EnumDisplayMonitors</tt></li>
+<li><tt>GetSystemMetrics (SM_MONITOR)</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">BOOL</span> <span class="n">CALLBACK</span> <span class="nf">MonitorEnumProc</span><span class="p">(</span><span class="n">HMONITOR</span> <span class="n">hMonitor</span><span class="p">,</span> <span class="n">HDC</span> <span class="n">hdcMonitor</span><span class="p">,</span> <span class="n">LPRECT</span> <span class="n">lprcMonitor</span><span class="p">,</span> <span class="n">LPARAM</span> <span class="n">dwData</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="o">*</span><span class="n">Count</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="o">*</span><span class="p">)</span><span class="n">dwData</span><span class="p">;</span>
+    <span class="p">(</span><span class="o">*</span><span class="n">Count</span><span class="p">)</span><span class="o">++</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">MonitorCount</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">Count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">EnumDisplayMonitors</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">MonitorEnumProc</span><span class="p">,</span> <span class="p">(</span><span class="n">LPARAM</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Count</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">Count</span><span class="p">;</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// signals an error</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://stackoverflow.com/questions/7767036/how-do-i-get-the-number-of-displays-in-windows">StackOverflow forum</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+
+<p>Add at least one monitor to virtual environment.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-hard-disk">8. Check if the hard disk drive size and free space are small</a></h3>
+
+<p>Functions used:</p>
+<ul>
+<li><tt>DeviceIoControl(..., IOCTL_DISK_GET_LENGTH_INFO, ...)</tt></li>
+<li><tt>GetDiskFreeSpaceExA/W</tt></li>
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample (checking drive total size)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">gensandbox_drive_size</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">GET_LENGTH_INFORMATION</span> <span class="n">size</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">lpBytesReturned</span><span class="p">;</span>
+
+    <span class="n">HANDLE</span> <span class="n">drive</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="s">"</span><span class="se">\\\\</span><span class="s">.</span><span class="se">\\</span><span class="s">PhysicalDrive0"</span><span class="p">,</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="n">FILE_SHARE_READ</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_EXISTING</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">drive</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Someone is playing tricks. Or not enough privileges.</span>
+        <span class="n">CloseHandle</span><span class="p">(</span><span class="n">drive</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">BOOL</span> <span class="n">result</span> <span class="o">=</span> <span class="n">DeviceIoControl</span><span class="p">(</span><span class="n">drive</span><span class="p">,</span> <span class="n">IOCTL_DISK_GET_LENGTH_INFO</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">size</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">GET_LENGTH_INFORMATION</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">lpBytesReturned</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">drive</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">result</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">size</span><span class="p">.</span><span class="n">Length</span><span class="p">.</span><span class="n">QuadPart</span> <span class="o">/</span> <span class="mi">1073741824</span> <span class="o">&lt;=</span> <span class="mi">60</span><span class="p">)</span> <span class="cm">/* &lt;= 60 GB */</span>
+        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/LordNoteworthy/al-khaser">al-khaser project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Code sample (checking drive free space)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">gensandbox_drive_size2</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">ULARGE_INTEGER</span> <span class="n">total_bytes</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">GetDiskFreeSpaceExA</span><span class="p">(</span><span class="s">"C:</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">total_bytes</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">))</span>
+    <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">total_bytes</span><span class="p">.</span><span class="n">QuadPart</span> <span class="o">/</span> <span class="mi">1073741824</span> <span class="o">&lt;=</span> <span class="mi">60</span><span class="p">)</span> <span class="cm">/* &lt;= 60 GB */</span>
+        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/LordNoteworthy/al-khaser">al-khaser project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+
+<p><i>Against checking disk size:</i> filter <font face="Courier New">IRP</font> device control requests to <font face="Courier New"> \\Device\\HarddiskN</font> with specific CTL-codes:</p>
+<ul>
+<li><tt>DRIVE_GEOMETRY_EX</tt></li>
+<li><tt>DRIVE_LAYOUT_EX</tt></li>
+<li><tt>PARTITION_INFO_EX</tt></li>
+</ul>
+
+<p><i>Against checking free space:</i> patch/hook <font face="Courier New">NtQueryVolumeInformationFile</font> to process these classes:</p>
+<ul>
+<li><tt>FileFsSizeInformation</tt></li>
+<li><tt>FileFsFullSizeInformation</tt></li>
+</ul>
+<p>in case if handle points to <font face="Courier New">\\Device\\HarddiskVolumeN</font>.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-system-uptime">9. Check if the system uptime is small</a></h3>
+
+<p>Function used:</p>
+<ul>
+<li><tt>GetTickCount</tt></li>
+<li><tt>GetTickCount64</tt></li>
+<li><tt>NtQuerySystemInformation</tt></li>
+</ul>
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">bool</span> <span class="n">Generic</span><span class="o">::</span><span class="n">CheckSystemUptime</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+    <span class="k">const</span> <span class="n">DWORD</span> <span class="n">uptime</span> <span class="o">=</span> <span class="mi">1000</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">12</span><span class="p">;</span> <span class="c1">// 12 minutes</span>
+    <span class="k">return</span> <span class="n">GetTickCount</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">uptime</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Code sample is taken from <a href="https://github.com/CheckPointSW/InviZzzible">InviZzzible tool</a></i></p>
+
+<p><b>Code sample</b></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="cp">#define MIN_UPTIME_MINUTES 12
+</span><span class="n">BOOL</span> <span class="nf">uptime_check</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">ULONGLONG</span> <span class="n">uptime_minutes</span> <span class="o">=</span> <span class="n">GetTickCount64</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">uptime_minutes</span> <span class="o">&lt;</span> <span class="n">MIN_UPTIME_MINUTES</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><br />
+<b>Code sample</b></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">BOOL</span> <span class="nf">uptime_check2</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">SYSTEM_TIME_OF_DAY_INFORMATION</span>  <span class="n">SysTimeInfo</span><span class="p">;</span>
+    <span class="n">ULONGLONG</span> <span class="n">uptime_minutes</span><span class="p">;</span>
+    <span class="n">NtQuerySystemInformation</span><span class="p">(</span><span class="n">SystemTimeOfDayInformation</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">SysTimeInfo</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">SysTimeInfo</span><span class="p">),</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">uptime_minutes</span> <span class="o">=</span> <span class="p">(</span><span class="n">SysTimeInfo</span><span class="p">.</span><span class="n">CurrentTime</span><span class="p">.</span><span class="n">QuadPart</span> <span class="o">-</span> <span class="n">SysTimeInfo</span><span class="p">.</span><span class="n">BootTime</span><span class="p">.</span><span class="n">QuadPart</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span> <span class="o">*</span> <span class="mi">10000</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">uptime_minutes</span> <span class="o">&lt;</span> <span class="n">MIN_UPTIME_MINUTES</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+
+<ul>
+<li>Adjust <tt>KeBootTime</tt> value</li>
+<li>Adjust <tt>SharedUserData-&gt;TickCount</tt>, <tt>SharedUserData-&gt;TickCoundLowDeprecated</tt> values</li>
+</ul>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-os-was-boot-from-virtual-disk">10. Check if the OS was boot from virtual hard disk (Win8+)</a></h3>
+
+<p>Function used:</p>
+<ul>
+<li><tt>IsNativeVhdBoot  // false on host OS, true within VM</tt></li>
+</ul>
+
+<p><b>Code sample (excerpt from malware)</b></p>
+<p></p>
+
+<p>Take a look at the excerpt from malware <a href="https://github.com/a0rtega/pafish/issues/46">here</a>.</p>
+
+<hr class="space" />
+
+<p><b>Code sample (pafish project)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">gensandbox_IsNativeVhdBoot</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">BOOL</span> <span class="n">isnative</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
+
+    <span class="n">IsNativeVhdBoot</span> <span class="n">fnnative</span> <span class="o">=</span> <span class="p">(</span><span class="n">IsNativeVhdBoot</span><span class="p">)</span> <span class="n">GetProcAddress</span><span class="p">(</span>
+        <span class="n">GetModuleHandleA</span><span class="p">(</span><span class="s">"kernel32"</span><span class="p">),</span> <span class="s">"IsNativeVhdBoot"</span><span class="p">);</span>
+
+    <span class="cm">/* IsNativeVhdBoot always returns 1 on query success */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">fnnative</span><span class="p">)</span>
+        <span class="n">fnnative</span><span class="p">(</span><span class="o">&amp;</span><span class="n">isnative</span><span class="p">);</span>
+		
+    <span class="k">return</span> <span class="p">(</span><span class="n">isnative</span><span class="p">)</span> <span class="o">?</span> <span class="n">TRUE</span> <span class="o">:</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/a0rtega/pafish">pafish project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Countermeasures</b></p>
+<p></p>
+
+<p>Hook <font face="Courier New">IsNativeVhdBoot</font> and change its result to the one required.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="countermeasures">Countermeasures</a></h3>
+
+<p>Countermeasures are present in appropriate sub-sections, see above.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="credits">Credits</a></h3>
+
+<p>Credits go to open-source projects from where code samples were taken:</p>
+<ul>
+<li>al-khaser project on <a href="https://github.com/LordNoteworthy/al-khaser">github</a></li>
+<li>pafish project on <a href="https://github.com/a0rtega/pafish">github</a></li>
+</ul>
+
+<p>Though Check Point tool InviZzzible has them all implemented, due to modular structure of the code it would require more space to show a code sample from this tool for the same purposes. That’s why we’ve decided to use other great open-source projects for examples throughout the encyclopedia.</p>
+
+
+    <br>
+    <div style="text-align: left">
+        <a href="..">Go back</a>
+    </div>
+    <br>
+    <div class="sharebuttons" style="text-align: center">
+        <hr />
+        <ul>
+          <li>
+            <p class="sharetitle"> Share this: </p>
+          </li>
+          <li class="reddit">
+            <a href="http://www.reddit.com/submit?url=https://evasions.checkpoint.com/src/Evasions/techniques/generic-os-queries.html&title=Evasions:%20Generic%20OS%20queries - Evasion Techniques" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                aria-label="Reddit" role="img"
+                viewBox="0 0 512 512"><rect
+                width="512" height="512"
+                rx="15%"
+                fill="#f40"/><g fill="#fff"><ellipse cx="256" cy="307" rx="166" ry="117"/><circle cx="106" cy="256" r="42"/><circle cx="407" cy="256" r="42"/><circle cx="375" cy="114" r="32"/></g><g stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="m256 196 23-101 73 15" stroke="#fff" stroke-width="16"/><path d="m191 359c33 25 97 26 130 0" stroke="#f40" stroke-width="13"/></g><g fill="#f40"><circle cx="191" cy="287" r="31"/><circle cx="321" cy="287" r="31"/></g></svg>
+                
+            </a>
+          </li>
+          <li class="hn">
+            <a href="http://news.ycombinator.com/submitlink?u=https://evasions.checkpoint.com/src/Evasions/techniques/generic-os-queries.html&t=Evasions:%20Generic%20OS%20queries - Evasion Techniques" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                aria-label="Hacker News" role="img"
+                viewBox="0 0 512 512"><rect
+                width="512" height="512"
+                rx="15%"
+                fill="#f60"/><path fill="#fff" d="M124 91h51l81 162 81-164h51L276 293v136h-40V293z"/></svg>
+            </a>
+          </li>
+          <li class="twitter">
+            <a href="https://twitter.com/intent/tweet?via=_CPResearch_&url=https://evasions.checkpoint.com/src/Evasions/techniques/generic-os-queries.html&text=Evasions:%20Generic%20OS%20queries - Evasion Techniques" target="_blank">
+                <svg viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1684 408q-67 98-162 167 1 14 1 42 0 130-38 259.5t-115.5 248.5-184.5 210.5-258 146-323 54.5q-271 0-496-145 35 4 78 4 225 0 401-138-105-2-188-64.5t-114-159.5q33 5 61 5 43 0 85-11-112-23-185.5-111.5t-73.5-205.5v-4q68 38 146 41-66-44-105-115t-39-154q0-88 44-163 121 149 294.5 238.5t371.5 99.5q-8-38-8-74 0-134 94.5-228.5t228.5-94.5q140 0 236 102 109-21 205-78-37 115-142 178 93-10 186-50z"/></svg>
+            </a>
+          </li>
+          <li class="linkedin">
+            <a href=https://www.linkedin.com/shareArticle?mini=true&url=https://evasions.checkpoint.com/src/Evasions/techniques/generic-os-queries.html&title=Evasions:%20Generic%20OS%20queries - Evasion Techniques&source=LinkedIn" target="_blank">
+                <svg viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M477 625v991h-330v-991h330zm21-306q1 73-50.5 122t-135.5 49h-2q-82 0-132-49t-50-122q0-74 51.5-122.5t134.5-48.5 133 48.5 51 122.5zm1166 729v568h-329v-530q0-105-40.5-164.5t-126.5-59.5q-63 0-105.5 34.5t-63.5 85.5q-11 30-11 81v553h-329q2-399 2-647t-1-296l-1-48h329v144h-2q20-32 41-56t56.5-52 87-43.5 114.5-15.5q171 0 275 113.5t104 332.5z"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+      
+</article>
+
+
+</section>
+
+<nav class="navbar navbar-default navbar-fixed-bottom">
+  <div class="container footer-content">
+
+    Made with <font class="a-pink"><i class ="fa fa-heart"></i></font> to serve the community by Check Point Research    |    <a class="a-pink" href="https://research.checkpoint.com">Research blog</a>    |    <a class="a-pink" href="https://research.checkpoint.com/about-us/">About Us</a>    |    <a class="a-pink" href="https://github.com/CheckPointSW"><i class="fa fa-github fa-lg"></i></a> <a class="a-pink" href="https://twitter.com/_CPResearch_"><i class="fa fa-twitter fa-lg"></i></a>
+    
+    <br>
+    
+    © 1994-2024 Check Point Software Technologies LTD | All rights reserved | Property of CheckPoint.com
+
+
+  </div>
+</nav>
+
+  </body>
+
+</html>

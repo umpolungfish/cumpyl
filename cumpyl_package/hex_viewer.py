@@ -63,6 +63,7 @@ class HexViewer:
         self._chunk_size = 4096      # 𐑗𐑳𐑙𐑒 𐑕𐑲𐑟 𐑓𐑹 𐑤𐑱𐑟𐑦 𐑤𐑴𐑛𐑦𐑙
         self._current_view_data = None  # 𐑒𐑨𐑖 𐑞 𐑒𐑳𐑮𐑩𐑯𐑑 𐑝𐑦𐑿𐑦𐑚𐑩𐑤 𐑛𐑱𐑑𐑩
         self._last_offset = -1       # 𐑤𐑨𐑕𐑑 𐑮𐑧𐑯𐑛𐑼𐑛 𐑪𐑓𐑕𐑧𐑑
+        self._viewport_dirty = True  # 𐑯𐑿: 𐑑𐑮𐑨𐑒 𐑦𐑓 𐑝𐑦𐑿𐑐𐑹𐑑 𐑒𐑨𐑖 𐑯𐑰𐑛𐑟 𐑮𐑰𐑓𐑮𐑧𐑖
         
         # 𐑑𐑧𐑒𐑕𐑑𐑿𐑩𐑤 𐑝𐑿𐑼 𐑕𐑑𐑱𐑑
         self.current_offset = 0
@@ -70,12 +71,36 @@ class HexViewer:
         self.search_results: List[int] = []
         self.search_index = 0
         
+        # 𐑝𐑻𐑗𐑫𐑩𐑤 𐑝𐑦𐑿 𐑩𐑐𐑑𐑦𐑥𐑲𐑟𐑱𐑖𐑩𐑯 𐑕𐑧𐑑𐑦𐑙𐑟
+        self.max_display_bytes = 32768  # 32KB 𐑥𐑨𐑒𐑕 𐑝𐑦𐑿𐑩𐑚𐑤 𐑛𐑱𐑑𐑩 (configurable)
+        self.max_annotation_range = 65536  # 64KB 𐑥𐑨𐑒𐑕 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑮𐑱𐑯𐑡 (configurable)
+        self.lazy_annotation_threshold = 16384  # 16KB ℌ𐑮𐑧𐑖ℌ𐑴𐑤𐑛 𐑓𐑹 𐑤𐑱𐑟𐑦 annotation 𐑤𐑴𐑛𐑦𐑙
+        self.scroll_buffer_rows = 3  # 𐑦𐑒𐑕𐑑𐑮𐑩 𐑮𐑴𐑟 𐑑 𐑮𐑧𐑯𐑛𐑼 𐑓𐑹 𐑕𐑥𐑵𐑞 𐑕𐑒𐑮𐑴𐑤𐑦𐑙 (configurable)
+        
         # 𐑔𐑰𐑥 𐑕𐑦𐑕𐑑𐑩𐑥
         self.current_theme = 'cybernoir'  # 𐑛𐑦𐑓𐑷𐑤𐑑: 'cybernoir', 'monochrome', 'hellfire'
         self.theme_styles = self._init_themes()
         
+    def _load_config_limits(self):
+        """𐑤𐑴𐑛 𐑝𐑻𐑗𐑫𐑩𐑤 𐑤𐑦𐑥𐑦𐑑𐑕 𐑓𐑮𐑥 𐑒𐑙𐑓𐑦𐑙 𐑦𐑓 𐑩𐑱𐑱𐑤𐑩𐑚𐑤"""
+        if self.config:
+            try:
+                # 𐑗𐑧𐑒 𐑦𐑓 𐑒𐑩𐑯𐑓𐑦𐑜 𐑦𐑟 𐑦 𐑞 𐑯𐑿 𐑓𐑹𐑥𐑨𐑑
+                if hasattr(self.config, 'config_data') and hasattr(self.config.config_data, 'output'):
+                    hex_config = getattr(self.config.config_data.output, 'hex_viewer', None)
+                    if hex_config:
+                        self.max_display_bytes = getattr(hex_config, 'max_display_bytes', self.max_display_bytes)
+                        self.max_annotation_range = getattr(hex_config, 'max_annotation_range', self.max_annotation_range)
+                        self.lazy_annotation_threshold = getattr(hex_config, 'lazy_annotation_threshold', self.lazy_annotation_threshold)
+                        self.scroll_buffer_rows = getattr(hex_config, 'scroll_buffer_rows', self.scroll_buffer_rows)
+                # 𐑦𐑓 𐑒𐑩𐑯𐑓𐑦𐑜 𐑦𐑟 𐑦 𐑩 𐑛𐑦𐑒𐑑 𐑓𐑹𐑥, 𐑡𐑳𐑕𐑑 𐑿𐑟 𐑛𐑦𐑓𐑷𐑤𐑑𐑕
+            except (AttributeError, KeyError):
+                # 𐑦𐑓 𐑒𐑩𐑯𐑓𐑦𐑜 𐑦𐑟 not 𐑦 𐑞 𐑦𐑒𐑕𐑐𐑧𐑒𐑑𐑦𐑛 format, 𐑡𐑳𐑕𐑑 𐑿𐑟 𐑛𐑦𐑓𐑷𐑤𐑑 limits
+                pass
+                
     def _init_themes(self) -> Dict[str, Dict[str, str]]:
         """𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑞𐑰𐑥 𐑕𐑦𐑕𐑑𐑩𐑥 𐑢𐑦𐑞 𐑥𐑨𐑒𐑕𐑦𐑥𐑩𐑤𐑦𐑕𐑑 𐑕𐑲𐑚𐑼𐑐𐑳𐑙𐑒 𐑧𐑕𐑔𐑧𐑑𐑦𐑒"""
+        self._load_config_limits()
         return {
             'cybernoir': {
                 # 𐑛𐑰𐑐 𐑚𐑤𐑨𐑒 𐑚𐑜, 𐑯𐑰𐑪𐑯 𐑕𐑲𐑨𐑯/𐑥𐑩𐑡𐑧𐑯𐑑𐑩/𐑹𐑦𐑯𐑡 𐑣𐑲𐑤𐑲𐑑𐑕
@@ -167,6 +192,7 @@ class HexViewer:
         self._entropy_cache.clear()
         self._current_view_data = None
         self._last_offset = None
+        self._viewport_dirty = True  # 𐑯𐑿: 𐑦𐑯𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑝𐑦𐑿𐑐𐑹𐑑 𐑒𐑨𐑖
         if hasattr(self, '_viewport_annotations'):
             delattr(self, '_viewport_annotations')
         
@@ -181,6 +207,34 @@ class HexViewer:
             return self.file_handle.read(size)
         else:
             return b''
+            
+    def _read_chunk_optimized(self, offset: int, size: int) -> bytes:
+        """𐑪𐑐𐑑𐑦𐑥𐑲𐑟𐑛 𐑗𐑳𐑙𐑒 𐑮𐑰𐑛𐑦𐑙 𐑢𐑦𐑞 𐑥𐑧𐑥𐑹𐑦 𐑩𐑯𐑛 𐑦/𐑴 𐑩𐑓𐑦𐑖𐑧𐑯𐑕𐑦"""
+        # 𐑞𐑦𐑕 𐑦𐑟 𐑞 𐑕𐑱𐑥 𐑨𐑟 _read_chunk 𐑚𐑳𐑑 𐑒𐑨𐑯 𐑚 𐑦𐑯𐑣𐑨𐑯𐑕𐑑 𐑤𐑱𐑑𐑼
+        return self._read_chunk(offset, size)
+        
+    def _invalidate_viewport_cache_if_needed(self, old_offset: int, new_offset: int):
+        """ℌ𐑤 cache 𐑦𐑯𐑝𐑨𐑤𐑦𐑛𐑱𐑖𐑩𐑯 - 𐑳𐑯𐑤𐑦 𐑦𐑯𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑦𐑓 𐑯𐑫𐑛𐑦𐑛"""
+        # 𐑦𐑯𐑝𐑨𐑤𐑦𐑛𐑱𐑑 ℌ𐑧𐑒𐑕 𐑝𐑦𐑿 𐑒𐑨𐑖
+        self._current_view_data = None
+        self._last_offset = None
+        
+        # 𐑦𐑯𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑒𐑨𐑖 𐑦𐑓 𐑞 𐑯𐑿 𐑪𐑓𐑕𐑧𐑑 𐑦𐑟 𐑬𐑑 𐑝 𐑞 ℌ𐑻𐑦𐑙 𐑮𐑱𐑯𐑡
+        buffer_distance = self.scroll_buffer_rows * self.bytes_per_row
+        if hasattr(self, '_viewport_annotations') and not self._viewport_dirty:
+            # 𐑗𐑧𐑒 𐑦𐑓 𐑯𐑿 offset 𐑦𐑟 𐑬𐑑 𐑝 ℌ𐑻𐑦𐑙 ℌ
+            if abs(old_offset - new_offset) > buffer_distance:
+                self._viewport_dirty = True
+        
+        # 𐑒𐑤𐑽 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 offset ℌ𐑦 ℌ 𐑚 ℌ ℌ𐑻𐑦𐑙
+        if abs(old_offset - new_offset) > 0:
+            # 𐑳𐑯𐑤𐑦 𐑒𐑤𐑽 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 cache entries that 𐑨 far from 𐑞 𐑯𐑿 offset
+            keys_to_remove = []
+            for offset in self._annotation_cache.keys():
+                if abs(offset - new_offset) > buffer_distance:
+                    keys_to_remove.append(offset)
+            for key in keys_to_remove:
+                del self._annotation_cache[key]
         
     def add_annotation(self, annotation: HexViewAnnotation):
         """𐑨𐑛 𐑩 𐑯𐑿 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑑 𐑞 𐑝𐑿𐑼"""
@@ -503,26 +557,49 @@ class HexViewer:
         return f'<div class="hex-line">{offset_str}  {hex_str}  |{ascii_str}|</div>\n'
         
     def _get_annotations_for_offset(self, offset: int) -> List[HexViewAnnotation]:
-        """𐑜𐑧𐑑 𐑩𐑤 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑓𐑹 𐑩 𐑜𐑦𐑝𐑩𐑯 𐑪𐑓𐑕𐑧𐑑"""
+        """𐑜𐑧𐑑 𐑩𐑤 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑓𐑹 𐑩 𐑜𐑦𐑝𐑩𐑯 𐑪𐑓𐑕𐑧𐑑 - ENHANCED 𐑢𐑦𐑞 𐑦𐑥𐑐𐑮𐑫𐑝𐑛 𐑒𐑨𐑖𐑦𐑙"""
         # 𐑤𐑱𐑟𐑦 𐑤𐑴𐑛𐑦𐑙: 𐑴𐑯𐑤𐑦 𐑗𐑧𐑒 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑯𐑦𐑼 𐑞 𐑒𐑳𐑮𐑩𐑯𐑑 𐑝𐑦𐑿𐑐𐑹𐑑
-        if not hasattr(self, '_viewport_annotations'):
+        if not hasattr(self, '_viewport_annotations') or self._viewport_dirty:
             self._cache_viewport_annotations()
+        
+        # 𐑯𐑿: 𐑦𐑓 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑒𐑨𐑖 𐑦𐑟 𐑢𐑹𐑥, 𐑗𐑧𐑒 𐑦𐑑 𐑓𐑻𐑕𐑑
+        if offset in self._annotation_cache:
+            return self._annotation_cache[offset]
         
         annotations = []
         for annotation in self._viewport_annotations:
             if annotation.start_offset <= offset < annotation.end_offset:
                 annotations.append(annotation)
+        
+        # 𐑒𐑨𐑖 𐑞 𐑮𐑦𐑟𐑳𐑤𐑑 𐑓𐑹 𐑞𐑦𐑕 𐑪𐑓𐑕𐑧𐑑
+        self._annotation_cache[offset] = annotations
         return annotations
     
     def _cache_viewport_annotations(self):
-        """𐑒𐑨𐑖 𐑩𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑝𐑦𐑟𐑦𐑚𐑩𐑤 𐑦𐑯 𐑞 𐑒𐑳𐑮𐑩𐑯𐑑 𐑝𐑦𐑿𐑐𐑹𐑑"""
+        """𐑒𐑨𐑖 𐑩𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑝𐑦𐑟𐑦𐑚𐑩𐑤 𐑦𐑯 𐑞 𐑒𐑳𐑮𐑩𐑯𐑑 𐑝𐑦𐑿𐑐𐑹𐑑 - ENHANCED 𐑢𐑦𐑞 𐑚𐑳𐑓𐑼 𐑯 𐑤𐑦𐑥𐑦𐑑𐑦𐑙"""
         start_offset = self.base_offset + self.current_offset
         end_offset = start_offset + self.bytes_per_row * self.display_rows
         
+        # 𐑯𐑿: 𐑨𐑛 𐑩 𐑚𐑳𐑓𐑼 𐑞 𐑝𐑦𐑿 𐑓𐑹 𐑕𐑥𐑫𐑞𐑼 𐑕𐑒𐑮𐑴𐑤𐑦𐑙
+        buffer_size = self.scroll_buffer_rows * self.bytes_per_row
+        buffer_start = max(0, start_offset - buffer_size)
+        buffer_end = min(self.file_size, end_offset + buffer_size)
+        
+        # 𐑯𐑿: 𐑦𐑓 𐑞 𐑩𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑕𐑧𐑑 𐑦𐑟 ℌ𐑿𐑡, 𐑿𐑟 𐑩 𐑥𐑹 𐑩𐑓𐑦𐑖𐑩𐑯𐑑 𐑓𐑦𐑤𐑑𐑼
         self._viewport_annotations = []
-        for annotation in self.annotations:
-            if (annotation.start_offset <= end_offset and annotation.end_offset >= start_offset):
-                self._viewport_annotations.append(annotation)
+        if len(self.annotations) > self.lazy_annotation_threshold:
+            # 𐑳𐑯𐑤𐑦 𐑒𐑩𐑯𐑕𐑦𐑛𐑼 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑞𐑨𐑑 𐑞 𐑚𐑳𐑓𐑼 𐑮𐑱𐑯𐑡
+            for annotation in self.annotations:
+                if (annotation.start_offset <= buffer_end and annotation.end_offset >= buffer_start):
+                    self._viewport_annotations.append(annotation)
+        else:
+            # 𐑓𐑹 𐑕𐑥𐑷𐑤 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑕𐑧𐑑𐑕, 𐑿𐑟 𐑞 𐑷𐑤𐑛 𐑤𐑪𐑡𐑦𐑒 
+            for annotation in self.annotations:
+                if (annotation.start_offset <= end_offset and annotation.end_offset >= start_offset):
+                    self._viewport_annotations.append(annotation)
+        
+        # 𐑥𐑸𐑒 𐑨𐑟 𐑯𐑪𐑑 𐑛𐑻𐑑𐑦
+        self._viewport_dirty = False
     
         
     def _get_css_classes_for_annotations(self, annotations: List[HexViewAnnotation]) -> str:
@@ -550,12 +627,12 @@ class HexViewer:
             return self._current_view_data
             
         if max_bytes is None:
-            # 𐑤𐑦𐑥𐑦𐑑 𐑥𐑨𐑒𐑕 𐑚𐑲𐑑𐑟 𐑑 𐑝𐑦𐑿𐑩𐑚𐑤 𐑩𐑴𐑟
+            # 𐑤𐑦𐑥𐑦𐑑 𐑥𐑨𐑒𐑕 𐑚𐑲𐑑𐑟 𐑑 𐑝𐑦𐑿𐑩𐑚𐑤 𐑩𐑴𐑟 - NEW: Apply configurable display limits
             viewport_bytes = self.bytes_per_row * self.display_rows
-            max_bytes = min(viewport_bytes, self.file_size - self.current_offset)
+            max_bytes = min(viewport_bytes, self.max_display_bytes, self.file_size - self.current_offset)
             
-        # 𐑮𐑰𐑛 𐑴𐑯𐑤𐑦 𐑝𐑦𐑿𐑩𐑚𐑤 𐑛𐑱𐑑𐑩
-        data_to_show = self._read_chunk(self.current_offset, max_bytes)
+        # 𐑮𐑰𐑛 𐑴𐑯𐑤𐑦 𐑝𐑦𐑿𐑩𐑚𐑤 𐑛𐑱𐑑𐑩 - OPTIMIZED
+        data_to_show = self._read_chunk_optimized(self.current_offset, max_bytes)
         hex_lines = []
         
         for i in range(0, len(data_to_show), self.bytes_per_row):
@@ -809,23 +886,32 @@ class HexViewer:
         return result
         
     def scroll_up(self):
-        """𐑕𐑒𐑮𐑴𐑤 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿 𐑳𐑐"""
+        """𐑕𐑒𐑮𐑴𐑤 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿 𐑳𐑐 - OPTIMIZED 𐑚𐑳𐑑 𐑛𐑴𐑯'𐑑 ℌ𐑤 𐑒𐑨𐑖𐑦𐑙"""
         if self.current_offset > 0:
+            # 𐑯𐑿: ℌ𐑤 𐑒𐑨𐑖 - 𐑿𐑟 ℌ𐑤 cache 𐑦𐑯𐑝𐑨𐑤𐑦𐑛𐑱𐑖𐑩𐑯 𐑦𐑯𐑕𐑑𐑧𐑛 𐑝 ℌ𐑤 𐑒𐑤𐑽
+            old_offset = self.current_offset
             self.current_offset = max(0, self.current_offset - self.bytes_per_row)
-            self._clear_caches()  # 𐑒𐑤𐑽 𐑒𐑨𐑖𐑟 𐑢𐑧𐑯 𐑪𐑓𐑕𐑧𐑑 𐑗𐑱𐑯𐑡
+            self._invalidate_viewport_cache_if_needed(old_offset, self.current_offset)
     
     def scroll_down(self):
-        """𐑕𐑒𐑮𐑴𐑤 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿 𐑛𐑬𐑯"""
+        """𐑕𐑒𐑮𐑴𐑤 𐑞 𐑣𐑧𐑒𐑕 𐑝𐑿 𐑛𐑬𐑯 - OPTIMIZED 𐑚𐑳𐑑 𐑛𐑴𐑯'𐑑 ℌ𐑤 𐑒𐑨𐑖𐑦𐑙"""
         max_offset = max(0, self.file_size - self.bytes_per_row * self.display_rows)
         if self.current_offset < max_offset:
+            # 𐑯𐑿: ℌ𐑤 𐑒𐑨𐑖 - 𐑿𐑟 ℌ𐑤 cache 𐑦𐑯𐑝𐑨𐑤𐑦𐑛𐑱𐑖𐑩𐑯 𐑦𐑯𐑕𐑑𐑧𐑛 𐑝 ℌ𐑤 𐑒𐑤𐑽
+            old_offset = self.current_offset
             self.current_offset = min(max_offset, self.current_offset + self.bytes_per_row)
-            self._clear_caches()  # 𐑒𐑤𐑽 𐑒𐑨𐑖𐑟 𐑢𐑧𐑯 𐑪𐑓𐑕𐑧𐑑 𐑗𐑱𐑯𐑡
+            self._invalidate_viewport_cache_if_needed(old_offset, self.current_offset)
             
     def goto_offset(self, offset: int):
-        """𐑜𐑴 𐑑 𐑩 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑪𐑓𐑕𐑧𐑑"""
+        """𐑜𐑴 𐑑 𐑩 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑪𐑓𐑕𐑧𐑑 - OPTIMIZED"""
         if 0 <= offset < self.file_size:
+            old_offset = self.current_offset
             self.current_offset = offset - (offset % self.bytes_per_row)  # 𐑩𐑤𐑲𐑯 𐑑 𐑮𐑴 𐑚𐑬𐑯𐑛𐑼𐑦
-            self._clear_caches()  # 𐑒𐑤𐑽 𐑒𐑨𐑖𐑟 𐑢𐑧𐑯 𐑪𐑓𐑕𐑧𐑑 𐑗𐑱𐑯𐑡
+            # 𐑦𐑓 𐑞 offset 𐑦𐑟 far away, 𐑓𐑹𐑕 full cache 𐑦𐑯𐑝𐑨𐑤𐑦𐑛𐑱𐑖𐑩𐑯
+            if abs(old_offset - self.current_offset) > (self.bytes_per_row * self.scroll_buffer_rows * 2):
+                self._clear_caches()
+            else:
+                self._invalidate_viewport_cache_if_needed(old_offset, self.current_offset)
     
     def search_hex(self, hex_string: str) -> int:
         """𐑕𐑻𐑗 𐑓𐑹 𐑣𐑧𐑒𐑕 𐑚𐑲𐑑𐑟 𐑦𐑯 𐑞 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩"""

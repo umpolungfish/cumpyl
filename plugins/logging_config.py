@@ -1,5 +1,7 @@
 import logging
 import json
+import os
+import threading
 from typing import Any
 
 class StructuredFormatter(logging.Formatter):
@@ -10,9 +12,12 @@ class StructuredFormatter(logging.Formatter):
             "module": record.module,
             "message": record.getMessage(),
             "filename": record.filename,
-            "lineno": record.lineno
+            "lineno": record.lineno,
+            "process_id": os.getpid(),
+            "thread_id": threading.get_ident(),
+            "request_id": getattr(record, "request_id", None)  # Optional for request tracking
         }
-        return json.dumps(log_entry)
+        return json.dumps({k: v for k, v in log_entry.items() if v is not None})
 
 def setup_logging():
     logger = logging.getLogger()

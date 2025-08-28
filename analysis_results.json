@@ -1,0 +1,344 @@
+{
+  "plugin_name": "cgo_packer",
+  "version": "1.1.0",
+  "description": "CGO-aware Go binary packer with anti-detection techniques",
+  "capabilities": [
+    "cgo_section_pack",
+    "go_symbol_obfuscate",
+    "go_string_encrypt",
+    "cgo_aware_packing"
+  ],
+  "analysis": {
+    "binary_size": 487484,
+    "sections_count": 17,
+    "sections": [
+      {
+        "name": ".text",
+        "size": 31668,
+        "virtual_address": 4096,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 6.198726559943685,
+        "confidence": 1.0
+      },
+      {
+        "name": ".data",
+        "size": 88,
+        "virtual_address": 36864,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 0.0,
+        "confidence": 0.1
+      },
+      {
+        "name": ".rdata",
+        "size": 5112,
+        "virtual_address": 40960,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 5.6795208245776045,
+        "confidence": 1.0
+      },
+      {
+        "name": "/4",
+        "size": 1668,
+        "virtual_address": 49152,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.819614101159943,
+        "confidence": 1.0
+      },
+      {
+        "name": ".bss",
+        "size": 0,
+        "virtual_address": 53248,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 0.0,
+        "confidence": 0.0
+      },
+      {
+        "name": ".idata",
+        "size": 2056,
+        "virtual_address": 57344,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.941625312690684,
+        "confidence": 1.0
+      },
+      {
+        "name": ".CRT",
+        "size": 52,
+        "virtual_address": 61440,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 0.0,
+        "confidence": 0.1
+      },
+      {
+        "name": ".tls",
+        "size": 8,
+        "virtual_address": 65536,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 0.0,
+        "confidence": 0.1
+      },
+      {
+        "name": ".reloc",
+        "size": 1328,
+        "virtual_address": 69632,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 6.570537277072426,
+        "confidence": 1.0
+      },
+      {
+        "name": "/14",
+        "size": 1104,
+        "virtual_address": 73728,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 2.5135138541452404,
+        "confidence": 0.9703125
+      },
+      {
+        "name": "/29",
+        "size": 303754,
+        "virtual_address": 77824,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 6.0521053756352545,
+        "confidence": 1.0
+      },
+      {
+        "name": "/41",
+        "size": 14930,
+        "virtual_address": 385024,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.716663562003663,
+        "confidence": 1.0
+      },
+      {
+        "name": "/55",
+        "size": 32121,
+        "virtual_address": 401408,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 5.442642632710841,
+        "confidence": 1.0
+      },
+      {
+        "name": "/67",
+        "size": 5084,
+        "virtual_address": 434176,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.895188232837462,
+        "confidence": 1.0
+      },
+      {
+        "name": "/80",
+        "size": 1845,
+        "virtual_address": 442368,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.720416844797801,
+        "confidence": 1.0
+      },
+      {
+        "name": "/91",
+        "size": 36203,
+        "virtual_address": 446464,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 3.983839548663313,
+        "confidence": 1.0
+      },
+      {
+        "name": "/102",
+        "size": 1680,
+        "virtual_address": 483328,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 3.158627923756705,
+        "confidence": 1.0
+      }
+    ],
+    "packing_opportunities": [
+      {
+        "section": ".rdata",
+        "size": 5112,
+        "type": "low_entropy_data",
+        "entropy": 5.6795208245776045,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/4",
+        "size": 1668,
+        "type": "low_entropy_data",
+        "entropy": 4.819614101159943,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": ".idata",
+        "size": 2056,
+        "type": "low_entropy_data",
+        "entropy": 4.941625312690684,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/14",
+        "size": 1104,
+        "type": "low_entropy_data",
+        "entropy": 2.5135138541452404,
+        "confidence": 0.9703125,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/41",
+        "size": 14930,
+        "type": "low_entropy_data",
+        "entropy": 4.716663562003663,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/55",
+        "size": 32121,
+        "type": "low_entropy_data",
+        "entropy": 5.442642632710841,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/67",
+        "size": 5084,
+        "type": "low_entropy_data",
+        "entropy": 4.895188232837462,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/80",
+        "size": 1845,
+        "type": "low_entropy_data",
+        "entropy": 4.720416844797801,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/91",
+        "size": 36203,
+        "type": "low_entropy_data",
+        "entropy": 3.983839548663313,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/102",
+        "size": 1680,
+        "type": "low_entropy_data",
+        "entropy": 3.158627923756705,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": ".text",
+        "size": 31668,
+        "type": "cgo_compression_candidate",
+        "virtual_address": 4096,
+        "is_writable": false
+      },
+      {
+        "section": ".rdata",
+        "size": 5112,
+        "type": "cgo_compression_candidate",
+        "virtual_address": 40960,
+        "is_writable": false
+      },
+      {
+        "section": ".idata",
+        "size": 2056,
+        "type": "cgo_compression_candidate",
+        "virtual_address": 57344,
+        "is_writable": false
+      },
+      {
+        "section": "/29",
+        "size": 303754,
+        "type": "cgo_compression_candidate",
+        "virtual_address": 77824,
+        "is_writable": false
+      },
+      {
+        "section": "/41",
+        "size": 14930,
+        "type": "cgo_compression_candidate",
+        "virtual_address": 385024,
+        "is_writable": false
+      },
+      {
+        "section": "/55",
+        "size": 32121,
+        "type": "cgo_compression_candidate",
+        "virtual_address": 401408,
+        "is_writable": false
+      },
+      {
+        "section": "/67",
+        "size": 5084,
+        "type": "cgo_compression_candidate",
+        "virtual_address": 434176,
+        "is_writable": false
+      },
+      {
+        "section": "/91",
+        "size": 36203,
+        "type": "cgo_compression_candidate",
+        "virtual_address": 446464,
+        "is_writable": false
+      }
+    ],
+    "go_specific_info": {
+      "is_go_binary": false
+    },
+    "cgo_specific_info": {
+      "has_cgo": false,
+      "cgo_sections": [],
+      "cgo_symbols": [],
+      "cgo_libraries": []
+    }
+  },
+  "suggestions": [
+    {
+      "section": ".data",
+      "size": 88,
+      "suggested_methods": [
+        "cgo_section_pack"
+      ],
+      "risk_level": "low"
+    }
+  ]
+}

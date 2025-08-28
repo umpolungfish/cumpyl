@@ -1,0 +1,32 @@
+# Research and Educational Use License
+
+## Copyright (c) 2025 Cumpyl Framework Team
+
+This software is provided for research and educational purposes only.
+
+## Permitted Use
+
+1. Educational institutions may use this software for teaching and research
+2. Security researchers may use this software for authorized analysis
+3. Students may use this software for learning about binary analysis techniques
+
+## Restrictions
+
+1. **No Malicious Use**: This software must not be used for any malicious purposes
+2. **No Unauthorized Modification**: Do not use this software to modify binaries without explicit authorization
+3. **No Distribution of Modified Versions**: Do not distribute modified versions that enable binary transformation
+4. **Compliance with Laws**: All use must comply with applicable local, state, federal, and international laws
+
+## Disclaimer
+
+This software is provided "as is", without warranty of any kind, express or implied,
+including but not limited to the warranties of merchantability, fitness for a particular
+purpose and noninfringement. In no event shall the authors or copyright holders be liable
+for any claim, damages or other liability, whether in an action of contract, tort or otherwise,
+arising from, out of or in connection with the software or the use or other dealings in the software.
+
+## Ethical Use Statement
+
+The authors of this software are committed to ethical security research.
+We strongly discourage and disavow any use of this software for malicious purposes.
+Any violation of this license for malicious purposes may result in legal action.

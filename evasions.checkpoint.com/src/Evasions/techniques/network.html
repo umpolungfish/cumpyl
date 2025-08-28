@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-194688-3"></script>
+  <script>
+   window.dataLayer = window.dataLayer || [];
+   function gtag(){dataLayer.push(arguments);}
+   gtag('js', new Date());
+   gtag('config', 'UA-194688-3');
+  </script>
+  <meta content="Evasion techniques" property="og:site_name">
+
+  <meta content="Evasions: Network" property="og:title">
+
+
+  <meta name="twitter:title" content="Malware Evasion Encyclopedia" />
+  <meta name="twitter:image" content="https://research.checkpoint.com/wp-content/uploads/2020/02/evasions.jpg" />
+
+
+  <meta content="article" property="og:type">
+
+
+  <meta content="Evasion techniques
+" property="og:description">
+
+
+  <meta content="https://evasions.checkpoint.com/src/Evasions/techniques/network.html" property="og:url">
+
+
+  <meta content="2024-07-10T07:20:28+00:00" property="article:published_time">
+  <meta content="https://evasions.checkpoint.com/about/" property="article:author">
+
+
+  <meta property="og:image" content="">
+
+
+  
+  <meta content="evasions" property="article:section">
+  
+
+
+  
+  <meta content="network" property="article:tag">
+  
+
+  <title>Evasions: Network</title>
+  <meta name="description" content="Contents">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://evasions.checkpoint.com/assets/css/main.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Fira+Mono' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,200,300,500,600,700,900' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Gentium+Basic:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Alegreya:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Lora:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Fira+Sans:400,300,500,700' rel='stylesheet' type='text/css'>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-hQpvDQiCJaD2H465dQfA717v7lu5qHWtDbWNPvaTJ0ID5xnPUlVXnKzq7b8YUkbN" crossorigin="anonymous">
+  <link rel="canonical" href="https://evasions.checkpoint.com/src/Evasions/techniques/network.html">
+  <link rel="alternate" type="application/rss+xml" title="Evasion techniques" href="https://evasions.checkpoint.com/feed.xml">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.charorder.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.charorder.min.js"></script>
+  <script type="text/javascript" async src="//platform.twitter.com/widgets.js"></script>
+
+
+
+
+</head>
+
+
+  <body>
+<section>
+<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <div class="jumbotron">
+    <div class="container">
+      <h1 class="post-title-main" itemprop="name headline">Evasions: Network</h1>
+    </div>
+</div>
+
+  <div class="post-content container" itemprop="articleBody">
+    <div style="text-align: left">
+        <a href="..">Go back</a>
+        <br>
+        <br>
+    </div>
+    <h1>Contents</h1>
+
+<p><a href="#network-detection-methods">Network detection methods used</a>
+<br />
+  <a href="#check-specific-network-properties">1. Specific network properties</a>
+<br />
+  <a href="#check-if-mac-address-is-specific">1.1. Check if MAC address is specific</a>
+<br />
+  <a href="#check-if-adapter-name-is-specific">1.2. Check if adapter name is specific</a>
+<br />
+  <a href="#check-if-provider-name-for-network-shares-is-specific">1.3. Check if provider’s name for network shares is specific</a>
+<br />
+  <a href="#check-if-network-belongs-to-security-perimeter">2. Check if network belongs to security perimeter</a>
+<br />
+  <a href="#netvalidatename-result-based-anti-emulation-technique">3. <tt>NetValidateName</tt> result based anti-emulation technique</a>
+<br />
+  <a href="#cuckoo-resultserver-connection-based-anti-emulation-technique">4. Cuckoo ResultServer connection based anti-emulation technique</a>
+<br />
+  <a href="#signature-recommendations">Signature recommendations</a>
+<br />
+  <a href="#countermeasures-sandboxie">Countermeasures</a>
+<br />
+  <a href="#credits">Credits</a>
+<br />
+<br /></p>
+
+<hr class="space" />
+
+<h2><a class="a-dummy" name="network-detection-methods">Network detection methods</a></h2>
+<p>Evasion techniques in this group are related to network in this or that sense. Either network-related functions are used or network parameters are checked — if they are different from that of usual host OS then virtual environment is likely detected.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-specific-network-properties">1. Specific network properties</a></h3>
+<p>Vendors of different virtual environments hard-code some values (MAC address) and names (network adapter) for their products — due to this fact such 
+environments may be detected via checking properties of appropriate objects.</p>
+
+<p><br /></p>
+<h4><a class="a-dummy" name="check-if-mac-address-is-specific">1.1. Check if MAC address is specific</a></h4>
+
+<p>Functions used:</p>
+<ul>
+  <li><tt>GetAdaptersAddresses(AF_UNSPEC, ...)</tt></li> 
+  <li><tt>GetAdaptersInfo</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample (function <tt>GetAdaptersAddresses</tt>)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">pafish_check_mac_vendor</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">mac_vendor</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">alist_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ret</span><span class="p">;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">GetAdaptersAddresses</span><span class="p">(</span><span class="n">AF_UNSPEC</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">alist_size</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">==</span> <span class="n">ERROR_BUFFER_OVERFLOW</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">IP_ADAPTER_ADDRESSES</span><span class="o">*</span> <span class="n">palist</span> <span class="o">=</span> <span class="p">(</span><span class="n">IP_ADAPTER_ADDRESSES</span><span class="o">*</span><span class="p">)</span><span class="n">LocalAlloc</span><span class="p">(</span><span class="n">LMEM_ZEROINIT</span><span class="p">,</span><span class="n">alist_size</span><span class="p">);</span>
+        <span class="kt">void</span> <span class="o">*</span> <span class="n">palist_free</span> <span class="o">=</span> <span class="n">palist</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">palist</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">GetAdaptersAddresses</span><span class="p">(</span><span class="n">AF_UNSPEC</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">palist</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">alist_size</span><span class="p">);</span>
+            <span class="kt">char</span> <span class="n">mac</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+            <span class="k">while</span> <span class="p">(</span><span class="n">palist</span><span class="p">){</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">palist</span><span class="o">-&gt;</span><span class="n">PhysicalAddressLength</span> <span class="o">==</span> <span class="mh">0x6</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="n">memcpy</span><span class="p">(</span><span class="n">mac</span><span class="p">,</span> <span class="n">palist</span><span class="o">-&gt;</span><span class="n">PhysicalAddress</span><span class="p">,</span> <span class="mh">0x6</span><span class="p">);</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">memcmp</span><span class="p">(</span><span class="n">mac_vendor</span><span class="p">,</span> <span class="n">mac</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="p">{</span>  <span class="cm">/* First 3 bytes are the same */</span>
+                        <span class="n">LocalFree</span><span class="p">(</span><span class="n">palist_free</span><span class="p">);</span>
+                        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+                <span class="n">palist</span> <span class="o">=</span> <span class="n">palist</span><span class="o">-&gt;</span><span class="n">Next</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="n">LocalFree</span><span class="p">(</span><span class="n">palist_free</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/a0rtega/pafish">pafish project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Code sample (function <tt>GetAdaptersInfo</tt>)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">BOOL</span> <span class="nf">check_mac_addr</span><span class="p">(</span><span class="n">TCHAR</span><span class="o">*</span> <span class="n">szMac</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">BOOL</span> <span class="n">bResult</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
+    <span class="n">PIP_ADAPTER_INFO</span> <span class="n">pAdapterInfo</span><span class="p">;</span>
+    <span class="n">ULONG</span> <span class="n">ulOutBufLen</span> <span class="o">=</span> <span class="k">sizeof</span> <span class="p">(</span><span class="n">IP_ADAPTER_INFO</span><span class="p">);</span> 
+    <span class="n">pAdapterInfo</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIP_ADAPTER_INFO</span><span class="p">)</span> <span class="n">MALLOC</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">IP_ADAPTER_INFO</span><span class="p">));</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">pAdapterInfo</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">_tprintf</span><span class="p">(</span><span class="n">_T</span><span class="p">(</span><span class="s">"Error allocating memory needed to call GetAdaptersinfo.</span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Make an initial call to GetAdaptersInfo to get the necessary size into the ulOutBufLen variable</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">GetAdaptersInfo</span><span class="p">(</span><span class="n">pAdapterInfo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ulOutBufLen</span><span class="p">)</span> <span class="o">==</span> <span class="n">ERROR_BUFFER_OVERFLOW</span><span class="p">)</span> 
+    <span class="p">{</span>
+        <span class="n">FREE</span><span class="p">(</span><span class="n">pAdapterInfo</span><span class="p">);</span>
+        <span class="n">pAdapterInfo</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIP_ADAPTER_INFO</span><span class="p">)</span> <span class="n">MALLOC</span><span class="p">(</span><span class="n">ulOutBufLen</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">pAdapterInfo</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Error allocating memory needed to call GetAdaptersinfo</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Now, we can call GetAdaptersInfo</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">GetAdaptersInfo</span><span class="p">(</span><span class="n">pAdapterInfo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ulOutBufLen</span><span class="p">)</span> <span class="o">==</span> <span class="n">ERROR_SUCCESS</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="c1">// Convert the given mac address to an array of multibyte chars so we can compare.</span>
+        <span class="n">CHAR</span> <span class="n">szMacMultiBytes</span> <span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">szMacMultiBytes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">CHAR</span><span class="p">)</span><span class="n">szMac</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="k">while</span><span class="p">(</span><span class="n">pAdapterInfo</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">pAdapterInfo</span><span class="o">-&gt;</span><span class="n">AddressLength</span> <span class="o">==</span> <span class="mi">6</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">memcmp</span><span class="p">(</span><span class="n">szMacMultiBytes</span><span class="p">,</span> <span class="n">pAdapterInfo</span><span class="o">-&gt;</span><span class="n">Address</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="p">{</span>
+                <span class="n">bResult</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="n">pAdapterInfo</span> <span class="o">=</span> <span class="n">pAdapterInfo</span><span class="o">-&gt;</span><span class="n">Next</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">bResult</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/LordNoteworthy/al-khaser">al-khaser project</a></i></p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:60%">
+  <tr>
+    <td colspan="3">Check if MAC address starts from one of the following values:</td>
+  </tr>
+  <tr>
+    <th style="text-align:center">Detect</th>
+    <th style="text-align:center">MAC address starts with</th>
+    <th style="text-align:center">Bytes</th>
+  </tr>
+  <tr>
+    <th>Parallels</th>
+    <td>00:1C:42</td>
+    <td>\x00\x1C\x42</td>
+  </tr>
+  <tr>
+    <th>VirtualBox</th>
+    <td>08:00:27</td>
+    <td>\x08\x00\x27</td>
+  </tr>
+  <tr>
+    <th rowspan="4">VMware</th>
+    <td>00:05:69</td>
+    <td>\x00\x05\x69</td>
+  </tr>
+  <tr>
+    <td>00:0C:29</td>
+    <td>\x00\x0C\x29</td>
+  </tr>
+  <tr>
+    <td>00:1C:14</td>
+    <td>\x00\x1C\x14</td>
+  </tr>
+  <tr>
+    <td>00:50:56</td>
+    <td>\x00\x50\x56</td>
+  </tr>
+  <tr>
+    <th>Xen</th>
+    <td>00:16:E3</td>
+    <td>\x00\x16\xE3</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h4><a class="a-dummy" name="check-if-adapter-name-is-specific">1.2. Check if adapter name is specific</a></h4>
+
+<p>Functions used:</p>
+<ul>
+  <li><tt>GetAdaptersAddresses(AF_UNSPEC, ...)</tt></li> 
+  <li><tt>GetAdaptersInfo</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample (function <tt>GetAdaptersAddresses</tt>)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">pafish_check_adapter_name</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">alist_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ret</span><span class="p">;</span>
+    <span class="kt">wchar_t</span> <span class="n">aux</span><span class="p">[</span><span class="mi">1024</span><span class="p">];</span>
+
+    <span class="n">mbstowcs</span><span class="p">(</span><span class="n">aux</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">aux</span><span class="p">)</span><span class="o">-</span><span class="k">sizeof</span><span class="p">(</span><span class="n">aux</span><span class="p">[</span><span class="mi">0</span><span class="p">]));</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">GetAdaptersAddresses</span><span class="p">(</span><span class="n">AF_UNSPEC</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">alist_size</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">==</span> <span class="n">ERROR_BUFFER_OVERFLOW</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">IP_ADAPTER_ADDRESSES</span> <span class="o">*</span><span class="n">palist</span> <span class="o">=</span> <span class="p">(</span><span class="n">IP_ADAPTER_ADDRESSES</span> <span class="o">*</span><span class="p">)</span><span class="n">LocalAlloc</span><span class="p">(</span><span class="n">LMEM_ZEROINIT</span><span class="p">,</span> <span class="n">alist_size</span><span class="p">);</span>
+        <span class="kt">void</span> <span class="o">*</span> <span class="n">palist_free</span> <span class="o">=</span> <span class="n">palist</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">palist</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">GetAdaptersAddresses</span><span class="p">(</span><span class="n">AF_UNSPEC</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">palist</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">alist_size</span><span class="p">)</span> <span class="o">==</span> <span class="n">ERROR_SUCCESS</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">while</span> <span class="p">(</span><span class="n">palist</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">wcsstr</span><span class="p">(</span><span class="n">palist</span><span class="o">-&gt;</span><span class="n">Description</span><span class="p">,</span> <span class="n">aux</span><span class="p">))</span> <span class="p">{</span>
+                        <span class="n">LocalFree</span><span class="p">(</span><span class="n">palist_free</span><span class="p">);</span>
+                        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+                    <span class="p">}</span>
+                    <span class="n">palist</span> <span class="o">=</span> <span class="n">palist</span><span class="o">-&gt;</span><span class="n">Next</span><span class="p">;</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="n">LocalFree</span><span class="p">(</span><span class="n">palist_free</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/a0rtega/pafish">pafish project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Code sample (function <tt>GetAdaptersInfo</tt>)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">BOOL</span> <span class="nf">check_adapter_name</span><span class="p">(</span><span class="n">TCHAR</span><span class="o">*</span> <span class="n">szName</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">BOOL</span> <span class="n">bResult</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
+    <span class="n">PIP_ADAPTER_INFO</span> <span class="n">pAdapterInfo</span><span class="p">;</span>
+    <span class="n">ULONG</span> <span class="n">ulOutBufLen</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">IP_ADAPTER_INFO</span><span class="p">);</span>
+    <span class="n">pAdapterInfo</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIP_ADAPTER_INFO</span><span class="p">)</span><span class="n">MALLOC</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">IP_ADAPTER_INFO</span><span class="p">));</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">pAdapterInfo</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">_tprintf</span><span class="p">(</span><span class="n">_T</span><span class="p">(</span><span class="s">"Error allocating memory needed to call GetAdaptersinfo.</span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Make an initial call to GetAdaptersInfo to get the necessary size into the ulOutBufLen variable</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">GetAdaptersInfo</span><span class="p">(</span><span class="n">pAdapterInfo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ulOutBufLen</span><span class="p">)</span> <span class="o">==</span> <span class="n">ERROR_BUFFER_OVERFLOW</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">FREE</span><span class="p">(</span><span class="n">pAdapterInfo</span><span class="p">);</span>
+        <span class="n">pAdapterInfo</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIP_ADAPTER_INFO</span><span class="p">)</span><span class="n">MALLOC</span><span class="p">(</span><span class="n">ulOutBufLen</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">pAdapterInfo</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"Error allocating memory needed to call GetAdaptersinfo</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+            <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">GetAdaptersInfo</span><span class="p">(</span><span class="n">pAdapterInfo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ulOutBufLen</span><span class="p">)</span> <span class="o">==</span> <span class="n">ERROR_SUCCESS</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">pAdapterInfo</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">StrCmpI</span><span class="p">(</span><span class="n">ascii_to_wide_str</span><span class="p">(</span><span class="n">pAdapterInfo</span><span class="o">-&gt;</span><span class="n">Description</span><span class="p">),</span> <span class="n">szName</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">bResult</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="n">pAdapterInfo</span> <span class="o">=</span> <span class="n">pAdapterInfo</span><span class="o">-&gt;</span><span class="n">Next</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">bResult</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/LordNoteworthy/al-khaser">al-khaser project</a></i></p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:60%">
+  <tr>
+    <td colspan="2">Check adapter name to be the following:</td>
+  </tr>
+  <tr>
+    <th style="text-align:center">Detect</th>
+    <th style="text-align:center">Name</th>
+  </tr>
+  <tr>
+    <th>VMware</th>
+    <td>Vmware</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h4><a class="a-dummy" name="check-if-provider-name-for-network-shares-is-specific">1.3. Check if provider's name for network shares is specific</a></h4>
+
+<p>Functions used (see note about native functions):</p>
+<ul>
+  <li><tt>WNetGetProviderName(WNNC_NET_RDR2SAMPLE, ...)</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">vbox_network_share</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pnsize</span> <span class="o">=</span> <span class="mh">0x1000</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">provider</span><span class="p">[</span><span class="n">pnsize</span><span class="p">];</span>
+
+    <span class="kt">int</span> <span class="n">retv</span> <span class="o">=</span> <span class="n">WNetGetProviderName</span><span class="p">(</span><span class="n">WNNC_NET_RDR2SAMPLE</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pnsize</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">retv</span> <span class="o">==</span> <span class="n">NO_ERROR</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">lstrcmpi</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span> <span class="s">"VirtualBox Shared Folders"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+        <span class="k">else</span>
+            <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/a0rtega/pafish">pafish project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:60%">
+  <tr>
+    <td colspan="2">Check provider's name for network shares to be the following:</td>
+  </tr>
+  <tr>
+    <th style="text-align:center">Detect</th>
+    <th style="text-align:center">Name</th>
+  </tr>
+  <tr>
+    <th>VirtualBox</th>
+    <td>VirtualBox Shared Folders</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-network-belongs-to-security-perimeter">2. Check if network belongs to security perimeter</a></h3>
+
+<p>Malware makes a request to <ins><tt>https[:]//www.maxmind.com/geoip/v2.1/city/me</tt></ins> which normally requires some kind of authentication or API key. To get around this requirement, the malware makes the request look as if it’s coming from the site itself by setting the HTTP Referrer to <ins><tt>https[:]//www.maxmind.com/en/locate-my-ip-address</tt></ins> and User-Agent to <em><tt>Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)</tt></em>. This trick allows the sample to retrieve the information about IP address of the machine it’s running on.
+<br />
+<br />
+The response is returned in JSON format and contains information about the country, city, and, most importantly, the organization associated with the IP address. If some “bad” strings are found in the response, malware knows that it’s launched inside some kind of a security perimeter/organization.</p>
+
+<p><br /></p>
+
+<p><b>Examples</b></p>
+<ul>
+  <li><a href="https://www.sentinelone.com/blog/anti-vm-tricks/">anti VM tricks</a></li> 
+  <li>malicious macros add sandbox evasion techniques to distribute <a href="https://www.proofpoint.com/us/threat-insight/post/malicious-macros-add-to-sandbox-evasion-techniques-to-distribute-new-dridex">new Dridex</a></li> 
+  <li>malicious <a href="https://www.zscaler.com/blogs/research/malicious-documents-leveraging-new-anti-vm-anti-sandbox-techniques">documents with macros</a> evading automated analysis systems</li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>“Bad strings” from malware sample (fixed capitalization):</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">Amazon</span>
+<span class="n">anonymous</span>
+<span class="n">BitDefender</span>
+<span class="n">BlackOakComputers</span>
+<span class="n">Blue</span> <span class="n">Coat</span>
+<span class="n">BlueCoat</span>
+<span class="n">Cisco</span>
+<span class="n">cloud</span>
+<span class="n">Data</span> <span class="n">Center</span>
+<span class="n">DataCenter</span>
+<span class="n">DataCentre</span>
+<span class="n">dedicated</span>
+<span class="n">ESET</span><span class="p">,</span> <span class="n">Spol</span>
+<span class="n">FireEye</span>
+<span class="n">ForcePoint</span>
+<span class="n">Fortinet</span>
+<span class="n">Hetzner</span>
+<span class="n">hispeed</span><span class="p">.</span><span class="n">ch</span>
+<span class="n">hosted</span>
+<span class="n">Hosting</span>
+<span class="n">Iron</span> <span class="n">Port</span>
+<span class="n">IronPort</span>
+<span class="n">LeaseWeb</span>
+<span class="n">MessageLabs</span>
+<span class="n">Microsoft</span>
+<span class="n">MimeCast</span>
+<span class="n">NForce</span>
+<span class="n">Ovh</span> <span class="n">Sas</span>
+<span class="n">Palo</span> <span class="n">Alto</span>
+<span class="n">ProofPoint</span>
+<span class="n">Rackspace</span>
+<span class="n">security</span>
+<span class="n">Server</span>
+<span class="n">Strong</span> <span class="n">Technologies</span>
+<span class="n">Trend</span> <span class="n">Micro</span>
+<span class="n">TrendMicro</span>
+<span class="n">TrustWave</span>
+<span class="n">VMVault</span>
+<span class="n">Zscaler</span></code></pre></figure>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="netvalidatename-result-based-anti-emulation-technique">3. <tt>NetValidateName</tt> result based anti-emulation technique</a></h3>
+
+<p><i>Initially this technique was designed for bypassing AV detection. It’s not an evasion technique itself — instead it abuses interesting side-effects after the function is called.</i>
+<br />
+<br />
+The main idea is to use the determined result of <tt>NetValidateName</tt> API function call with invalid argument as Server name (for example “123”) for calculating jump address dynamically. This jump usually points into the middle of some instruction to bypass heuristic analysis of AV software. But this technique also has (at least) one side-effect.
+<br />
+<br />
+If default NetBIOS settings are set in the operating system (NetBIOS over TCP/IP is enabled) the return code is always equal to <tt>ERROR_BAD_NETPATH (0x35)</tt>.
+<br />
+If NetBIOS over TCP/IP is switched off then return code is <tt>ERROR_NETWORK_UNREACHABLE (0x4CF)</tt>.
+<br />
+<br />
+Thus jump address will be calculated incorrectly and it will lead the sample to crash. Therefore, this technique can be used to break emulation in sandboxes where NetBIOS over TCP/IP is switched off for preventing junk traffic generation by the OS.
+<br />
+<br />
+<i>Note: NetBIOS over TCP/IP is switched off not to generate additional network requests when resolving server IP via DNS. Switching this option off cancels 
+lookup requests in local network.</i></p>
+
+<hr class="space" />
+
+<p><b>Code sample (function <tt>GetAdaptersAddresses</tt>)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">EntryPoint</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">HANDLE</span> <span class="n">NetApi32</span> <span class="o">=</span> <span class="n">LoadLibraryW</span><span class="p">(</span><span class="s">L"netapi32.dll"</span><span class="p">);</span>
+    <span class="n">TD_NetValidateName</span> <span class="n">NetValidateName</span> <span class="o">=</span> <span class="p">(</span><span class="n">TD_NetValidateName</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">NetApi32</span><span class="p">,</span> <span class="s">"NetValidateName"</span><span class="p">);</span>
+    <span class="n">DWORD</span> <span class="n">Result</span> <span class="o">=</span> <span class="n">NetValidateName</span><span class="p">(</span><span class="s">L"123"</span><span class="p">,</span> <span class="s">L""</span><span class="p">,</span> <span class="s">L""</span><span class="p">,</span> <span class="s">L""</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+
+    <span class="kr">__asm</span>
+    <span class="p">{</span>
+        <span class="n">call</span> <span class="n">dword</span> <span class="n">ptr</span> <span class="n">ds</span><span class="o">:</span><span class="p">[</span><span class="n">GetLastError</span><span class="p">]</span>
+        <span class="n">add</span> <span class="n">eax</span><span class="p">,</span> <span class="n">offset</span> <span class="n">TrueEntryPoint</span>
+        <span class="n">sub</span> <span class="n">eax</span><span class="p">,</span> <span class="mh">0xCB</span>  <span class="c1">// ERROR_ENVVAR_NOT_FOUND</span>
+        <span class="n">call</span> <span class="n">eax</span>
+    <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="cuckoo-resultserver-connection-based-anti-emulation-technique">4. Cuckoo ResultServer connection based anti-emulation technique</a></h3>
+
+<p>This technique can be used for detecting Cuckoo Sandbox virtual environment. Malware enumerates all established outgoing TCP connections and checks 
+if there is a connection to a specific TCP port (2042) that is used by the Cuckoo ResultServer.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="signature-recommendations">Signature recommendations</a></h3>
+
+<p><i>Signature recommendations are general for each technique: hook the function used and track if it is called. It’s pretty hard to tell why application wants to get adapter name, for example. It doesn’t necessarily mean applying evasion technique. So the best what can be done in this situation is intercepting target functions and tracking their calls.
+</i></p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="countermeasures-sandboxie">Countermeasures</a></h3>
+
+<ul>
+<li><tt>versus checking network parameters:</tt> change them for virtual environment;</li> 
+<li><tt>versus checking security perimeter:</tt> emulate network responses in an appropriate manner;</li> 
+<li><tt>versus NetValidateName result based technique:</tt> turn on NetBIOS over TCP/IP;</li> 
+<li><tt>versus Cuckoo ResultServer connection based technique:</tt> change ResultServer port in the Cuckoo configuration.</li> 
+</ul>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="credits">Credits</a></h3>
+
+<p>Credits go to open-source project from where code samples were taken:</p>
+<ul>
+<li>pafish project on <a href="https://github.com/a0rtega/pafish">github</a></li>
+<li>al-khaser project on <a href="https://github.com/LordNoteworthy/al-khaser">github</a></li>
+</ul>
+
+<p>Though Check Point tool InviZzzible has them all implemented, due to modular structure of the code it would require more space to show a code sample from this tool for the same purposes. That’s why we’ve decided to use other great open-source projects for examples throughout the encyclopedia.</p>
+
+
+    <br>
+    <div style="text-align: left">
+        <a href="..">Go back</a>
+    </div>
+    <br>
+    <div class="sharebuttons" style="text-align: center">
+        <hr />
+        <ul>
+          <li>
+            <p class="sharetitle"> Share this: </p>
+          </li>
+          <li class="reddit">
+            <a href="http://www.reddit.com/submit?url=https://evasions.checkpoint.com/src/Evasions/techniques/network.html&title=Evasions:%20Network - Evasion Techniques" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                aria-label="Reddit" role="img"
+                viewBox="0 0 512 512"><rect
+                width="512" height="512"
+                rx="15%"
+                fill="#f40"/><g fill="#fff"><ellipse cx="256" cy="307" rx="166" ry="117"/><circle cx="106" cy="256" r="42"/><circle cx="407" cy="256" r="42"/><circle cx="375" cy="114" r="32"/></g><g stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="m256 196 23-101 73 15" stroke="#fff" stroke-width="16"/><path d="m191 359c33 25 97 26 130 0" stroke="#f40" stroke-width="13"/></g><g fill="#f40"><circle cx="191" cy="287" r="31"/><circle cx="321" cy="287" r="31"/></g></svg>
+                
+            </a>
+          </li>
+          <li class="hn">
+            <a href="http://news.ycombinator.com/submitlink?u=https://evasions.checkpoint.com/src/Evasions/techniques/network.html&t=Evasions:%20Network - Evasion Techniques" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                aria-label="Hacker News" role="img"
+                viewBox="0 0 512 512"><rect
+                width="512" height="512"
+                rx="15%"
+                fill="#f60"/><path fill="#fff" d="M124 91h51l81 162 81-164h51L276 293v136h-40V293z"/></svg>
+            </a>
+          </li>
+          <li class="twitter">
+            <a href="https://twitter.com/intent/tweet?via=_CPResearch_&url=https://evasions.checkpoint.com/src/Evasions/techniques/network.html&text=Evasions:%20Network - Evasion Techniques" target="_blank">
+                <svg viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1684 408q-67 98-162 167 1 14 1 42 0 130-38 259.5t-115.5 248.5-184.5 210.5-258 146-323 54.5q-271 0-496-145 35 4 78 4 225 0 401-138-105-2-188-64.5t-114-159.5q33 5 61 5 43 0 85-11-112-23-185.5-111.5t-73.5-205.5v-4q68 38 146 41-66-44-105-115t-39-154q0-88 44-163 121 149 294.5 238.5t371.5 99.5q-8-38-8-74 0-134 94.5-228.5t228.5-94.5q140 0 236 102 109-21 205-78-37 115-142 178 93-10 186-50z"/></svg>
+            </a>
+          </li>
+          <li class="linkedin">
+            <a href=https://www.linkedin.com/shareArticle?mini=true&url=https://evasions.checkpoint.com/src/Evasions/techniques/network.html&title=Evasions:%20Network - Evasion Techniques&source=LinkedIn" target="_blank">
+                <svg viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M477 625v991h-330v-991h330zm21-306q1 73-50.5 122t-135.5 49h-2q-82 0-132-49t-50-122q0-74 51.5-122.5t134.5-48.5 133 48.5 51 122.5zm1166 729v568h-329v-530q0-105-40.5-164.5t-126.5-59.5q-63 0-105.5 34.5t-63.5 85.5q-11 30-11 81v553h-329q2-399 2-647t-1-296l-1-48h329v144h-2q20-32 41-56t56.5-52 87-43.5 114.5-15.5q171 0 275 113.5t104 332.5z"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+      
+</article>
+
+
+</section>
+
+<nav class="navbar navbar-default navbar-fixed-bottom">
+  <div class="container footer-content">
+
+    Made with <font class="a-pink"><i class ="fa fa-heart"></i></font> to serve the community by Check Point Research    |    <a class="a-pink" href="https://research.checkpoint.com">Research blog</a>    |    <a class="a-pink" href="https://research.checkpoint.com/about-us/">About Us</a>    |    <a class="a-pink" href="https://github.com/CheckPointSW"><i class="fa fa-github fa-lg"></i></a> <a class="a-pink" href="https://twitter.com/_CPResearch_"><i class="fa fa-twitter fa-lg"></i></a>
+    
+    <br>
+    
+    © 1994-2024 Check Point Software Technologies LTD | All rights reserved | Property of CheckPoint.com
+
+
+  </div>
+</nav>
+
+  </body>
+
+</html>

@@ -1,206 +1,107 @@
 """Analysis functions for Go binary detection and entropy analysis"""
 import lief
 import logging
+import math
+from collections import Counter
 from typing import Dict, Any, List, Tuple
-from .consolidated_utils import detect_format, is_executable_section
-from .utils import calculate_entropy, fast_entropy
+from plugins.consolidated_utils import detect_format, is_executable_section, calculate_entropy_with_confidence
+
+logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
 def find_go_build_id(binary) -> Dict[str, Any]:
-    """Find Go build ID in binary with detailed evidence"""
-    result = {
-        "detected": False,
-        "method": None,
-        "evidence": {},
-        "confidence": 0.0
-    }
+    """Enhanced Go detection with weighted confidence and version checking."""
+    result = {"detected": False, "methods": [], "evidence": {}, "confidence": 0.0, "go_version": None}
+    score = 0.0
     
-    try:
-        format_type = detect_format(binary)
-        if format_type == "UNKNOWN":
-            return result
-            
-        # Method 1: Look for Go-specific sections
-        for section in binary.sections:
-            if section.name == ".go.buildid":
-                content = bytes(section.content)
-                result["detected"] = True
-                result["method"] = "go_buildid_section"
-                result["evidence"] = {
-                    "section": section.name,
-                    "size": len(content)
-                }
-                result["confidence"] = 0.95
-                return result
-        
-        # Method 2: Look for other Go-specific sections
-        go_sections = [".gopclntab", ".go.buildinfo"]
-        for section in binary.sections:
-            if section.name in go_sections:
-                result["detected"] = True
-                result["method"] = "go_section"
-                result["evidence"] = {
-                    "section": section.name,
-                    "size": section.size
-                }
-                result["confidence"] = 0.9
-                return result
-        
-        # Method 3: Look for Go-specific strings in the binary
-        go_strings = [b"runtime.", b"go.buildid", b"GOROOT", b"GOPATH"]
-        found_strings = []
-        for section in binary.sections:
+    # Method 1: Go-specific sections (high weight)
+    go_sections = [".go.buildid", ".gopclntab", ".go.buildinfo"]
+    found_sections = [s.name for s in binary.sections if s.name in go_sections]
+    if found_sections:
+        result["methods"].append("go_sections")
+        result["evidence"]["sections"] = found_sections
+        score += 0.4 * len(found_sections) / len(go_sections)
+    
+    # Method 2: PCLNTAB magic (0xFFFFFFFB or 0xFFFFFFFA)
+    for section in binary.sections:
+        if section.name == ".gopclntab":
+            content = bytes(section.content)
+            if content.startswith(b'\xfb\xff\xff\xff') or content.startswith(b'\xfa\xff\xff\xff'):
+                result["methods"].append("pclntab_magic")
+                score += 0.3
+                break
+    
+    # Method 3: Go build info section for version detection
+    for section in binary.sections:
+        if section.name == ".go.buildinfo":
+            content = bytes(section.content)
             try:
-                content = bytes(section.content)
-                for go_string in go_strings:
-                    if go_string in content:
-                        found_strings.append(go_string.decode('utf-8', errors='ignore'))
-            except Exception:
-                continue
-                
-        if found_strings:
-            result["detected"] = True
-            result["method"] = "go_strings"
-            result["evidence"] = {
-                "strings": found_strings
-            }
-            result["confidence"] = 0.7
-            return result
-            
-        # Method 4: Look for Go-specific function names or symbols (if available)
-        if hasattr(binary, 'symbols'):
-            go_symbol_patterns = ["main.main", "runtime.", "go.buildid"]
-            found_symbols = []
-            for symbol in binary.symbols:
-                for pattern in go_symbol_patterns:
-                    if pattern in symbol.name:
-                        found_symbols.append(symbol.name)
-                        
-            if found_symbols:
-                result["detected"] = True
-                result["method"] = "go_symbols"
-                result["evidence"] = {
-                    "symbols": found_symbols
-                }
-                result["confidence"] = 0.8
-                return result
-                
-    except (AttributeError, ValueError) as e:
-        logger.error(f"Error in find_go_build_id: {e}")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error in find_go_build_id: {e}")
-        raise
-        
-    return result
-
-def calculate_entropy_with_confidence(data: bytes, section_size: int = 0) -> Dict[str, Any]:
-    """Calculate the entropy of a byte sequence with confidence metrics"""
-    result = {
-        "value": 0.0,
-        "confidence": 0.0,
-        "interpretation": ""
-    }
+                version_info = content.decode('utf-8', errors='ignore').split('\n')
+                for line in version_info:
+                    if line.startswith("go\t"):
+                        result["go_version"] = line.split('\t')[1]
+                        result["methods"].append("go_buildinfo")
+                        score += 0.2
+                        break
+            except Exception as e:
+                logger.debug(f"Failed to parse go.buildinfo: {e}")
     
-    if not data or len(data) == 0:
-        return result
-        
-    # For very small sections, entropy is unreliable
-    if 0 < section_size < 256 or len(data) < 256:
-        result["confidence"] = 0.1
-        result["interpretation"] = "too_small_for_reliable_entropy"
-        return result
+    # Method 4: Strings (medium weight)
+    go_strings = [b"runtime.", b"go.buildid", b"GOROOT", b"GOPATH"]
+    found_strings = []
+    for section in binary.sections:
+        content = bytes(section.content)
+        found_strings.extend([s.decode('utf-8', errors='ignore') for s in go_strings if s in content])
+    if found_strings:
+        result["methods"].append("go_strings")
+        result["evidence"]["strings"] = list(set(found_strings))
+        score += 0.2
     
-    try:
-        # Use the centralized entropy calculation function
-        entropy_value = fast_entropy(data)  # Use fast entropy calculation
-        result["value"] = entropy_value
-        
-        # Set confidence based on data size
-        data_len = len(data)
-        if data_len > 1024:
-            result["confidence"] = 0.9
-        elif data_len > 512:
-            result["confidence"] = 0.7
-        else:
-            result["confidence"] = 0.5
-            
-        # Interpretation
-        if entropy_value > 7.5:
-            result["interpretation"] = "high_entropy_packed"
-        elif entropy_value > 6.0:
-            result["interpretation"] = "medium_entropy"
-        else:
-            result["interpretation"] = "low_entropy"
-            
-    except (AttributeError, ValueError) as e:
-        logger.error(f"Error calculating entropy: {e}")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error calculating entropy: {e}")
-        raise
-        
+    # Method 5: Symbols (low weight)
+    if hasattr(binary, 'symbols'):
+        go_symbols = ["main.main", "runtime.", "go.buildid"]
+        found_symbols = [sym.name for sym in binary.symbols for pat in go_symbols if pat in sym.name]
+        if found_symbols:
+            result["methods"].append("go_symbols")
+            result["evidence"]["symbols"] = list(set(found_symbols))
+            score += 0.1
+    
+    result["confidence"] = min(1.0, score)
+    result["detected"] = result["confidence"] > 0.5
     return result
 
 def analyze_sections_for_packing(binary) -> List[Dict[str, Any]]:
-    """Analyze sections for packing opportunities with optimized performance"""
+    """Single-pass section analysis for packing opportunities."""
     opportunities = []
     format_type = detect_format(binary)
     
-    try:
-        section_cache = []  # Cache for reuse
-        for section in binary.sections:
-            content = bytes(section.content) if hasattr(section, 'content') else b''
-            size = len(content)
-            info = {
-                "name": section.name,
-                "size": size,
-                "virtual_address": getattr(section, 'virtual_address', 0),
-                "is_executable": is_executable_section(section, format_type),
-                "entropy": fast_entropy(content) if size > 0 else None  # Use fast entropy
-            }
-            section_cache.append(info)
-            
-            # Add opportunities based on entropy...
-            # Calculate entropy for executable sections
-            if info["is_executable"] and content:
-                try:
-                    entropy_result = calculate_entropy_with_confidence(content, info["size"])
-                    
-                    # Add as opportunity if high entropy
-                    if entropy_result["value"] > 7.5 and entropy_result["confidence"] > 0.7:
-                        opportunities.append({
-                            "section": section.name,
-                            "size": info["size"],
-                            "type": "high_entropy_executable",
-                            "entropy": entropy_result["value"],
-                            "confidence": entropy_result["confidence"],
-                            "recommendation": "May be already packed"
-                        })
-                except Exception as e:
-                    logger.error(f"Error analyzing section {section.name}: {e}")
-                    
-            # Extend to check for low entropy data sections that might benefit from compression
-            if not info["is_executable"] and content:
-                entropy_result = calculate_entropy_with_confidence(content, info["size"])
-                
-                # Add as opportunity if low entropy (good compression candidate)
-                if entropy_result["value"] < 6.0 and entropy_result["confidence"] > 0.7:
-                    opportunities.append({
-                        "section": section.name,
-                        "size": info["size"],
-                        "type": "low_entropy_data",
-                        "entropy": entropy_result["value"],
-                        "confidence": entropy_result["confidence"],
-                        "recommendation": "Good candidate for compression"
-                    })
-                    
-    except (AttributeError, ValueError) as e:
-        logger.error(f"Error in analyze_sections_for_packing: {e}")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error in analyze_sections_for_packing: {e}", exc_info=True)
-        raise
+    for section in binary.sections:
+        content = bytes(section.content) if hasattr(section, 'content') else b''
+        size = len(content)
+        entropy_result = calculate_entropy_with_confidence(content)  # From consolidated_utils
         
+        info = {
+            "name": section.name,
+            "size": size,
+            "virtual_address": getattr(section, 'virtual_address', 0),
+            "is_executable": is_executable_section(section, format_type),
+            "entropy": entropy_result["value"],
+            "confidence": entropy_result["confidence"]
+        }
+        
+        # Opportunities in one go
+        if info["is_executable"] and entropy_result["value"] > 7.5 and entropy_result["confidence"] > 0.7:
+            opportunities.append({
+                "section": info["name"], "size": size, "type": "high_entropy_executable",
+                "entropy": entropy_result["value"], "confidence": entropy_result["confidence"],
+                "recommendation": "May be already packed"
+            })
+        elif not info["is_executable"] and entropy_result["value"] < 6.0 and entropy_result["confidence"] > 0.7:
+            opportunities.append({
+                "section": info["name"], "size": size, "type": "low_entropy_data",
+                "entropy": entropy_result["value"], "confidence": entropy_result["confidence"],
+                "recommendation": "Good candidate for compression"
+            })
+    
     return opportunities

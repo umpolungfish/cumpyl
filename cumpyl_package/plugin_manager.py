@@ -6,10 +6,32 @@ from typing import Dict, List, Any, Optional, Type
 from abc import ABC, abstractmethod
 from pathlib import Path
 import yaml
+
+# Try relative imports first (for when running as module)
 try:
     from .config import ConfigManager
 except ImportError:
-    from config import ConfigManager
+    # Fallback to absolute imports (for direct script execution)
+    try:
+        from cumpyl_package.config import ConfigManager
+    except ImportError:
+        from config import ConfigManager
+
+# Try to import PluginRegistry, but don't fail if it's not available
+try:
+    # First try relative import from plugins directory
+    from plugins.plugin_registry import PluginRegistry
+except ImportError:
+    try:
+        # Try absolute import
+        from cumpyl_package.plugins.plugin_registry import PluginRegistry
+    except ImportError:
+        try:
+            # Try direct import
+            import plugins.plugin_registry
+            PluginRegistry = plugins.plugin_registry.PluginRegistry
+        except ImportError:
+            PluginRegistry = None
 
 
 class PluginInterface(ABC):
@@ -143,13 +165,14 @@ class PluginManager:
             
             # 𐑓𐑲𐑯𐑛 𐑐𐑤𐑳𐑜𐑦𐑯 𐑒𐑤𐑭𐑕𐑌𐑦
             plugin_class = None
+            plugin_factory = None
+            
+            # 𐑣𐑧𐑤𐑝 𐑩𐑯𐑦 𐑒𐑤𐑭𐑕𐑧𐑟 𐑢𐑦𐑞 𐑩𐑯𐑨𐑤𐑦𐑟𐑧 𐑯 𐑑𐑮𐑨𐑯𐑕𐑓𐑹𐑥 𐑥𐑧𐑑𐑣𐑪𐑛𐑟
             for name, obj in inspect.getmembers(module, inspect.isclass):
-                # 𐑗𐑧𐑒 𐑦𐑓 𐑦𐑑'𐑕 𐑩 𐑝𐑨𐑤𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯 𐑒𐑤𐑭𐑕 (𐑦𐑯𐑣𐑧𐑮𐑦𐑑𐑕 𐑓𐑮𐑪𐑥 PluginInterface 𐑚𐑳𐑑 𐑦𐑟𐑯'𐑑 𐑞 𐑚𐑱𐑕 𐑒𐑤𐑭𐑕)
                 if (inspect.isclass(obj) and 
                     hasattr(obj, 'analyze') and 
                     hasattr(obj, 'transform') and
-                    obj.__name__ not in ['PluginInterface', 'AnalysisPlugin', 'TransformationPlugin'] and
-                    obj.__module__ == module.__name__):
+                    obj.__name__ not in ['PluginInterface', 'AnalysisPlugin', 'TransformationPlugin']):
                     try:
                         # 𐑩𐑛𐑦𐑖𐑩𐑯𐑩𐑤 𐑗𐑧𐑒: 𐑑𐑮𐑲 𐑑 𐑦𐑯𐑕𐑑𐑨𐑯𐑖𐑦𐑱𐑑 𐑦𐑑 𐑢𐑦𐑞 𐑩 𐑛𐑳𐑥𐑦 𐑒𐑪𐑯𐑓𐑦𐑜
                         test_instance = obj(self.config)
@@ -162,11 +185,43 @@ class PluginManager:
                             print(f"[-] Class {obj.__name__} failed instantiation test: {e}")
                         continue
             
+            # 𐑦𐑓 𐑯 𐑒𐑤𐑭𐑕 𐑢𐑨𐑟 𐑓𐑳𐑯𐑛, 𐑤𐑪𐑒 𐑓𐑹 𐑓𐑨𐑒𐑑𐑮𐑦 𐑓𐑳𐑯𐑒𐑖𐑩𐑯𐑟
             if plugin_class is None:
-                raise PluginLoadError(f"No valid plugin class found in {plugin_name}")
+                print(f"[DEBUG] Looking for factory functions in {plugin_name}")
+                for name, obj in inspect.getmembers(module, inspect.isfunction):
+                    print(f"[DEBUG] Found function: {name}")
+                    if name in ['get_plugin', 'get_transform_plugin']:
+                        print(f"[DEBUG] Checking factory function: {name}")
+                        try:
+                            # 𐑑𐑮𐑲 𐑑 𐑦𐑯𐑕𐑑𐑨𐑯𐑖𐑦𐑱𐑑 𐑩 𐑐𐑤𐑳𐑜𐑦𐑯 𐑓𐑮𐑪𐑥 𐑞 𐑓𐑨𐑒𐑑𐑮𐑦 𐑓𐑳𐑯𐑒𐑖𐑩𐑯
+                            test_instance = obj(self.config)
+                            print(f"[DEBUG] Factory function {name} returned instance: {type(test_instance)}")
+                            if hasattr(test_instance, 'analyze') and hasattr(test_instance, 'transform'):
+                                print(f"[DEBUG] Factory function {name} is valid")
+                                plugin_factory = obj
+                                break
+                            else:
+                                print(f"[DEBUG] Factory function {name} missing analyze or transform methods")
+                        except Exception as e:
+                            print(f"[-] Factory function {name} failed test: {e}")
+                            continue
+            
+            if plugin_class is None and plugin_factory is None:
+                print(f"[-] No valid plugin class or factory function found in {plugin_name}")
+                print(f"    plugin_class: {plugin_class}")
+                print(f"    plugin_factory: {plugin_factory}")
+                raise PluginLoadError(f"No valid plugin class or factory function found in {plugin_name}")
             
             # 𐑦𐑯𐑕𐑑𐑨𐑯𐑖𐑦𐑱𐑑 𐑞 𐑐𐑤𐑳𐑜𐑦𐑯
-            plugin_instance = plugin_class(self.config)
+            if self.config.framework.verbose_logging:
+                print(f"[+] Creating plugin instance for {plugin_name}")
+                print(f"    plugin_class: {plugin_class}")
+                print(f"    plugin_factory: {plugin_factory}")
+                
+            if plugin_class is not None:
+                plugin_instance = plugin_class(self.config)
+            else:
+                plugin_instance = plugin_factory(self.config)
             
             # 𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑛𐑦𐑐𐑧𐑯𐑛𐑩𐑯𐑕𐑦𐑟
             if not plugin_instance.validate_dependencies(list(self.plugins.keys())):
@@ -174,6 +229,18 @@ class PluginManager:
             
             # 𐑨𐑛 𐑑 𐑤𐑴𐑛𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯𐑟
             self.plugins[plugin_name] = plugin_instance
+            
+            # Register with centralized plugin registry
+            try:
+                # Determine plugin type based on inheritance
+                if PluginRegistry is not None:
+                    if isinstance(plugin_instance, AnalysisPlugin):
+                        PluginRegistry.register('analysis', plugin_name, lambda config: plugin_instance)
+                    elif isinstance(plugin_instance, TransformationPlugin):
+                        PluginRegistry.register('transformation', plugin_name, lambda config: plugin_instance)
+            except Exception as e:
+                if self.config.framework.verbose_logging:
+                    print(f"[-] Failed to register plugin {plugin_name} with centralized registry: {e}")
             
             if self.config.framework.verbose_logging:
                 print(f"[+] Loaded plugin: {plugin_name} v{plugin_instance.version}")

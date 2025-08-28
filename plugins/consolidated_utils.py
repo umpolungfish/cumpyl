@@ -6,8 +6,15 @@ import secrets
 import hashlib
 from collections import Counter
 from typing import Dict, Any
-import numpy as np  # Optional for fast path
 from functools import lru_cache
+
+# Optional numpy import for fast path
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    np = None
+    HAS_NUMPY = False
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +89,7 @@ def detect_format_enhanced(binary: Any) -> Dict[str, Any]:
     
     return result
 
+@lru_cache(maxsize=32)
 def detect_format(binary: Any) -> str:
     """Detect binary format (PE, ELF, MACHO, or UNKNOWN)."""
     if not binary:
@@ -116,7 +124,11 @@ def is_executable_section(section: Any, binary_format: str) -> bool:
     try:
         if binary_format == "PE":
             chars = section.characteristics if hasattr(section, 'characteristics') else section.characteristics_value
-            return bool(chars & lief.PE.SECTION_CHARACTERISTICS.MEM_EXECUTE)
+            # Get the actual integer value from the enum
+            mem_execute = lief.PE.Section.CHARACTERISTICS.MEM_EXECUTE
+            if hasattr(mem_execute, 'value'):
+                mem_execute = mem_execute.value
+            return bool(chars & mem_execute)
         elif binary_format == "ELF":
             flags = section.flags if hasattr(section, 'flags') else section.flags_value
             return bool(flags & lief.ELF.SECTION_FLAGS.EXECINSTR)
@@ -134,7 +146,11 @@ def is_readable_section(section: Any, binary_format: str) -> bool:
     try:
         if binary_format == "PE":
             chars = section.characteristics if hasattr(section, 'characteristics') else section.characteristics_value
-            return bool(chars & lief.PE.SECTION_CHARACTERISTICS.MEM_READ)
+            # Get the actual integer value from the enum
+            mem_read = lief.PE.Section.CHARACTERISTICS.MEM_READ
+            if hasattr(mem_read, 'value'):
+                mem_read = mem_read.value
+            return bool(chars & mem_read)
         elif binary_format == "ELF":
             flags = section.flags if hasattr(section, 'flags') else section.flags_value
             return bool(flags & lief.ELF.SECTION_FLAGS.ALLOC)
@@ -153,7 +169,11 @@ def is_writable_section(section: Any, binary_format: str) -> bool:
     try:
         if binary_format == "PE":
             chars = section.characteristics if hasattr(section, 'characteristics') else section.characteristics_value
-            return bool(chars & lief.PE.SECTION_CHARACTERISTICS.MEM_WRITE)
+            # Get the actual integer value from the enum
+            mem_write = lief.PE.Section.CHARACTERISTICS.MEM_WRITE
+            if hasattr(mem_write, 'value'):
+                mem_write = mem_write.value
+            return bool(chars & mem_write)
         elif binary_format == "ELF":
             flags = section.flags if hasattr(section, 'flags') else section.flags_value
             return bool(flags & lief.ELF.SECTION_FLAGS.WRITE)
@@ -179,6 +199,10 @@ def calculate_entropy_with_confidence(data: bytes, max_samples: int = 65536) -> 
     if data_len <= 256:
         return {"value": 0.0, "confidence": 0.1, "interpretation": "too_small_for_reliable_entropy"}
     
+    # Early exit for uniform data
+    if len(set(data)) <= 1:
+        return {"value": 0.0, "confidence": 0.9, "interpretation": "uniform_data"}
+    
     # Stratified sampling
     if data_len > max_samples:
         chunk_size = data_len // (max_samples // 256)
@@ -190,15 +214,24 @@ def calculate_entropy_with_confidence(data: bytes, max_samples: int = 65536) -> 
     else:
         sample = data
     
-    try:
-        # Fast path with NumPy
-        counts = np.bincount(np.frombuffer(sample, dtype=np.uint8), minlength=256)
-        counts = counts[counts > 0]
-        if counts.size == 0:
-            return {"value": 0.0, "confidence": 0.1, "interpretation": "no_variety"}
-        p = counts / counts.sum()
-        entropy = -np.sum(p * np.log2(p))
-    except ImportError:
+    # Use NumPy fast path if available
+    if HAS_NUMPY:
+        try:
+            # Fast path with NumPy
+            counts = np.bincount(np.frombuffer(sample, dtype=np.uint8), minlength=256)
+            counts = counts[counts > 0]
+            if counts.size == 0:
+                return {"value": 0.0, "confidence": 0.1, "interpretation": "no_variety"}
+            p = counts / counts.sum()
+            entropy = -np.sum(p * np.log2(p))
+        except Exception as e:
+            logger.warning(f"NumPy entropy calculation failed, falling back to pure Python: {e}")
+            # Simplified fallback for small data
+            counts = {}
+            for b in sample:
+                counts[b] = counts.get(b, 0) + 1
+            entropy = sum(- (count / len(sample)) * math.log2(count / len(sample)) for count in counts.values() if count > 0)
+    else:
         # Simplified fallback for small data
         counts = {}
         for b in sample:

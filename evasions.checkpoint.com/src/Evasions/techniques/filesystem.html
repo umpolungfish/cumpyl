@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-194688-3"></script>
+  <script>
+   window.dataLayer = window.dataLayer || [];
+   function gtag(){dataLayer.push(arguments);}
+   gtag('js', new Date());
+   gtag('config', 'UA-194688-3');
+  </script>
+  <meta content="Evasion techniques" property="og:site_name">
+
+  <meta content="Evasions: Filesystem" property="og:title">
+
+
+  <meta name="twitter:title" content="Malware Evasion Encyclopedia" />
+  <meta name="twitter:image" content="https://research.checkpoint.com/wp-content/uploads/2020/02/evasions.jpg" />
+
+
+  <meta content="article" property="og:type">
+
+
+  <meta content="Evasion techniques
+" property="og:description">
+
+
+  <meta content="https://evasions.checkpoint.com/src/Evasions/techniques/filesystem.html" property="og:url">
+
+
+  <meta content="2024-07-10T07:20:28+00:00" property="article:published_time">
+  <meta content="https://evasions.checkpoint.com/about/" property="article:author">
+
+
+  <meta property="og:image" content="">
+
+
+  
+  <meta content="evasions" property="article:section">
+  
+
+
+  
+  <meta content="filesystem" property="article:tag">
+  
+
+  <title>Evasions: Filesystem</title>
+  <meta name="description" content="Contents">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://evasions.checkpoint.com/assets/css/main.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Fira+Mono' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,200,300,500,600,700,900' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Gentium+Basic:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Alegreya:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Lora:400,400italic,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Fira+Sans:400,300,500,700' rel='stylesheet' type='text/css'>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-hQpvDQiCJaD2H465dQfA717v7lu5qHWtDbWNPvaTJ0ID5xnPUlVXnKzq7b8YUkbN" crossorigin="anonymous">
+  <link rel="canonical" href="https://evasions.checkpoint.com/src/Evasions/techniques/filesystem.html">
+  <link rel="alternate" type="application/rss+xml" title="Evasion techniques" href="https://evasions.checkpoint.com/feed.xml">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.charorder.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/2.3.6/tinysort.charorder.min.js"></script>
+  <script type="text/javascript" async src="//platform.twitter.com/widgets.js"></script>
+
+
+
+
+</head>
+
+
+  <body>
+<section>
+<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <div class="jumbotron">
+    <div class="container">
+      <h1 class="post-title-main" itemprop="name headline">Evasions: Filesystem</h1>
+    </div>
+</div>
+
+  <div class="post-content container" itemprop="articleBody">
+    <div style="text-align: left">
+        <a href="..">Go back</a>
+        <br>
+        <br>
+    </div>
+    <h1>Contents</h1>
+
+<p><a href="#filesystem-detection-methods">Filesystem detection methods</a>
+<br />
+  <a href="#check-if-specific-files-exist">1. Check if specific files exist</a>
+<br />
+  <a href="#check-if-specific-directories-present">2. Check if specific directories are present</a>
+<br />
+  <a href="#check-if-full-path-exec">3. Check if full path to the executable contains one of specific strings</a>
+<br />
+  <a href="#check-if-exec-is-run">4. Check if the executable is run from specific directory</a>
+<br />
+  <a href="#check-if-exec-files-with-specific-names">5. Check if the executable files with specific names are present in physical disk drives root</a>
+<br />
+<a href="#countermeasures">Countermeasures</a>
+<br />
+<a href="#credits">Credits</a>
+<br />
+<br /></p>
+
+<h2><a class="a-dummy" name="filesystem-detection-methods">Filesystem detection methods</a></h2>
+<p>The principle of all the filesystem detection methods is the following: there are no such files and directories in usual host; however they exist in particular virtual environments and sandboxes. Virtual environment may be detected if such an artifact is present.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-specific-files-exist">1. Check if specific files exist</a></h3>
+
+<p>This method uses the difference in files which are present in usual host system and virtual environments. There are quite a few file artifacts present in virtual environments which are specific for such kinds of systems. These files are not present on usual host systems where no virtual environment is installed.</p>
+
+<p>Function used:</p>
+<ul>
+<li><tt>GetFileAttributes  // if attributes are invalid then no file exists</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">BOOL</span> <span class="nf">is_FileExists</span><span class="p">(</span><span class="n">TCHAR</span><span class="o">*</span> <span class="n">szPath</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">DWORD</span> <span class="n">dwAttrib</span> <span class="o">=</span> <span class="n">GetFileAttributes</span><span class="p">(</span><span class="n">szPath</span><span class="p">);</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">dwAttrib</span> <span class="o">!=</span> <span class="n">INVALID_FILE_ATTRIBUTES</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="p">(</span><span class="n">dwAttrib</span> <span class="o">&amp;</span> <span class="n">FILE_ATTRIBUTE_DIRECTORY</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/*
+Check against some of VMware blacklisted files
+*/</span>
+<span class="n">VOID</span> <span class="nf">vmware_files</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="cm">/* Array of strings of blacklisted paths */</span>
+    <span class="n">TCHAR</span><span class="o">*</span> <span class="n">szPaths</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">_T</span><span class="p">(</span><span class="s">"system32</span><span class="se">\\</span><span class="s">drivers</span><span class="se">\\</span><span class="s">vmmouse.sys"</span><span class="p">),</span>
+        <span class="n">_T</span><span class="p">(</span><span class="s">"system32</span><span class="se">\\</span><span class="s">drivers</span><span class="se">\\</span><span class="s">vmhgfs.sys"</span><span class="p">),</span>
+    <span class="p">};</span>
+    
+    <span class="cm">/* Getting Windows Directory */</span>
+    <span class="n">WORD</span> <span class="n">dwlength</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">szPaths</span><span class="p">)</span> <span class="o">/</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">szPaths</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">TCHAR</span> <span class="n">szWinDir</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">]</span> <span class="o">=</span> <span class="n">_T</span><span class="p">(</span><span class="s">""</span><span class="p">);</span>
+    <span class="n">TCHAR</span> <span class="n">szPath</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">]</span> <span class="o">=</span> <span class="n">_T</span><span class="p">(</span><span class="s">""</span><span class="p">);</span>
+    <span class="n">GetWindowsDirectory</span><span class="p">(</span><span class="n">szWinDir</span><span class="p">,</span> <span class="n">MAX_PATH</span><span class="p">);</span>
+    
+    <span class="cm">/* Check one by one */</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">dwlength</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">PathCombine</span><span class="p">(</span><span class="n">szPath</span><span class="p">,</span> <span class="n">szWinDir</span><span class="p">,</span> <span class="n">szPaths</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+        <span class="n">TCHAR</span> <span class="n">msg</span><span class="p">[</span><span class="mi">256</span><span class="p">]</span> <span class="o">=</span> <span class="n">_T</span><span class="p">(</span><span class="s">""</span><span class="p">);</span>
+        <span class="n">_stprintf_s</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="o">/</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">TCHAR</span><span class="p">),</span> <span class="n">_T</span><span class="p">(</span><span class="s">"Checking file %s: "</span><span class="p">),</span> <span class="n">szPath</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">is_FileExists</span><span class="p">(</span><span class="n">szPath</span><span class="p">))</span>
+            <span class="n">print_results</span><span class="p">(</span><span class="n">TRUE</span><span class="p">,</span> <span class="n">msg</span><span class="p">);</span>
+        <span class="k">else</span>
+            <span class="n">print_results</span><span class="p">(</span><span class="n">FALSE</span><span class="p">,</span> <span class="n">msg</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/LordNoteworthy/al-khaser">al-khaser project</a></i></p>
+
+<hr class="space" />
+
+<p><b>Signature recommendations</b></p>
+<p></p>
+<p>If the following function contains its only argument from the table column <font face="Courier New">`Path`</font>:</p>
+<p></p>
+<ul>
+<li><tt>GetFileAttributes(path)</tt></li> 
+</ul>
+<p>then it’s an indication of application trying to use the evasion technique.</p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:100%">
+  <tr>
+  	<td colspan="3">Check if the following files exist:</td>
+  </tr>
+  <tr>
+  	<th style="text-align:center">Detect</th>
+  	<th style="text-align:center">Path</th>
+  	<th style="text-align:center">Details (if any)</th>
+  </tr>
+  <tr>
+  	<th rowspan="11">[general]</th>
+  	<td>c:\[60 random hex symbols]</td>
+  	<td>file unique to the PC used for encoding</td>
+  </tr>
+  <tr>
+  	<td>c:\take_screenshot.ps1</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\loaddll.exe</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\email.doc</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\email.htm</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\123\email.doc</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\123\email.docx</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\a\foobar.bmp</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\a\foobar.doc</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\a\foobar.gif</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\symbols\aagmmc.pdb</td>
+  	<td />
+  </tr>
+  <tr>
+  	<th rowspan="7">Parallels</th>
+  	<td>c:\windows\system32\drivers\prleth.sys</td>
+  	<td>Network Adapter</td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\prlfs.sys</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\prlmouse.sys</td>
+  	<td>Mouse Synchronization Tool</td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\prlvideo.sys</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\prltime.sys</td>
+  	<td>Time Synchronization Driver</td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\prl_pv32.sys</td>
+  	<td>Paravirtualization Driver</td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\prl_paravirt_32.sys</td>
+  	<td>Paravirtualization Driver</td>
+  </tr>
+  <tr>
+  	<th rowspan="17">VirtualBox</th>
+  	<td>c:\windows\system32\drivers\VBoxMouse.sys</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\VBoxGuest.sys</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\VBoxSF.sys</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\VBoxVideo.sys</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxdisp.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxhook.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxmrxnp.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxogl.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxoglarrayspu.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxoglcrutil.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxoglerrorspu.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxoglfeedbackspu.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxoglpackspu.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxoglpassthroughspu.dll</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxservice.exe</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\vboxtray.exe</td>
+  	<td />
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\VBoxControl.exe</td>
+  	<td />
+  </tr>
+  <tr>
+  	<th rowspan="2">VirtualPC</th>
+  	<td>c:\windows\system32\drivers\vmsrvc.sys</td>
+  	<td></td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\vpc-s3.sys</td>
+  	<td></td>
+  </tr>
+  <tr>
+  	<th rowspan="6">VMware</th>
+  	<td>c:\windows\system32\drivers\vmmouse.sys</td>
+  	<td>Pointing PS/2 Device Driver</td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\vmnet.sys</td>
+  	<td></td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\vmxnet.sys</td>
+  	<td>PCI Ethernet Adapter</td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\vmhgfs.sys</td>
+  	<td>HGFS Filesystem Driver</td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\vmx86.sys</td>
+  	<td></td>
+  </tr>
+  <tr>
+  	<td>c:\windows\system32\drivers\hgfs.sys</td>
+  	<td></td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-specific-directories-present">2. Check if specific directories are present</a></h3>
+
+<p>This method uses the difference in directories which are present in usual host system and virtual environments. There are quite a few directory artifacts present in virtual environments which are specific for such kinds of systems. These directories are not present on usual host systems where no virtual environment is installed.</p>
+
+<p>Function used:</p>
+<ul>
+<li><tt>GetFileAttributes  // if attributes are invalid then no file exists</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">BOOL</span> <span class="nf">is_DirectoryExists</span><span class="p">(</span><span class="n">TCHAR</span><span class="o">*</span> <span class="n">szPath</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">DWORD</span> <span class="n">dwAttrib</span> <span class="o">=</span> <span class="n">GetFileAttributes</span><span class="p">(</span><span class="n">szPath</span><span class="p">);</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">dwAttrib</span> <span class="o">!=</span> <span class="n">INVALID_FILE_ATTRIBUTES</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">dwAttrib</span> <span class="o">&amp;</span> <span class="n">FILE_ATTRIBUTE_DIRECTORY</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/*
+Check against VMware blacklisted directory
+*/</span>
+<span class="n">BOOL</span> <span class="nf">vmware_dir</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">TCHAR</span> <span class="n">szProgramFile</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">];</span>
+    <span class="n">TCHAR</span> <span class="n">szPath</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">]</span> <span class="o">=</span> <span class="n">_T</span><span class="p">(</span><span class="s">""</span><span class="p">);</span>
+    <span class="n">TCHAR</span> <span class="n">szTarget</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">]</span> <span class="o">=</span> <span class="n">_T</span><span class="p">(</span><span class="s">"VMware</span><span class="se">\\</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">IsWoW64</span><span class="p">())</span>
+        <span class="n">ExpandEnvironmentStrings</span><span class="p">(</span><span class="n">_T</span><span class="p">(</span><span class="s">"%ProgramW6432%"</span><span class="p">),</span> <span class="n">szProgramFile</span><span class="p">,</span> <span class="n">ARRAYSIZE</span><span class="p">(</span><span class="n">szProgramFile</span><span class="p">));</span>
+    <span class="k">else</span>
+        <span class="n">SHGetSpecialFolderPath</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">szProgramFile</span><span class="p">,</span> <span class="n">CSIDL_PROGRAM_FILES</span><span class="p">,</span> <span class="n">FALSE</span><span class="p">);</span>
+    <span class="n">PathCombine</span><span class="p">(</span><span class="n">szPath</span><span class="p">,</span> <span class="n">szProgramFile</span><span class="p">,</span> <span class="n">szTarget</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">is_DirectoryExists</span><span class="p">(</span><span class="n">szPath</span><span class="p">);</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/LordNoteworthy/al-khaser">al-khaser project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Signature recommendations</b></p>
+<p></p>
+<p>If the following function contains its only argument from the table column <font face="Courier New">`Path`</font>:</p>
+<p></p>
+<ul>
+<li><tt>GetFileAttributes(path)</tt></li> 
+</ul>
+<p>then it’s an indication of application trying to use the evasion technique.</p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:62%">
+  <tr>
+  	<td colspan="3">Check if the following files exist:</td>
+  </tr>
+  <tr>
+  	<th style="text-align:center">Detect</th>
+  	<th style="text-align:center">Path</th>
+  </tr>
+  <tr>
+  	<th>CWSandbox</th>
+  	<td>c:\analysis</td>
+  </tr>
+  <tr>
+  	<th>VirtualBox</th>
+  	<td>%PROGRAMFILES%\oracle\virtualbox guest additions\</td>
+  </tr>
+  <tr>
+  	<th>VMware</th>
+  	<td>%PROGRAMFILES%\VMware\</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-full-path-exec">3. Check if full path to the executable contains one of the specific strings</a></h3>
+
+<p>This method relies on peculiarities of launching executables inside virtual environments. Some environments launch executables from specific paths - and malware samples check these paths.</p>
+
+<p>Functions used to get executable path:</p>
+<ul>
+<li><tt>GetModuleFileName</tt></li>
+<li><tt>GetProcessImageFileNameA/W</tt></li>
+<li><tt>QueryFullProcessImageName</tt></li>
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample (function GetModuleFileName)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">gensandbox_path</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">char</span> <span class="n">path</span><span class="p">[</span><span class="mi">500</span><span class="p">];</span>
+    <span class="kt">size_t</span> <span class="n">i</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">pathsize</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+
+    <span class="n">GetModuleFileName</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">pathsize</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">strlen</span><span class="p">(</span><span class="n">path</span><span class="p">);</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span> <span class="cm">/* case-insensitive */</span>
+        <span class="n">path</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">toupper</span><span class="p">(</span><span class="n">path</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// some sample values from the table</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">strstr</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">SAMPLE"</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">strstr</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">VIRUS"</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">strstr</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">"SANDBOX"</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/a0rtega/pafish">pafish project</a> </i></p>
+
+<hr class="space" />
+
+<p><b>Code sample (function QueryFullProcessImageName)</b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="n">DWORD</span> <span class="n">PID</span> <span class="o">=</span> <span class="mi">1337</span><span class="p">;</span> <span class="c1">// process ID of the target process</span>
+<span class="n">HANDLE</span> <span class="n">hProcess</span> <span class="o">=</span> <span class="n">OpenProcess</span><span class="p">(</span><span class="n">PROCESS_QUERY_INFORMATION</span><span class="p">,</span> <span class="nb">false</span><span class="p">,</span> <span class="n">PID</span><span class="p">);</span>
+<span class="n">DWORD</span> <span class="n">value</span> <span class="o">=</span> <span class="n">MAX_PATH</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">buffer</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">];</span>
+<span class="n">QueryFullProcessImageName</span><span class="p">(</span><span class="n">hProcess</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">buffer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">value</span><span class="p">);</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"EXE Path: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">buffer</span><span class="p">);</span></code></pre></figure>
+
+<hr class="space" />
+
+<p><b>No signature recommendations</b></p>
+<p></p>
+<p>Signature recommendations are not provided as it’s hard to say why exactly application wants to get its full path. Function calls may be hooked - and that’s it, just general recommendation.</p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:62%">
+  <tr>
+  	<td colspan="3">Check if full path to the executable contains one of the following strings:</td>
+  </tr>
+  <tr>
+  	<th style="text-align:center">Detect</th>
+  	<th style="text-align:center">String</th>
+  </tr>
+  <tr>
+  	<th rowspan="3">[general]</th>
+  	<td>\sample</td>
+  </tr>
+  <tr>
+  	<td>\virus</td>
+  </tr>
+  <tr>
+  	<td>sandbox</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-exec-is-run">4. Check if the executable is run from specific directory</a></h3>
+
+<p>This method relies on peculiarities of launching executables inside virtual environments. Some environments launch executables from specific directories - and malware samples check these directories.</p>
+
+<p>It’s just a particular case of checking presence of specific strings in full application path, please refer to the <a href="#check-if-full-path-exec">section above</a> for code sample and signature recommendations.</p>
+
+<p>As this very method is pretty old and is not commonly used, the links to external sources are provided for the reference on this method:</p>
+<ul>
+<li>VB <a href="https://www.opensc.io/showthread.php?t=2343">code sample</a></li> 
+<li>python <a href="https://github.com/brad-accuvant/community-modified/blob/master/modules/signatures/antisandbox_joe_anubis_files.py">code sample</a></li> 
+<li>anti-emulation <a href="http://web.archive.org/web/20181222042516/www.woodmann.com/forum/showthread.php?12545-Anti-Emulation-Tricks">tricks</a></li> 
+<li>stub for <a href="http://web.archive.org/web/20101026233743/http://evilcry.netsons.org/OC0/code/EmulationAwareness.c">C code</a></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:62%">
+  <tr>
+  	<td colspan="3">Check if the executable is run from the following directories:</td>
+  </tr>
+  <tr>
+  	<th style="text-align:center">Detect</th>
+  	<th style="text-align:center">Path</th>
+  </tr>
+  <tr>
+  	<th>Anubis</th>
+  	<td>c:\insidetm</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="check-if-exec-files-with-specific-names">5. Check if the executable files with specific names are present in physical disk drives' root</a></h3>
+
+<p>This method relies on peculiarities of virtual environments, in this case it’s presence of specific files in disk root root directories.</p>
+
+<p>Function used:</p>
+<ul>
+<li><tt>GetFileAttributes  // if attributes are invalid then no file exists</tt></li> 
+</ul>
+
+<hr class="space" />
+
+<p><b>Code sample (function GetModuleFileName)<b></b></b></p>
+<p></p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">pafish_exists_file</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">filename</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">DWORD</span> <span class="n">res</span> <span class="o">=</span> <span class="n">INVALID_FILE_ATTRIBUTES</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">pafish_iswow64</span><span class="p">()</span> <span class="o">==</span> <span class="n">TRUE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">void</span> <span class="o">*</span><span class="n">old</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+        <span class="c1">// Disable redirection immediately prior to calling GetFileAttributes.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">pafish_disable_wow64_fs_redirection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">old</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">GetFileAttributes</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+            <span class="c1">// Ignoring MSDN recommendation of exiting if this call fails.</span>
+            <span class="n">pafish_revert_wow64_fs_redirection</span><span class="p">(</span><span class="n">old</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">GetFileAttributes</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">res</span> <span class="o">!=</span> <span class="n">INVALID_FILE_ATTRIBUTES</span><span class="p">)</span> <span class="o">?</span> <span class="n">TRUE</span> <span class="o">:</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">gensandbox_common_names</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">DWORD</span> <span class="n">dwSize</span> <span class="o">=</span> <span class="n">MAX_PATH</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">szLogicalDrives</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    <span class="n">DWORD</span> <span class="n">dwResult</span> <span class="o">=</span> <span class="n">GetLogicalDriveStrings</span><span class="p">(</span><span class="n">dwSize</span><span class="p">,</span><span class="n">szLogicalDrives</span><span class="p">);</span>
+    <span class="n">BOOL</span> <span class="n">exists</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">dwResult</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">dwResult</span> <span class="o">&lt;=</span> <span class="n">MAX_PATH</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">char</span><span class="o">*</span> <span class="n">szSingleDrive</span> <span class="o">=</span> <span class="n">szLogicalDrives</span><span class="p">;</span>
+        <span class="kt">char</span> <span class="n">filename</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+        <span class="k">while</span><span class="p">(</span><span class="o">*</span><span class="n">szSingleDrive</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">GetDriveType</span><span class="p">(</span><span class="n">szSingleDrive</span><span class="p">)</span> <span class="o">!=</span> <span class="n">DRIVE_REMOVABLE</span> <span class="p">)</span> <span class="p">{</span>
+                <span class="n">snprintf</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">MAX_PATH</span><span class="p">,</span> <span class="s">"%ssample.exe"</span><span class="p">,</span><span class="n">szSingleDrive</span><span class="p">);</span>
+                <span class="n">exists</span> <span class="o">=</span> <span class="n">pafish_exists_file</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">exists</span><span class="p">)</span> <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+                
+                <span class="n">snprintf</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">MAX_PATH</span><span class="p">,</span> <span class="s">"%smalware.exe"</span><span class="p">,</span><span class="n">szSingleDrive</span><span class="p">);</span>
+                <span class="n">exists</span> <span class="o">=</span> <span class="n">pafish_exists_file</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">exists</span><span class="p">)</span> <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+            <span class="p">}</span>
+
+            <span class="n">szSingleDrive</span> <span class="o">+=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">szSingleDrive</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><i>Credits for this code sample: <a href="https://github.com/a0rtega/pafish">pafish project</a></i></p>
+
+<hr class="space" />
+
+<p><b>Signature recommendations</b></p>
+<p></p>
+<p>If the following function contains its only argument from the table column <font face="Courier New">`Path`</font>:</p>
+<p></p>
+<ul>
+<li><tt>GetFileAttributes(path)</tt></li> 
+</ul>
+<p>then it’s an indication of application trying to use the evasion technique.</p>
+
+<hr class="space" />
+
+<p><b>Detections table</b></p>
+
+<table style="width:62%">
+  <tr>
+  	<td colspan="2">Check if the executables with particular names are present in disk root:</td>
+  </tr>
+  <tr>
+  	<th style="text-align:center">Detect</th>
+  	<th style="text-align:center">Path</th>
+  </tr>
+  <tr>
+  	<th rowspan="2">[general]</th>
+  	<td>malware.exe</td>
+  </tr>
+  <tr>
+  	<td>sample.exe</td>
+  </tr>
+</table>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="countermeasures">Countermeasures</a></h3>
+
+<p>Hook target functions and return appropriate results if indicators (files from tables) are checked.</p>
+
+<p><br /></p>
+<h3><a class="a-dummy" name="credits">Credits</a></h3>
+
+<p>Credits go to open-source projects from where code samples were taken:</p>
+<ul>
+<li>al-khaser project on <a href="https://github.com/LordNoteworthy/al-khaser">github</a></li>
+<li>pafish project on <a href="https://github.com/a0rtega/pafish">github</a></li>
+</ul>
+
+<p>Though Check Point tool InviZzzible has them all implemented, due to modular structure of the code it would require more space to show a code sample from this tool for the same purposes. That’s why we’ve decided to use other great open-source projects for examples throughout the encyclopedia.</p>
+
+
+    <br>
+    <div style="text-align: left">
+        <a href="..">Go back</a>
+    </div>
+    <br>
+    <div class="sharebuttons" style="text-align: center">
+        <hr />
+        <ul>
+          <li>
+            <p class="sharetitle"> Share this: </p>
+          </li>
+          <li class="reddit">
+            <a href="http://www.reddit.com/submit?url=https://evasions.checkpoint.com/src/Evasions/techniques/filesystem.html&title=Evasions:%20Filesystem - Evasion Techniques" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                aria-label="Reddit" role="img"
+                viewBox="0 0 512 512"><rect
+                width="512" height="512"
+                rx="15%"
+                fill="#f40"/><g fill="#fff"><ellipse cx="256" cy="307" rx="166" ry="117"/><circle cx="106" cy="256" r="42"/><circle cx="407" cy="256" r="42"/><circle cx="375" cy="114" r="32"/></g><g stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="m256 196 23-101 73 15" stroke="#fff" stroke-width="16"/><path d="m191 359c33 25 97 26 130 0" stroke="#f40" stroke-width="13"/></g><g fill="#f40"><circle cx="191" cy="287" r="31"/><circle cx="321" cy="287" r="31"/></g></svg>
+                
+            </a>
+          </li>
+          <li class="hn">
+            <a href="http://news.ycombinator.com/submitlink?u=https://evasions.checkpoint.com/src/Evasions/techniques/filesystem.html&t=Evasions:%20Filesystem - Evasion Techniques" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                aria-label="Hacker News" role="img"
+                viewBox="0 0 512 512"><rect
+                width="512" height="512"
+                rx="15%"
+                fill="#f60"/><path fill="#fff" d="M124 91h51l81 162 81-164h51L276 293v136h-40V293z"/></svg>
+            </a>
+          </li>
+          <li class="twitter">
+            <a href="https://twitter.com/intent/tweet?via=_CPResearch_&url=https://evasions.checkpoint.com/src/Evasions/techniques/filesystem.html&text=Evasions:%20Filesystem - Evasion Techniques" target="_blank">
+                <svg viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1684 408q-67 98-162 167 1 14 1 42 0 130-38 259.5t-115.5 248.5-184.5 210.5-258 146-323 54.5q-271 0-496-145 35 4 78 4 225 0 401-138-105-2-188-64.5t-114-159.5q33 5 61 5 43 0 85-11-112-23-185.5-111.5t-73.5-205.5v-4q68 38 146 41-66-44-105-115t-39-154q0-88 44-163 121 149 294.5 238.5t371.5 99.5q-8-38-8-74 0-134 94.5-228.5t228.5-94.5q140 0 236 102 109-21 205-78-37 115-142 178 93-10 186-50z"/></svg>
+            </a>
+          </li>
+          <li class="linkedin">
+            <a href=https://www.linkedin.com/shareArticle?mini=true&url=https://evasions.checkpoint.com/src/Evasions/techniques/filesystem.html&title=Evasions:%20Filesystem - Evasion Techniques&source=LinkedIn" target="_blank">
+                <svg viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M477 625v991h-330v-991h330zm21-306q1 73-50.5 122t-135.5 49h-2q-82 0-132-49t-50-122q0-74 51.5-122.5t134.5-48.5 133 48.5 51 122.5zm1166 729v568h-329v-530q0-105-40.5-164.5t-126.5-59.5q-63 0-105.5 34.5t-63.5 85.5q-11 30-11 81v553h-329q2-399 2-647t-1-296l-1-48h329v144h-2q20-32 41-56t56.5-52 87-43.5 114.5-15.5q171 0 275 113.5t104 332.5z"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+      
+</article>
+
+
+</section>
+
+<nav class="navbar navbar-default navbar-fixed-bottom">
+  <div class="container footer-content">
+
+    Made with <font class="a-pink"><i class ="fa fa-heart"></i></font> to serve the community by Check Point Research    |    <a class="a-pink" href="https://research.checkpoint.com">Research blog</a>    |    <a class="a-pink" href="https://research.checkpoint.com/about-us/">About Us</a>    |    <a class="a-pink" href="https://github.com/CheckPointSW"><i class="fa fa-github fa-lg"></i></a> <a class="a-pink" href="https://twitter.com/_CPResearch_"><i class="fa fa-twitter fa-lg"></i></a>
+    
+    <br>
+    
+    © 1994-2024 Check Point Software Technologies LTD | All rights reserved | Property of CheckPoint.com
+
+
+  </div>
+</nav>
+
+  </body>
+
+</html>

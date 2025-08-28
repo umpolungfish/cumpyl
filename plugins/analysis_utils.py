@@ -1,7 +1,7 @@
 """Shared analysis functions for binary analysis plugins."""
 
 from typing import Dict, Any, List, Tuple
-from .consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy_with_confidence
+from plugins.consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy_with_confidence
 
 def analyze_binary_sections(binary, format_type: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Analyze binary sections for characteristics and packing opportunities."""

@@ -31,8 +31,12 @@ dependencies = [
     "capstone", 
     "keystone-engine",
     "rich",
+    "tenacity",
     "tqdm",
-    "pyyaml"
+    "bitsandbytes",
+    "cryptography",
+    "pyyaml",
+    "jsonschema"
 ]
 
 [project.optional-dependencies]

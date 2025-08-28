@@ -9,9 +9,11 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes, constant_time
 from cryptography.hazmat.backends import default_backend
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 logger = logging.getLogger(__name__)
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def load_and_derive_key(key_path: str, password: bytes = None, iterations: int = 1000000, config: Dict[Any, Any] = None) -> bytes:
     """Load key from file, verify integrity with HMAC, and derive using PBKDF2 if password provided."""
     if not os.path.isfile(key_path):
@@ -25,8 +27,12 @@ def load_and_derive_key(key_path: str, password: bytes = None, iterations: int =
     if isinstance(integrity_key, str):
         integrity_key = integrity_key.encode()
     
-    with open(key_path, "rb") as f:
-        data = f.read()
+    try:
+        with open(key_path, "rb") as f:
+            data = f.read()
+    except IOError as e:
+        logger.error(f"Failed to read key file: {e}")
+        raise
     
     if len(data) < 48:  # Min key (16) + HMAC (32)
         raise ValueError("Invalid key file format")
