@@ -110,9 +110,17 @@ class CumpylStartMenu:
         
     def launch_lucky_strikes(self):
         """Launch the Lucky Strikes (Packers) menu"""
+        # We need a target file for the packer menu
+        target_file = self.select_target_file()
+        if not target_file:
+            self.console.print("[yellow]No target file selected, returning to main menu[/yellow]")
+            return
+            
         self.console.print("[yellow]Plugin packer menu not available[/yellow]")
         if CumpylMenu:
             menu = CumpylMenu(self.config)
+            # Set the target file for the menu
+            menu.target_file = target_file
             # Directly call the packer menu
             menu.pe_packer_menu()
         else:
