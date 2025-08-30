@@ -37,7 +37,8 @@ def find_go_build_id(binary) -> Dict[str, Any]:
         if section.name == ".go.buildinfo":
             content = bytes(section.content)
             try:
-                version_info = content.decode('utf-8', errors='ignore').split('\n')
+                # Use a more robust approach to handle invalid UTF-8 sequences
+                version_info = content.decode('utf-8', errors='replace').split('\n')
                 for line in version_info:
                     if line.startswith("go\t"):
                         result["go_version"] = line.split('\t')[1]
@@ -52,7 +53,12 @@ def find_go_build_id(binary) -> Dict[str, Any]:
     found_strings = []
     for section in binary.sections:
         content = bytes(section.content)
-        found_strings.extend([s.decode('utf-8', errors='ignore') for s in go_strings if s in content])
+        # Use a more robust approach to handle invalid UTF-8 sequences
+        try:
+            content_str = content.decode('utf-8', errors='replace')
+            found_strings.extend([s.decode('utf-8', errors='replace') for s in go_strings if s in content])
+        except Exception as e:
+            logger.debug(f"Failed to decode section content for string search: {e}")
     if found_strings:
         result["methods"].append("go_strings")
         result["evidence"]["strings"] = list(set(found_strings))
