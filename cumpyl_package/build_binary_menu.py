@@ -203,7 +203,7 @@ class BuildBinaryMenu:
             ("1", "Basic Hex View (HTML)", f"cumpyl {self.target_file} --hex-view"),
             ("2", "Interactive Section Selection (HTML)", f"cumpyl {self.target_file} --hex-view --hex-view-interactive"),
             ("3", "Interactive Terminal Hex Viewer", "Launch TUI hex viewer with navigation"),
-            ("4", "Hex + Full Analysis", f"cumpyl {self.target_file} --hex-view --run-analysis --suggest-obfuscation"),
+            ("4", "Hex + Analysis + Obfuscation Suggestions", f"cumpyl {self.target_file} --hex-view --run-analysis --suggest-obfuscation"),
             ("5", "Custom Range (specify offset)", "Custom command builder"),
             ("6", "View Specific Section", "Custom section selector"),
             ("7", "Large File View (8KB)", f"cumpyl {self.target_file} --hex-view --hex-view-bytes 8192"),

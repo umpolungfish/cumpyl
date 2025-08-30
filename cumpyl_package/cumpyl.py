@@ -396,13 +396,16 @@ class BinaryRewriter:
                 print()
 
     def suggest_obfuscation(self, return_suggestions: bool = False) -> Optional[List[Dict[str, Any]]]:
-        """𐑨𐑯𐑩𐑤𐑲𐑟 𐑞 𐑚𐑲𐑯𐑻𐑦 𐑯 𐑕𐑳𐑜𐑧𐑕𐑑 𐑪𐑐𐑑𐑦𐑥𐑩𐑤 𐑕𐑧𐑒𐑖𐑩𐑯𐑟 𐑓 𐑩𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑢 𐑛𐑦𐑓𐑻𐑩𐑯𐑑 𐑑𐑽𐑟"""
+        """𐑨𐑯𐑩𐑤𐑲𐑟 𐑞 𐑚𐑲𐑯𐑻𐑦 𐑯 𐑕𐑳𐑜𐑧𐑕𐑑 𐑪𐑐𐑑𐑦𐑥𐑩𐑤 𐑕𐑧𐑒𐑖𐑩𐑯𐑟 𐑓 𐑩𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑢 𐑛𐑦𐑓𐑻𐑩𐑯𐑑 𐑑𐑽𐑟
+        𐑯 𐑛𐑦𐑕𐑐𐑤𐑱𐑟 𐑒𐑩𐑥𐑭𐑯𐑛𐑟 𐑑 𐑮𐑳𐑯 𐑩𐑯𐑨𐑤𐑦𐑕𐑦𐑟 𐑯 𐑜𐑧𐑯𐑻𐑱𐑑 𐑪𐑚𐑓𐑳𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯𐑟 𐑢 𐑒𐑳𐑕𐑑𐑩𐑥 𐑬𐑑𐑐𐑫𐑑 𐑯𐑱𐑥 𐑪𐑐𐑖𐑩𐑯𐑟"""
         console = Console()
         suggestions_data = []  # 𐑒𐑩𐑤𐑧𐑒𐑑 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑛𐑱𐑑𐑩 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
         
         # 𐑣𐑧𐑛𐑼 𐑢𐑦𐑞 𐑮𐑦𐑗 𐑐𐑨𐑯𐑩𐑤
         header_text = Text(f"Obfuscation Suggestions for {self.input_file}", style="bold cyan")
         console.print(Panel(header_text, border_style="cyan", padding=(1, 2)))
+        console.print("[dim]Note: Commands include options for custom output filenames[/dim]")
+        console.print()
         
         # 𐑐𐑮𐑩𐑜𐑮𐑧𐑕 𐑕𐑐𐑦𐑯𐑼 𐑓𐑹 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕
         with Progress(
@@ -567,10 +570,15 @@ class BinaryRewriter:
                         output_filename = f"obfuscated_{os.path.basename(self.input_file)}"
                         command = f"cumpyl {self.input_file} --encode-section {section['name']} --encoding {best_encoding} -o {output_filename}"
                         commands_for_tier.append(command)
+                        
+                        # 𐑩𐑛 𐑩 𐑝𐑻𐑖𐑩𐑯 𐑢𐑦𐑞 𐑩 𐑒𐑳𐑕𐑑𐑩𐑥 𐑬𐑑𐑐𐑫𐑑 𐑯𐑱𐑥 𐑐𐑤𐑱𐑕𐑣𐑴𐑤𐑛𐑼
+                        custom_command = f"cumpyl {self.input_file} --encode-section {section['name']} --encoding {best_encoding} -o [YOUR_OUTPUT_FILENAME]"
+                        commands_for_tier.append(f"# Or with custom output: {custom_command}")
                 
                 console.print(table)
                 
                 # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑒𐑩𐑥𐑭𐑯𐑛𐑟 𐑬𐑑𐑕𐑲𐑛 𐑞 𐑜𐑱𐑚𐑤 𐑓 𐑦𐑟𐑦 𐑒𐑪𐑐𐑦𐑦𐑙
+                # 𐑦𐑯𐑒𐑤𐑿𐑛𐑦𐑙 𐑝𐑻𐑖𐑩𐑯 𐑢𐑦𐑞 𐑒𐑳𐑕𐑑𐑩𐑥 𐑬𐑑𐑐𐑫𐑑 𐑯𐑱𐑥 𐑐𐑤𐑱𐑕𐑣𐑴𐑤𐑛𐑼
                 if commands_for_tier:
                     console.print()  # Add spacing
                     for command in commands_for_tier:
@@ -604,6 +612,7 @@ class BinaryRewriter:
             rec_table.add_row("Size:", f"{largest_safe['size']} bytes")
             output_filename = f"obfuscated_{os.path.basename(self.input_file)}"
             rec_table.add_row("Command:", f"cumpyl {self.input_file} --encode-section {largest_safe['name']} --encoding compressed_base64 -o {output_filename}")
+            rec_table.add_row("With custom output:", f"cumpyl {self.input_file} --encode-section {largest_safe['name']} --encoding compressed_base64 -o [YOUR_OUTPUT_FILENAME]")
             
             console.print(rec_table)
         else:
@@ -790,7 +799,7 @@ def main():
 
     # 𐑨𐑛 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
     parser.add_argument("--analyze-sections", action="store_true", help="Analyze and display section information")
-    parser.add_argument("--suggest-obfuscation", action="store_true", help="Suggest optimal sections for obfuscation with different tiers")
+    parser.add_argument("--suggest-obfuscation", action="store_true", help="Suggest optimal sections for obfuscation with different tiers and display commands with custom output filename options")
     
     # 𐑐𐑤𐑳𐑜𐑦𐑯 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
     parser.add_argument("--list-plugins", action="store_true", help="List all loaded plugins and their information")
