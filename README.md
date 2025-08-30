@@ -1,4 +1,7 @@
-# Cumpyl Framework
+# Cumpyl / ·𐑒𐑳𐑥𐑐𐑲𐑤
+
+![Cumpyl Demo](images/sexy1.png)
+![Cumpyl Interface](images/sexy2.png)
 
 Cumpyl is a powerful Python-based binary analysis framework for analyzing, modifying, and rewriting binary files (PE, ELF, Mach-O). It features a plugin architecture, batch processing capabilities, and comprehensive reporting functions.
 
@@ -12,6 +15,15 @@ Cumpyl is a powerful Python-based binary analysis framework for analyzing, modif
 - **Dual-Mode Hex Viewer**: Terminal TUI and browser-based hex viewing
 - **Comprehensive Reporting**: HTML, JSON, YAML, and XML report generation
 - **YAML Configuration**: Flexible configuration with predefined profiles
+
+## Obfuscation Tiers
+
+Cumpyl provides intelligent obfuscation suggestions with color-coded tiers to help you choose the best approach for your binary:
+
+- 🟢 **Advanced Tier (Large, High-Impact Sections)**: Best for heavy obfuscation. Large capacity for complex encoding. Recommended for sections like `.rdata` and `.rodata`.
+- 🟡 **Intermediate Tier (Medium-Size Data Sections)**: Good for moderate obfuscation. Balanced size and safety. Suitable for sections like `.data` and `.bss`.
+- 🔵 **Basic Tier (Small, Low-Impact Sections)**: Suitable for light obfuscation. Small sections, minimal impact. Good for sections like `.pdata` and `.xdata`.
+- 🔴 **Avoid (Critical Sections)**: Critical for program execution. Avoid obfuscation. Includes sections like `.text`, `.code`, `.idata`, and `.reloc`.
 
 ## Installation
 
@@ -53,6 +65,16 @@ cumpyl sample.exe --menu
 
 This will launch a guided interface that provides access to all of Cumpyl's features.
 
+### Obfuscation Quick Start
+
+To quickly identify the best sections for obfuscation in your binary:
+
+```bash
+cumpyl sample.exe --suggest-obfuscation
+```
+
+This command will analyze your binary and provide color-coded suggestions for optimal obfuscation according to the tier system.
+
 ## Interactive Menu System
 
 Cumpyl features a rich interactive menu system that provides guided access to all framework capabilities:
@@ -67,7 +89,7 @@ Cumpyl features a rich interactive menu system that provides guided access to al
 8. **Configuration**: View and modify framework settings
 9. **Change Target**: Select a different binary file
 
-### Plugin-Based Packer Menu
+### Plugin-Based Packer Menu (𐑜𐑴 𐑐𐑨𐑒)
 
 The Binary Packers option includes a plugin-based packer menu that supports:
 - Analysis with packer plugins
@@ -99,7 +121,7 @@ Analyze binary structure and sections.
 cumpyl binary.exe --suggest-obfuscation
 ```
 
-Get intelligent section encoding recommendations.
+Get intelligent section encoding recommendations based on the obfuscation tier system.
 
 ### Hex View
 
@@ -136,11 +158,28 @@ Cumpyl's plugin system allows for extensible analysis and transformation capabil
 - **Go Binary Analysis**: Specialized analysis for Go binaries
 - **CGO Analysis**: Analysis for CGO-enabled Go binaries
 
+### Packer Plugins
+
+Cumpyl includes several specialized packer plugins for different binary types:
+
+1. **Universal Packer Plugin**: General-purpose binary packer and obfuscator with compression and encryption
+2. **Go Binary Analysis Plugin**: Analysis-only detection of Go binaries and packing opportunities
+3. **CGO-Aware Packer Plugin**: Specialized packer for CGO-enabled Go binaries with anti-detection techniques
+
 Each plugin can be configured with options such as:
 - Compression level (1-9)
 - Encryption key path for secure transformations
 - Safe mode and dry run options for testing
 - Section skipping preferences
+
+### Obfuscation Tier Integration
+
+The plugin system integrates with Cumpyl's obfuscation tier system:
+
+- 🟢 **Advanced Tier**: Plugins suggest heavy obfuscation for large read-only data sections
+- 🟡 **Intermediate Tier**: Plugins recommend moderate obfuscation for medium-size data sections
+- 🔵 **Basic Tier**: Plugins identify small sections suitable for light obfuscation
+- 🔴 **Avoid Tier**: Plugins warn against obfuscating critical executable sections
 
 ## Batch Processing
 
@@ -172,7 +211,7 @@ Recursive processing with custom extensions.
 
 ## Encoding and Obfuscation
 
-Cumpyl provides advanced encoding and obfuscation capabilities for binary sections.
+Cumpyl provides advanced encoding and obfuscation capabilities for binary sections, organized by obfuscation tier:
 
 ### Supported Encodings
 
@@ -181,6 +220,18 @@ Cumpyl provides advanced encoding and obfuscation capabilities for binary sectio
 - **Null**: Null byte padding
 - **Base64**: Standard Base64 encoding
 - **Compressed Base64**: Zlib compression + Base64 encoding
+
+### Payload Transmutation
+
+Cumpyl integrates the sc8r payload transmutation tool, which provides additional encoding methods specifically for security research:
+
+- **Unicode Encoding**: Convert payloads to Unicode escape sequences
+- **URL Encoding**: Encode payloads for URL contexts
+- **ROT13**: Classic ROT13 cipher
+- **Reverse Encoding**: Reverse string encoding
+- **Environment Variable Substitution**: Replace characters with environment variables
+- **Compound Encoding**: Chain multiple encoding methods together
+- **Mixed Encoding**: Apply multiple encoding methods and output all variants
 
 ### Section Encoding
 
@@ -225,6 +276,23 @@ batch:
 hex_viewer:
   default_bytes: 2048
   max_bytes: 16384
+```
+
+### Obfuscation Tier System
+
+The obfuscation tier system can be configured in the `cumpyl.yaml` file:
+
+```yaml
+obfuscation:
+  tier_system:
+    enabled: true
+    color_coding: true
+    copy_ready_commands: true
+    
+  recommendations:
+    prefer_safe_sections: true
+    warn_dangerous_operations: true
+    suggest_alternatives: true
 ```
 
 ### Analysis Profiles
