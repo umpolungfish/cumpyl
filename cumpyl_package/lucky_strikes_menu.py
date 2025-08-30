@@ -553,16 +553,13 @@ class LuckyStrikesMenu:
         plugins = self.list_available_plugins()
         transform_plugins = plugins['transformation']
         
-        # Display plugin options including CA Packer options
+        # Display plugin options including CA Packer
         plugin_options = []
         for i, plugin_name in enumerate(transform_plugins, 1):
             plugin_options.append((str(i), f"{plugin_name} plugin", f"Pack with {plugin_name} plugin"))
         
-        # Add CA Packer options
-        ca_base_index = len(transform_plugins)
-        plugin_options.append((str(ca_base_index + 1), "CA Quick Pack", "Quick pack with default settings (100 steps, 1 iteration)"))
-        plugin_options.append((str(ca_base_index + 2), "CA Steps", "Choose number of CA steps for packing"))
-        plugin_options.append((str(ca_base_index + 3), "CA Iterative", "Iterative packing with custom steps and iterations"))
+        # Add CA Packer as a single option
+        plugin_options.append((str(len(transform_plugins) + 1), "CA Packer", "Cellular Automata-based packer"))
         plugin_options.append(("b", "Back to Main Menu", ""))
         
         table = Table(show_header=True, header_style="bold")
@@ -584,18 +581,11 @@ class LuckyStrikesMenu:
         if choice == "b":
             return
         
-        # Check if a CA Packer option was selected
-        if choice == str(ca_base_index + 1):
-            # CA Quick Pack
-            self.run_ca_packer_quick()
-            return
-        elif choice == str(ca_base_index + 2):
-            # CA Steps
-            self.run_ca_packer_steps()
-            return
-        elif choice == str(ca_base_index + 3):
-            # CA Iterative
-            self.run_ca_packer_iterative()
+        # Check if CA Packer was selected
+        ca_packer_index = str(len(transform_plugins) + 1)
+        if choice == ca_packer_index:
+            # Show CA Packer submenu
+            self.ca_packer_menu()
             return
         
         # Get selected plugin
@@ -804,6 +794,47 @@ class LuckyStrikesMenu:
         
         self.console.print()
         Prompt.ask("Press Enter to continue", default="")
+    
+    def ca_packer_menu(self):
+        """CA Packer submenu"""
+        while True:
+            self.console.print(Panel("Cellular Automata Packer", style="bold red"))
+            
+            # CA Packer options
+            ca_options = [
+                ("1", "Quick Pack", "Quick pack with default settings (100 steps, 1 iteration)"),
+                ("2", "Choose Steps", "Choose number of CA steps for packing"),
+                ("3", "Iterative Packing", "Iterative packing with custom steps and iterations"),
+                ("b", "Back to Pack Binary Menu", "")
+            ]
+            
+            table = Table(show_header=True, header_style="bold")
+            table.add_column("Option", style="cyan", width=8)
+            table.add_column("Action", style="white", width=20)
+            table.add_column("Description", style="dim")
+            
+            for opt, action, desc in ca_options:
+                table.add_row(opt, action, desc)
+            
+            self.console.print(table)
+            
+            choice = Prompt.ask(
+                "[yellow]Select CA Packer option[/yellow]",
+                choices=[opt[0] for opt in ca_options],
+                default="1"
+            )
+            
+            if choice == "b":
+                return
+            elif choice == "1":
+                # CA Quick Pack
+                self.run_ca_packer_quick()
+            elif choice == "2":
+                # CA Steps
+                self.run_ca_packer_steps()
+            elif choice == "3":
+                # CA Iterative
+                self.run_ca_packer_iterative()
     
     def run_ca_packer_quick(self):
         """Run the Cellular Automata-based packer with quick default settings"""
