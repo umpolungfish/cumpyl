@@ -24,6 +24,15 @@ except ImportError:
     except ImportError:
         ConfigManager = None
 
+# Import CumpylMenu for fallback options
+try:
+    from .menu_system import CumpylMenu
+except ImportError:
+    try:
+        from menu_system import CumpylMenu
+    except ImportError:
+        CumpylMenu = None
+
 class CumpylStartMenu:
     """Main Start Menu for Cumpyl Framework"""
     
@@ -93,8 +102,11 @@ class CumpylStartMenu:
         except ImportError:
             # Fallback to main menu if specialized menu not available
             self.console.print("[yellow]Build-a-Binary menu not available, launching main menu[/yellow]")
-            menu = CumpylMenu(self.config)
-            menu.run()
+            if CumpylMenu:
+                menu = CumpylMenu(self.config)
+                menu.run()
+            else:
+                self.console.print("[red]Main menu not available[/red]")
         
     def launch_lucky_strikes(self):
         """Launch the Lucky Strikes (Packers) menu"""
@@ -108,9 +120,12 @@ class CumpylStartMenu:
         except ImportError:
             # Fallback to original packer menu in main menu
             self.console.print("[yellow]Plugin packer menu not available, launching main menu[/yellow]")
-            menu = CumpylMenu(self.config)
-            # Directly call the packer menu
-            menu.pe_packer_menu()
+            if CumpylMenu:
+                menu = CumpylMenu(self.config)
+                # Directly call the packer menu
+                menu.pe_packer_menu()
+            else:
+                self.console.print("[red]Main menu not available[/red]")
             
     def launch_silly_string(self):
         """Launch the Silly String (Payload Obfuscation) menu"""
