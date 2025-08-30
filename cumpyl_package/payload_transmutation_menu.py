@@ -41,8 +41,6 @@ class PayloadTransmutationMenu:
         
     def show_menu(self) -> str:
         """Display the payload transmutation menu"""
-        self.console.print(Panel("🔓 Payload Transmutation Options", style="bold red"))
-        
         menu_options = [
             ("1", "Single Payload Transmutation", "Transmute a single payload with selected method"),
             ("2", "File-based Transmutation", "Transmute payloads from a file"),
@@ -53,24 +51,47 @@ class PayloadTransmutationMenu:
             ("b", "Back to Main Menu", "")
         ]
         
-        table = Table(show_header=True, header_style="bold")
-        table.add_column("Option", style="cyan", width=8)
-        table.add_column("Description", style="white", width=35)
-        table.add_column("Details", style="dim")
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_column("Option", style="bold cyan", width=8)
+        table.add_column("Action", style="bold white", width=30)
+        table.add_column("Description", style="dim")
         
-        for opt, desc, details in menu_options:
-            table.add_row(opt, desc, details)
-            
-        self.console.print(table)
+        for option, action, description in menu_options:
+            table.add_row(option, action, description)
+        
+        menu_panel = Panel(
+            table,
+            title="🔓 Silly String Menu",
+            border_style="bright_magenta",
+            padding=(1, 1)
+        )
+        
+        self.console.print(menu_panel)
         
         return Prompt.ask(
-            "\n[yellow]Select transmutation option[/yellow]",
+            "\n[bold yellow]Select an option[/bold yellow]",
             choices=[opt[0] for opt in menu_options],
             default="1"
         )
         
     def run(self):
         """Run the payload transmutation menu loop"""
+        banner_text = Text()
+        banner_text.append("SILLY STRING MODULE\n", style="bold magenta")
+        banner_text.append("Payload & String Obfuscation Tools\n", style="bold yellow")
+        banner_text.append("Part of Cumpyl Framework", style="bold blue")
+        
+        banner_panel = Panel(
+            banner_text,
+            border_style="bright_cyan",
+            padding=(1, 2),
+            title="🔓 Silly String",
+            title_align="center"
+        )
+        
+        self.console.print(banner_panel)
+        self.console.print()
+        
         while True:
             try:
                 choice = self.show_menu()
