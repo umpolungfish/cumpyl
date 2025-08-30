@@ -1,7 +1,7 @@
-
 #include <stdio.h>
 
 int main() {
-    printf("Hello, World! This is a test program.\n");
-    return 0;
+    printf("Hello, CA-Packer World!\n");
+    printf("If you see this message, the unpacking worked!\n");
+    return 42;
 }

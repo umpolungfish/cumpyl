@@ -201,19 +201,24 @@ _start:
     mov %rax, %r14        # Store second grid pointer
     
     # Read the encrypted payload from the specified RVA
-    # For now, we'll simulate this by filling with a pattern
-    # In a real implementation, we would:
     # 1. Locate the payload section in memory
     # 2. Read the encrypted payload data
     # 3. Store it in our allocated buffer
-    mov %r12, %rdi        # Decrypted payload pointer
-    mov 0x43C(%r8), %rcx  # Payload size
-    mov $0xAA, %al        # Fill with 0xAA pattern
+    mov %r12, %rdi        # Decrypted payload pointer (our buffer)
+    mov 0x438(%r8), %eax  # Payload RVA (only 4 bytes)
+    mov %eax, %rax        # This automatically zero-extends to 64-bit in x86-64
+    add %r8, %rax         # Add base address to get absolute address
+    mov %rax, %rsi        # Source address (payload location)
+    mov 0x43C(%r8), %eax  # Payload size (only 4 bytes)
+    mov %eax, %rcx        # This automatically zero-extends to 64-bit in x86-64
+    
+    # Copy payload data from RVA to our buffer
     xor %rdx, %rdx        # Byte counter
 read_payload_loop:
     cmp %rcx, %rdx
     jge read_payload_done
-    mov %al, (%rdi,%rdx,1)
+    movb (%rsi,%rdx,1), %al
+    movb %al, (%rdi,%rdx,1)
     inc %rdx
     jmp read_payload_loop
 read_payload_done:
@@ -293,15 +298,12 @@ unmask_done:
     call deallocate_memory
     
     # Jump to the OEP
-    # In a real implementation, we would:
-    # 1. Transfer execution to the original entry point
-    # 2. Clean up temporary memory allocations
-    # 3. Handle relocation if necessary
-    mov 0x400(%r8), %r9   # OEP
-    # For now, just exit with code 42 to indicate success
-    mov $60, %rax         # sys_exit
-    mov $42, %rdi         # exit code
-    syscall
+    # Transfer execution to the original entry point
+    # Clean up temporary memory allocations
+    # Handle relocation if necessary
+    mov 0x400(%r8), %rax  # OEP RVA
+    add %r8, %rax         # Add base address to get absolute address
+    jmp *%rax             # Jump to OEP
     
 allocation_error:
     # Write error message
@@ -634,6 +636,7 @@ allocation_error_msg_len = . - allocation_error_msg
 decryption_error_msg:
     .ascii "ERROR: Decryption failed\n"
 decryption_error_msg_len = . - decryption_error_msg
+
 unmask_error_msg:
     .ascii "ERROR: CA unmasking failed\n"
 unmask_error_msg_len = . - unmask_error_msg

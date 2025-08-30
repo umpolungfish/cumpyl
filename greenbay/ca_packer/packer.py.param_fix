@@ -249,14 +249,10 @@ def generate_stub_mvp(oep_rva, key, nonce, ca_params, block_lengths, payload_rva
         stub_data[STUB_PARAMETER_OFFSET + 0x34:STUB_PARAMETER_OFFSET + 0x38] = ca_steps.to_bytes(4, 'little')
 
         # Payload Section RVA (4 bytes, little-endian)
-        payload_rva_bytes = payload_rva.to_bytes(4, 'little')
-        stub_data[STUB_PARAMETER_OFFSET + 0x38:STUB_PARAMETER_OFFSET + 0x3C] = payload_rva_bytes
-        logging.debug(f"Embedded payload RVA: 0x{payload_rva:x} as bytes: {payload_rva_bytes.hex()}")
+        stub_data[STUB_PARAMETER_OFFSET + 0x38:STUB_PARAMETER_OFFSET + 0x3C] = payload_rva.to_bytes(4, 'little')
 
         # Payload Size (4 bytes, little-endian)
-        payload_size_bytes = payload_size.to_bytes(4, 'little')
-        stub_data[STUB_PARAMETER_OFFSET + 0x3C:STUB_PARAMETER_OFFSET + 0x40] = payload_size_bytes
-        logging.debug(f"Embedded payload size: 0x{payload_size:x} as bytes: {payload_size_bytes.hex()}")
+        stub_data[STUB_PARAMETER_OFFSET + 0x3C:STUB_PARAMETER_OFFSET + 0x40] = payload_size.to_bytes(4, 'little')
     else:
         # For simple stubs, we don't embed parameters, but we still need to ensure
         # we're not adding extra padding. The stub_data should be used as-is.
