@@ -8,6 +8,7 @@ import os
 import sys
 import importlib
 import json
+import subprocess
 from typing import Dict, Any, List
 from rich.console import Console
 from rich.panel import Panel
@@ -46,10 +47,8 @@ class LuckyStrikesMenu:
     def show_banner(self):
         """Display the Lucky Strikes Banner"""
         banner_text = Text()
-        banner_text.append("LUCKY STRIKES MODULE
-", style="bold red")
-        banner_text.append("Binary Packers & Compression Tools
-", style="bold cyan")
+        banner_text.append("LUCKY STRIKES MODULE", style="bold red")
+        banner_text.append("Binary Packers & Compression Tools", style="bold cyan")
         banner_text.append("Part of Cumpyl Framework", style="bold blue")
         
         banner_panel = Panel(
@@ -133,9 +132,10 @@ class LuckyStrikesMenu:
         menu_options = [
             ("1", "Analyze Binary", "Analyze binary for packing opportunities"),
             ("2", "Pack Binary", "Apply packing with various techniques"),
-            ("3", "Interactive Hex Viewer", "Explore packed binary with interactive hex dump"),
-            ("4", "View Analysis Results", "Display previous analysis results"),
-            ("5", "Change Target", "Select a different binary file"),
+            ("3", "CA Packer", "Cellular Automata-based packer with configurable steps"),
+            ("4", "Interactive Hex Viewer", "Explore packed binary with interactive hex dump"),
+            ("5", "View Analysis Results", "Display previous analysis results"),
+            ("6", "Change Target", "Select a different binary file"),
             ("b", "Back", "Return to main start menu"),
             ("h", "Help", "Show detailed help and examples"),
             ("q", "Quit", "Exit the framework")
@@ -161,8 +161,7 @@ class LuckyStrikesMenu:
         self.console.print(menu_panel)
         
         return Prompt.ask(
-            "
-[bold yellow]Select an option[/bold yellow]",
+            "[bold yellow]Select an option[/bold yellow]",
             choices=[opt[0] for opt in menu_options],
             default="1"
         )
@@ -240,8 +239,7 @@ class LuckyStrikesMenu:
     def configure_plugin(self, plugin_name: str) -> Dict[str, Any]:
         """Get configuration for a plugin from user input."""
         config = {}
-        print(f"
-Configuring {plugin_name} plugin:")
+        print(f"Configuring {plugin_name} plugin:")
         
         # Common configuration options
         if plugin_name in ['packer', 'packer_transform']:
@@ -404,8 +402,7 @@ Configuring {plugin_name} plugin:")
             print("No analysis results to display")
             return
         
-        print("
-" + "="*50)
+        print("" + "="*50)
         print("ANALYSIS RESULTS")
         print("="*50)
         
@@ -421,15 +418,13 @@ Configuring {plugin_name} plugin:")
         # Analysis details
         if 'analysis' in results:
             analysis = results['analysis']
-            print(f"
-Binary Size: {analysis.get('binary_size', 0)} bytes")
+            print(f"Binary Size: {analysis.get('binary_size', 0)} bytes")
             print(f"Sections Count: {analysis.get('sections_count', 0)}")
             
             # Sections
             sections = analysis.get('sections', [])
             if sections:
-                print("
-Sections:")
+                print("Sections:")
                 print("-" * 60)
                 for section in sections:
                     perms = ""
@@ -444,8 +439,7 @@ Sections:")
             # Packing opportunities
             opportunities = analysis.get('packing_opportunities', [])
             if opportunities:
-                print("
-Packing Opportunities:")
+                print("Packing Opportunities:")
                 print("-" * 60)
                 for opp in opportunities:
                     opp_type = opp.get('type', 'Unknown')
@@ -455,16 +449,14 @@ Packing Opportunities:")
             if 'go_detection' in analysis:
                 go_detection = analysis['go_detection']
                 if go_detection.get('detected'):
-                    print(f"
-Go Binary Detected:")
+                    print(f"Go Binary Detected:")
                     print(f"  Confidence: {go_detection.get('confidence', 0.0):.2f}")
                     print(f"  Method: {go_detection.get('method', 'Unknown')}")
         
         # Suggestions
         suggestions = results.get('suggestions', [])
         if suggestions:
-            print("
-Suggestions:")
+            print("Suggestions:")
             print("-" * 60)
             for suggestion in suggestions:
                 print(f"  {suggestion.get('description', 'No description')}")
@@ -475,8 +467,7 @@ Suggestions:")
         if 'transformation_plan' in results:
             plan = results['transformation_plan']
             if plan and plan.get('actions'):
-                print("
-Transformation Plan:")
+                print("Transformation Plan:")
                 print("-" * 60)
                 for action in plan['actions']:
                     print(f"  {action.get('type', 'Unknown action')}: {action.get('description', 'No description')}")
@@ -511,8 +502,7 @@ Transformation Plan:")
         self.console.print(table)
         
         choice = Prompt.ask(
-            "
-[yellow]Select analysis plugin[/yellow]",
+            "[yellow]Select analysis plugin[/yellow]",
             choices=[opt[0] for opt in plugin_options],
             default="1"
         )
@@ -544,8 +534,7 @@ Transformation Plan:")
             self.display_analysis_results(results)
             
             # Ask if user wants to save results
-            save_choice = Prompt.ask("
-Save analysis results to file? (y/n)", default="n").strip().lower()
+            save_choice = Prompt.ask("Save analysis results to file? (y/n)", default="n").strip().lower()
             if save_choice == 'y':
                 output_file = Prompt.ask("Enter output filename (default: analysis_results.json)", default="analysis_results.json").strip()
                 try:
@@ -587,8 +576,7 @@ Save analysis results to file? (y/n)", default="n").strip().lower()
         self.console.print(table)
         
         choice = Prompt.ask(
-            "
-[yellow]Select packing plugin[/yellow]",
+            "[yellow]Select packing plugin[/yellow]",
             choices=[opt[0] for opt in plugin_options],
             default="1"
         )
@@ -662,8 +650,7 @@ Save analysis results to file? (y/n)", default="n").strip().lower()
         self.console.print(table)
         
         choice = Prompt.ask(
-            "
-[yellow]Select hex viewer option[/yellow]",
+            "[yellow]Select hex viewer option[/yellow]",
             choices=[opt[0] for opt in options],
             default="3"
         )
@@ -765,8 +752,7 @@ Save analysis results to file? (y/n)", default="n").strip().lower()
         self.console.print("[yellow]Note: For the full interactive experience, use the Textual hex viewer option[/yellow]")
         
         # Basic hex dump implementation as fallback
-        self.console.print(f"
-[bold cyan]Hex dump of first 512 bytes:[/bold cyan]")
+        self.console.print(f"[bold cyan]Hex dump of first 512 bytes:[/bold cyan]")
         hex_lines = []
         for i in range(0, min(512, len(binary_data)), 16):
             line_data = binary_data[i:i+16]
@@ -778,13 +764,11 @@ Save analysis results to file? (y/n)", default="n").strip().lower()
             self.console.print(f"[dim]{line}[/dim]")
         
         if len(binary_data) > 512:
-            self.console.print(f"
-[yellow]... and {len(binary_data) - 512} more bytes[/yellow]")
+            self.console.print(f"[yellow]... and {len(binary_data) - 512} more bytes[/yellow]")
     
     def execute_command(self, command: str):
         """Execute a Cumpyl command"""
-        self.console.print(f"
-[bold green]🚀 Executing:[/bold green] [cyan]{command}[/cyan]")
+        self.console.print(f"[bold green]🚀 Executing:[/bold green] [cyan]{command}[/cyan]")
         self.console.print("─" * 80)
         
         try:
@@ -803,6 +787,84 @@ Save analysis results to file? (y/n)", default="n").strip().lower()
                 
         except Exception as e:
             self.console.print(f"[bold red]❌ Error executing command: {e}[/bold red]")
+        
+        self.console.print()
+        Prompt.ask("Press Enter to continue", default="")
+    
+    def ca_packer_menu(self):
+        """CA Packer menu for Cellular Automata-based packing"""
+        self.console.print(Panel("Cellular Automata Packer", style="bold red"))
+        
+        # Get CA steps from user
+        ca_steps = Prompt.ask("Enter number of CA steps (default: 100)", default="100")
+        try:
+            ca_steps = int(ca_steps)
+        except ValueError:
+            self.console.print("[yellow]Invalid CA steps, using default value of 100[/yellow]")
+            ca_steps = 100
+        
+        # Get number of iterations
+        iterations = Prompt.ask("Enter number of packing iterations (default: 1)", default="1")
+        try:
+            iterations = int(iterations)
+        except ValueError:
+            self.console.print("[yellow]Invalid iterations, using default value of 1[/yellow]")
+            iterations = 1
+        
+        # Get output file name
+        default_output = f"ca_packed_{os.path.basename(self.target_file)}"
+        output_file = Prompt.ask(f"Output file name (default: {default_output})", default=default_output)
+        
+        # Build command
+        cmd = f"python -m greenbay.ca_packer.packer {self.target_file} {output_file} --ca-steps {ca_steps}"
+        
+        # For iterative packing, we'll need to run the packer multiple times
+        if iterations > 1:
+            self.console.print(f"[yellow]Iterative packing: {iterations} iterations with {ca_steps} CA steps each[/yellow]")
+            current_input = self.target_file
+            for i in range(iterations):
+                iter_output = f"ca_packed_iter_{i+1}_{os.path.basename(self.target_file)}"
+                iter_cmd = f"python -m greenbay.ca_packer.packer {current_input} {iter_output} --ca-steps {ca_steps}"
+                
+                self.console.print(f"[cyan]Running iteration {i+1}/{iterations}[/cyan]")
+                self.execute_ca_command(iter_cmd)
+                
+                # For next iteration, use the output of this iteration as input
+                current_input = iter_output
+                
+                # For the final iteration, use the user-specified output name
+                if i == iterations - 1:
+                    os.rename(iter_output, output_file)
+        else:
+            # Single iteration
+            self.execute_ca_command(cmd)
+    
+    def execute_ca_command(self, command: str):
+        """Execute a CA packer command"""
+        self.console.print(f"[bold green]🚀 Executing CA Packer:[/bold green] [cyan]{command}[/cyan]")
+        self.console.print("─" * 80)
+        
+        try:
+            # Run the command
+            result = subprocess.run(
+                command.split(),
+                capture_output=True,
+                text=True,
+                cwd=os.path.join(os.path.dirname(__file__), '..')
+            )
+            
+            self.console.print("─" * 80)
+            if result.returncode == 0:
+                self.console.print("[bold green]✅ CA Packer completed successfully![/bold green]")
+                if result.stdout:
+                    self.console.print(f"[dim]{result.stdout}[/dim]")
+            else:
+                self.console.print(f"[bold red]❌ CA Packer failed with return code: {result.returncode}[/bold red]")
+                if result.stderr:
+                    self.console.print(f"[red]{result.stderr}[/red]")
+                    
+        except Exception as e:
+            self.console.print(f"[bold red]❌ Error executing CA Packer: {e}[/bold red]")
         
         self.console.print()
         Prompt.ask("Press Enter to continue", default="")
@@ -843,8 +905,7 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
         )
         
         self.console.print(help_panel)
-        Prompt.ask("
-Press Enter to continue", default="")
+        Prompt.ask("Press Enter to continue", default="")
     
     def run(self):
         """Run the Lucky Strikes menu loop"""
@@ -870,19 +931,20 @@ Press Enter to continue", default="")
                 elif choice == "2":
                     self.pack_binary_menu()
                 elif choice == "3":
-                    self.hex_viewer_menu()
+                    self.ca_packer_menu()
                 elif choice == "4":
+                    self.hex_viewer_menu()
+                elif choice == "5":
                     # TODO: Implement viewing of previous analysis results
                     self.console.print("[yellow]Viewing previous analysis results coming soon![/yellow]")
                     Prompt.ask("Press Enter to continue", default="")
-                elif choice == "5":
+                elif choice == "6":
                     self.select_target_file()
                 elif choice == "h":
                     self.show_help()
                     
             except KeyboardInterrupt:
-                self.console.print("
-[bold yellow]💡 Use 'q' to quit gracefully[/bold yellow]")
+                self.console.print("[bold yellow]💡 Use 'q' to quit gracefully[/bold yellow]")
             except Exception as e:
                 self.console.print(f"[bold red]❌ Menu error: {e}[/bold red]")
                 Prompt.ask("Press Enter to continue", default="")
