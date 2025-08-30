@@ -24,6 +24,15 @@ except ImportError:
     except ImportError:
         ConfigManager = None
 
+# Import CumpylMenu for fallback options
+try:
+    from .menu_system import CumpylMenu
+except ImportError:
+    try:
+        from menu_system import CumpylMenu
+    except ImportError:
+        CumpylMenu = None
+
 class CumpylStartMenu:
     """Main Start Menu for Cumpyl Framework"""
     
