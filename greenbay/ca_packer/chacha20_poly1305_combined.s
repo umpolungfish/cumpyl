@@ -1,10 +1,6 @@
 # ChaCha20-Poly1305 Implementation
 .section .text
 
-# Include our ChaCha20 and Poly1305 core implementations
-.include "chacha20_core_callable.s"
-.include "poly1305_core.s"
-
 # Function to decrypt data using ChaCha20-Poly1305
 # Parameters:
 #   %rdi - pointer to ciphertext
@@ -31,19 +27,19 @@ decrypt_chacha20_poly1305:
     
     # Validate parameters
     test %rdi, %rdi
-    jz decrypt_error
+    jz decrypt_error_label
     test %rsi, %rsi
-    jz decrypt_error
+    jz decrypt_error_label
     test %rdx, %rdx
-    jz decrypt_error
+    jz decrypt_error_label
     test %rcx, %rcx
-    jz decrypt_error
+    jz decrypt_error_label
     test %r8, %r8
-    jz decrypt_error
+    jz decrypt_error_label
     
     # Check if ciphertext is too small (must be at least 16 bytes for tag)
     cmp $16, %rsi
-    jl decrypt_error
+    jl decrypt_error_label
     
     # Extract the authentication tag from the end of the ciphertext
     # Tag is the last 16 bytes
@@ -60,34 +56,89 @@ decrypt_chacha20_poly1305:
     mov %rsi, %r9
     sub $16, %r9  # Size of ciphertext without tag
     
-    # For now, just copy the ciphertext to output buffer
-    # In a real implementation, we would:
-    # 1. Generate keystream using ChaCha20
-    # 2. XOR the ciphertext with the keystream
-    # 3. Store the result in the output buffer
+    # Generate keystream using ChaCha20
+    # We need to process the data in 64-byte blocks
+    # Allocate space for keystream on stack
+    sub $64, %rsp
+    mov %rsp, %r11  # Pointer to keystream buffer
     
+    # Process data in 64-byte blocks
     xor %rax, %rax  # Byte counter
-copy_loop:
+decrypt_main_loop:
     cmp %r9, %rax
-    jge copy_done
-    movb (%rdi,%rax), %bl
-    movb %bl, (%r8,%rax)
-    inc %rax
-    jmp copy_loop
-copy_done:
+    jge decrypt_main_done
+    
+    # Calculate remaining bytes in this block
+    mov $64, %rbx
+    mov %r9, %r10
+    sub %rax, %r10
+    cmp $64, %r10
+    cmovg %rbx, %r10  # Use minimum of 64 and remaining bytes
+    
+    # Generate keystream for this block
+    # Counter starts at 1 for encryption/decryption
+    # We need to save our parameters first
+    push %rdi  # Save ciphertext pointer
+    push %rsi  # Save ciphertext size
+    push %rdx  # Save key pointer
+    push %rcx  # Save nonce pointer
+    push %r8   # Save output buffer pointer
+    push %r9   # Save payload size
+    push %r10  # Save remaining bytes
+    
+    mov %rdx, %rdi  # Key
+    mov %rcx, %rsi  # Nonce
+    mov %rax, %rdx
+    shr $6, %rdx    # Counter = byte_offset / 64
+    inc %rdx        # Counter starts at 1
+    mov %r11, %rcx  # Keystream buffer
+    call generate_chacha20_keystream
+    
+    # Restore parameters
+    pop %r10  # Restore remaining bytes
+    pop %r9   # Restore payload size
+    pop %r8   # Restore output buffer pointer
+    pop %rcx  # Restore nonce pointer
+    pop %rdx  # Restore key pointer
+    pop %rsi  # Restore ciphertext size
+    pop %rdi  # Restore ciphertext pointer
+    
+    # XOR the ciphertext with the keystream
+    xor %rbx, %rbx  # Byte counter within block
+xor_keystream_loop:
+    cmp %r10, %rbx
+    jge xor_keystream_done
+    
+    movb (%rdi,%rax,1), %cl
+    xorb (%r11,%rbx,1), %cl
+    movb %cl, (%r8,%rax,1)
+    
+    inc %rbx
+    jmp xor_keystream_loop
+    
+xor_keystream_done:
+    # Move to next block
+    add $64, %rax
+    jmp decrypt_main_loop
+    
+decrypt_main_done:
+    # Clean up stack
+    add $64, %rsp
     
     # Return the size of the decrypted data
     mov %r9, %rax
-    jmp decrypt_success
+    jmp decrypt_success_label
     
-decrypt_error:
+decrypt_error_label:
+    # Clean up stack
+    add $64, %rsp
     mov $-1, %rax
-    jmp decrypt_done
+    jmp decrypt_done_label
     
-decrypt_success:
+decrypt_success_label:
     # Success - return size of decrypted data
     
-decrypt_done:
+decrypt_done_label:
     # Restore registers
     pop %r11
     pop %r10

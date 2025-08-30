@@ -229,30 +229,96 @@ evolve_ca_grid_complete:
     test %rcx, %rcx
     jz evolve_grid_complete_error
     
-    # For now, just copy the initial grid to the output buffer
-    # In a real implementation, we would:
-    # 1. Allocate memory for two grids
-    # 2. Copy initial grid to first grid
-    # 3. Evolve the CA for the specified number of steps
-    # 4. Copy final grid state to output buffer
-    # 5. Free allocated memory
-    # 6. Return success
+    # Allocate memory for two grids
+    mov %rdx, %rdi
+    call allocate_memory
+    test %rax, %rax
+    js evolve_grid_complete_error
+    mov %rax, %r8           # First grid pointer
     
-    xor %rax, %rax      # Byte counter
+    mov %rdx, %rdi
+    call allocate_memory
+    test %rax, %rax
+    js evolve_grid_complete_error
+    mov %rax, %r9           # Second grid pointer
+    
+    # Copy initial grid to first grid
+    xor %r10, %r10          # Byte counter
 copy_initial_loop:
-    cmp %rdx, %rax
+    cmp %rdx, %r10
     jge copy_initial_done
-    movb (%rdi,%rax), %bl
-    movb %bl, (%rcx,%rax)
-    inc %rax
+    movb (%rdi,%r10), %bl
+    movb %bl, (%r8,%r10)
+    inc %r10
     jmp copy_initial_loop
 copy_initial_done:
     
-    mov $0, %rax        # Return success
+    # Evolve the CA for the specified number of steps
+    xor %r10, %r10          # Step counter
+evolve_steps_loop:
+    cmp %rsi, %r10
+    jge evolve_steps_done
+    
+    # Evolve one step
+    # Alternate between grids to save memory
+    test %r10, %r10
+    jz use_grids_1_2
+    # Use grids 2 -> 1
+    mov %r9, %rdi           # Current grid
+    mov %r8, %rsi           # Next grid
+    jmp evolve_step_call
+use_grids_1_2:
+    # Use grids 1 -> 2
+    mov %r8, %rdi           # Current grid
+    mov %r9, %rsi           # Next grid
+evolve_step_call:
+    mov %rdx, %rdx          # Grid size
+    call evolve_ca_row_complete
+    test %rax, %rax
+    js evolve_grid_complete_error
+    
+    inc %r10
+    jmp evolve_steps_loop
+evolve_steps_done:
+    
+    # Copy final grid state to output buffer
+    # Determine which grid has the final state
+    mov %rsi, %rax
+    and $1, %rax
+    test %rax, %rax
+    jz final_in_grid_1
+    # Final state is in grid 2
+    mov %r9, %rdi           # Source (final grid)
+    jmp copy_final_grid
+final_in_grid_1:
+    # Final state is in grid 1
+    mov %r8, %rdi           # Source (final grid)
+copy_final_grid:
+    mov %rcx, %rsi          # Destination (output buffer)
+    xor %rax, %rax          # Byte counter
+copy_final_loop:
+    cmp %rdx, %rax
+    jge copy_final_done
+    movb (%rdi,%rax), %bl
+    movb %bl, (%rsi,%rax)
+    inc %rax
+    jmp copy_final_loop
+copy_final_done:
+    
+    # Free allocated memory
+    mov %r8, %rdi           # First grid pointer
+    mov %rdx, %rsi          # Grid size
+    call deallocate_memory
+    
+    mov %r9, %rdi           # Second grid pointer
+    mov %rdx, %rsi          # Grid size
+    call deallocate_memory
+    
+    mov $0, %rax            # Return success
     jmp evolve_grid_complete_cleanup
     
 evolve_grid_complete_error:
-    mov $-1, %rax       # Return error
+    mov $-1, %rax           # Return error
     
 evolve_grid_complete_cleanup:
     # Restore registers
@@ -298,27 +364,78 @@ generate_ca_mask_complete_version:
     test %r8, %r8
     jz ca_mask_complete_error
     
-    # For now, just fill the mask with a recognizable pattern
-    # In a real implementation, we would:
-    # 1. Initialize a CA grid using the key material and block index
-    # 2. Evolve the CA for the specified number of steps
-    # 3. Extract the final grid state as the mask
-    # 4. Return success
+    # Initialize a CA grid using the key material and block index
+    # We'll use a grid size of 256 bytes (2048 bits)
+    mov $256, %r9           # Grid size in bytes
+    mov %r9, %rdi
+    call allocate_memory
+    test %rax, %rax
+    js ca_mask_complete_error
+    mov %rax, %r10          # Grid pointer
     
-    xor %rax, %rax      # Byte counter
-fill_pattern_loop:
-    cmp %rcx, %rax
-    jge fill_pattern_done
-    movb $0xFF, (%r8,%rax)  # Fill with 0xFF for now (final recognizable pattern)
+    # Seed the grid using the key material and block index
+    # Copy key material to grid
+    xor %rax, %rax          # Byte counter
+copy_key_loop:
+    cmp $32, %rax
+    jge copy_key_done
+    cmp %r9, %rax
+    jge copy_key_done
+    movb (%rdi,%rax), %bl
+    movb %bl, (%r10,%rax)
     inc %rax
-    jmp fill_pattern_loop
-fill_pattern_done:
+    jmp copy_key_loop
+copy_key_done:
     
-    mov $0, %rax        # Return success
+    # Fill remaining bytes with zeros
+    mov $32, %rax
+zero_fill_loop:
+    cmp %r9, %rax
+    jge zero_fill_done
+    movb $0, (%r10,%rax)
+    inc %rax
+    jmp zero_fill_loop
+zero_fill_done:
+    
+    # Modify some bits based on block index
+    # XOR the first few bytes with the block index
+    mov %rsi, %rax          # Block index
+    mov $0, %rbx            # Byte counter
+    
+modify_loop:
+    cmp $8, %rbx            # Modify up to 8 bytes
+    jge modify_done
+    cmp %r9, %rbx
+    jge modify_done
+    
+    movb (%r10,%rbx), %dl
+    xorb %al, %dl
+    movb %dl, (%r10,%rbx)
+    
+    inc %rbx
+    shr $8, %rax            # Shift block index for next byte
+    jmp modify_loop
+modify_done:
+    
+    # Evolve the CA for the specified number of steps
+    mov %r10, %rdi          # Initial grid
+    mov %rdx, %rsi          # Number of steps
+    mov %r9, %rdx           # Grid size
+    mov %r8, %rcx           # Output buffer (we'll copy the final state here)
+    call evolve_ca_grid_complete
+    test %rax, %rax
+    js ca_mask_complete_error
+    
+    # Free allocated memory
+    mov %r10, %rdi          # Grid pointer
+    mov %r9, %rsi           # Grid size
+    call deallocate_memory
+    
+    mov $0, %rax            # Return success
     jmp ca_mask_complete_cleanup
     
 ca_mask_complete_error:
-    mov $-1, %rax       # Return error
+    mov $-1, %rax           # Return error
     
 ca_mask_complete_cleanup:
     # Restore registers
@@ -329,6 +446,82 @@ ca_mask_complete_cleanup:
     pop %rdx
     pop %rcx
     pop %rbx
+    
+    leave
+    ret
+
+# Function to allocate memory using mmap
+# Parameters:
+#   %rdi - size of memory to allocate
+# Returns:
+#   %rax - pointer to allocated memory (or -1 on error)
+.global allocate_memory
+allocate_memory:
+    push %rbp
+    mov %rsp, %rbp
+    
+    # Save registers
+    push %rdi
+    push %rsi
+    push %rdx
+    push %r10
+    push %r8
+    push %r9
+    
+    # mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
+    # addr = NULL (0)
+    # length = size (passed in %rdi)
+    # prot = PROT_READ | PROT_WRITE (0x3)
+    # flags = MAP_PRIVATE | MAP_ANONYMOUS (0x22)
+    # fd = -1
+    # offset = 0
+    
+    mov %rdi, %rsi          # length
+    mov $0, %rdi            # addr = NULL
+    mov $0x3, %rdx          # prot = PROT_READ | PROT_WRITE
+    mov $0x22, %r10         # flags = MAP_PRIVATE | MAP_ANONYMOUS
+    mov $-1, %r8            # fd = -1
+    mov $0, %r9             # offset = 0
+    mov $9, %rax            # sys_mmap
+    syscall
+    
+    # Restore registers
+    pop %r9
+    pop %r8
+    pop %r10
+    pop %rdx
+    pop %rsi
+    pop %rdi
+    
+    leave
+    ret
+
+# Function to deallocate memory using munmap
+# Parameters:
+#   %rdi - pointer to memory to deallocate
+#   %rsi - size of memory to deallocate
+# Returns:
+#   %rax - 0 on success, -1 on error
+.global deallocate_memory
+deallocate_memory:
+    push %rbp
+    mov %rsp, %rbp
+    
+    # Save registers
+    push %rdi
+    push %rsi
+    push %rdx
+    
+    # munmap(void *addr, size_t length)
+    mov %rdi, %rdi          # addr (passed in %rdi)
+    mov %rsi, %rsi          # length (passed in %rsi)
+    mov $11, %rax           # sys_munmap
+    syscall
+    
+    # Restore registers
+    pop %rdx
+    pop %rsi
+    pop %rdi
     
     leave
     ret

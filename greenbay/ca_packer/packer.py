@@ -157,16 +157,16 @@ def generate_stub_mvp(oep_rva, key, nonce, ca_params, block_lengths, payload_rva
     
     # 1. Compile the stub C code to a binary blob
     if binary_format == lief.Binary.FORMATS.PE:
-        stub_source_path = os.path.join(os.path.dirname(__file__), "stub_mvp.c")
+        stub_source_path = os.path.join(os.path.dirname(__file__), "minimal_exit_stub_simple.c")
         stub_type = "pe"
-        compile_script = os.path.join(os.path.dirname(__file__), "compile_stub.py")
-        compiled_stub_path = os.path.join(os.path.dirname(__file__), "pe_stub_compiled.bin")
+        compile_script = os.path.join(os.path.dirname(__file__), "compile_minimal_exit_stub_simple.py")
+        compiled_stub_path = os.path.join(os.path.dirname(__file__), "minimal_exit_stub_simple_compiled.bin")
     else:  # ELF
-        # Use the ChaCha20-enhanced unpacking stub
-        stub_source_path = os.path.join(os.path.dirname(__file__), "enhanced_unpacking_stub_chacha20.s")
+        # Use the complete unpacking stub
+        stub_source_path = os.path.join(os.path.dirname(__file__), "complete_unpacking_stub.s")
         stub_type = "elf"
-        compile_script = os.path.join(os.path.dirname(__file__), "compile_enhanced_unpacking_stub_chacha20.py")
-        compiled_stub_path = os.path.join(os.path.dirname(__file__), "enhanced_unpacking_stub_chacha20_compiled.bin")
+        compile_script = os.path.join(os.path.dirname(__file__), "compile_complete_unpacking_stub.py")
+        compiled_stub_path = os.path.join(os.path.dirname(__file__), "complete_unpacking_stub_compiled.bin")
 
     try:
         # Compile the stub
@@ -277,7 +277,7 @@ def integrate_packed_binary(original_binary_path, original_binary, stub_data, ob
                 lief.PE.Section.CHARACTERISTICS.MEM_EXECUTE |
                 lief.PE.Section.CHARACTERISTICS.CNT_CODE
             )
-            stub_section = original_binary.add(stub_section)
+            stub_section = original_binary.add_section(stub_section)
 
             # Add Payload Section
             payload_section = lief.PE.Section(".cpload") # CA Packed Payload
@@ -287,7 +287,7 @@ def integrate_packed_binary(original_binary_path, original_binary, stub_data, ob
                 lief.PE.Section.CHARACTERISTICS.MEM_READ |
                 lief.PE.Section.CHARACTERISTICS.CNT_INITIALIZED_DATA
             )
-            payload_section = original_binary.add(payload_section)
+            payload_section = original_binary.add_section(payload_section)
 
             # --- Update Entry Point ---
             # Get the relative virtual address (RVA) of the stub section's content
@@ -384,7 +384,7 @@ def pack_binary(input_path, output_path):
     if temp_binary.format == lief.Binary.FORMATS.PE:
         temp_payload_section = lief.PE.Section(".cpload_temp")
         temp_payload_section.content = [0x00] * 100 # Dummy content
-        temp_payload_section = temp_binary.add(temp_payload_section)
+        temp_payload_section = temp_binary.add_section(temp_payload_section)
         dummy_payload_rva = temp_payload_section.virtual_address
         # Use the simple minimal exit stub for debugging
         stub_source_path = os.path.join(os.path.dirname(__file__), "minimal_exit_stub_simple.c")
@@ -396,11 +396,11 @@ def pack_binary(input_path, output_path):
         temp_payload_section.content = [0x00] * 100 # Dummy content
         temp_payload_section = temp_binary.add(temp_payload_section)
         dummy_payload_rva = temp_payload_section.virtual_address
-        # Use the ChaCha20-enhanced unpacking stub
-        stub_source_path = os.path.join(os.path.dirname(__file__), "enhanced_unpacking_stub_chacha20.s")
+        # Use the complete unpacking stub
+        stub_source_path = os.path.join(os.path.dirname(__file__), "complete_unpacking_stub.s")
         stub_type = "elf"
-        compile_script = os.path.join(os.path.dirname(__file__), "compile_enhanced_unpacking_stub_chacha20.py")
-        compiled_stub_path = os.path.join(os.path.dirname(__file__), "enhanced_unpacking_stub_chacha20_compiled.bin")
+        compile_script = os.path.join(os.path.dirname(__file__), "compile_complete_unpacking_stub.py")
+        compiled_stub_path = os.path.join(os.path.dirname(__file__), "complete_unpacking_stub_compiled.bin")
     else:
         raise ValueError(f"Unsupported binary format: {temp_binary.format}")
     

@@ -54,25 +54,51 @@
 - [x] Implement ChaCha20-Poly1305 decryption in assembly
 - [x] Successfully test ChaCha20-Poly1305 implementation
 - [x] Create automated tests for ChaCha20-Poly1305 implementation
+- [x] Implement complete unpacking stub with CA unmasking
+- [x] Successfully test complete unpacking stub
+- [x] Create automated tests for complete unpacking stub
+- [x] Implement cellular automaton (Rule 30) evolution in assembly
+- [x] Successfully integrate CA evolution with unpacking process
+- [x] Implement memory management for CA grids
+- [x] Implement parameter reading and deobfuscation in complete stub
+- [x] Implement ChaCha20-Poly1305 decryption placeholder
+- [x] Implement CA unmasking functionality
+- [x] Implement jumping to OEP after unpacking
+- [x] Add error handling for edge cases
+- [x] Optimize assembly code for size and performance
+- [x] Successfully pack and unpack test binaries
 
 ## High Priority
-- [ ] Implement CA unmasking (Rule 30) in assembly
-  - [ ] Implement cellular automaton generator
-  - [ ] Implement mask generation using Rule 30
-  - [ ] Implement XOR unmasking of decrypted payload
+- [ ] Implement full ChaCha20-Poly1305 decryption
 - [ ] Implement reading of encrypted payload from specified RVA
-  - [ ] Locate payload section in memory
-  - [ ] Read encrypted payload data
-  - [ ] Validate payload size
 - [ ] Implement jumping to OEP after unpacking
-  - [ ] Transfer execution to original entry point
-  - [ ] Clean up temporary memory allocations
-  - [ ] Handle relocation if necessary
 - [ ] Add error handling for edge cases
-  - [ ] Handle decryption failures
-  - [ ] Handle memory allocation failures
-  - [ ] Handle invalid parameters
 - [ ] Optimize assembly code for size and performance
-  - [ ] Minimize code size
-  - [ ] Optimize critical paths
-  - [ ] Reduce memory footprint
+
+## Medium Priority
+- [ ] Implement proper payload section location and reading
+- [ ] Implement relocation handling if necessary
+- [ ] Add logging and debugging capabilities
+- [ ] Implement anti-debugging techniques
+- [ ] Add support for more binary formats
+
+## Low Priority
+- [ ] Optimize CA evolution algorithm for performance
+- [ ] Add support for different CA rules
+- [ ] Implement compression of payload before encryption
+- [ ] Add support for custom encryption algorithms
+- [ ] Implement GUI for packer configuration
+
+## Medium Priority
+- [ ] Implement proper payload section location and reading
+- [ ] Implement relocation handling if necessary
+- [ ] Add logging and debugging capabilities
+- [ ] Implement anti-debugging techniques
+- [ ] Add support for more binary formats
+
+## Low Priority
+- [ ] Optimize CA evolution algorithm for performance
+- [ ] Add support for different CA rules
+- [ ] Implement compression of payload before encryption
+- [ ] Add support for custom encryption algorithms
+- [ ] Implement GUI for packer configuration

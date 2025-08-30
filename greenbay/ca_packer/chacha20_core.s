@@ -2,10 +2,12 @@
 .section .text
 
 # ChaCha20 constants
-.equ CHACHA20_CONSTANT_0, 0x61707865  # "expa"
-.equ CHACHA20_CONSTANT_1, 0x3320646e  # "nd 3"
-.equ CHACHA20_CONSTANT_2, 0x79622d32  # "2-by"
-.equ CHACHA20_CONSTANT_3, 0x6b206574  # "te k"
+# expa nd 3 2-by te k
+# 65 78 70 61 6e 64 20 33 32 2d 62 79 74 65 20 6b
+.set CHACHA20_CONSTANT_0, 0x61707865
+.set CHACHA20_CONSTANT_1, 0x3320646e
+.set CHACHA20_CONSTANT_2, 0x79622d32
+.set CHACHA20_CONSTANT_3, 0x6b206574
 
 # Function to initialize ChaCha20 state
 # Parameters:
@@ -34,22 +36,34 @@ initialize_chacha20_state:
     movl $CHACHA20_CONSTANT_3, 12(%rcx)
     
     # Key (8 words)
-    movl (%rdi), 16(%rcx)
-    movl 4(%rdi), 20(%rcx)
-    movl 8(%rdi), 24(%rcx)
-    movl 12(%rdi), 28(%rcx)
-    movl 16(%rdi), 32(%rcx)
-    movl 20(%rdi), 36(%rcx)
-    movl 24(%rdi), 40(%rcx)
-    movl 28(%rdi), 44(%rcx)
+    movl (%rdi), %eax
+    movl %eax, 16(%rcx)
+    movl 4(%rdi), %eax
+    movl %eax, 20(%rcx)
+    movl 8(%rdi), %eax
+    movl %eax, 24(%rcx)
+    movl 12(%rdi), %eax
+    movl %eax, 28(%rcx)
+    movl 16(%rdi), %eax
+    movl %eax, 32(%rcx)
+    movl 20(%rdi), %eax
+    movl %eax, 36(%rcx)
+    movl 24(%rdi), %eax
+    movl %eax, 40(%rcx)
+    movl 28(%rdi), %eax
+    movl %eax, 44(%rcx)
     
     # Counter (1 word)
-    movl %edx, 48(%rcx)
+    movl %edx, %eax
+    movl %eax, 48(%rcx)
     
     # Nonce (3 words)
-    movl (%rsi), 52(%rcx)
-    movl 4(%rsi), 56(%rcx)
-    movl 8(%rsi), 60(%rcx)
+    movl (%rsi), %eax
+    movl %eax, 52(%rcx)
+    movl 4(%rsi), %eax
+    movl %eax, 56(%rcx)
+    movl 8(%rsi), %eax
+    movl %eax, 60(%rcx)
     
     # Restore registers
     pop %r11
@@ -326,9 +340,9 @@ xor_byte_loop:
     cmp %r11, %rax
     jge xor_block_done
     
-    movb (%rdi,%r8), %al
-    xorb (%rsi,%rax), %al
-    movb %al, (%rcx,%r8)
+    movb (%rdi,%r8,1), %al
+    xorb (%rsi,%rax,1), %al
+    movb %al, (%rcx,%r8,1)
     
     inc %r8
     inc %rax
