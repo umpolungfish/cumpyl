@@ -177,12 +177,15 @@ class LuckyStrikesMenu:
                 # Exclude test plugins and transmuter plugin (has its own menu)
                 if plugin_name.startswith('test_') or plugin_name == 'transmuter':
                     continue
+                # Exclude packer_transform as it's the same as packer plugin
+                if plugin_name == 'packer_transform':
+                    continue
                 # Add all packing plugins - they should all be transformative
                 packing_plugins.append(plugin_name)
         
-        # Ensure packer_transform is included
-        if 'packer_transform' not in packing_plugins:
-            packing_plugins.append('packer_transform')
+        # Ensure packer is included
+        if 'packer' not in packing_plugins:
+            packing_plugins.append('packer')
         
         return {
             'analysis': packing_plugins,  # All plugins can do analysis
@@ -192,10 +195,14 @@ class LuckyStrikesMenu:
     def load_plugin(self, plugin_name: str, plugin_type: str):
         """Dynamically load a plugin module."""
         try:
+            # Handle packer_transform as an alias for packer
+            if plugin_name == 'packer_transform':
+                plugin_name = 'packer'
+            
             if plugin_name == 'packer' and plugin_type == 'analysis':
                 from plugins.packer_plugin import get_plugin
                 return get_plugin
-            elif plugin_name == 'packer_transform' and plugin_type == 'transformation':
+            elif plugin_name == 'packer' and plugin_type == 'transformation':
                 from plugins.packer_plugin import get_transform_plugin
                 return get_transform_plugin
             else:
