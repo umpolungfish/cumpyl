@@ -1075,9 +1075,9 @@ def main():
         if analysis_results:
             hex_viewer.add_analysis_annotations(analysis_results)
             
-        # 𐑨𐑛 𐑪𐑚𐑓𐑩𐑕𐑒𐑱𐑖𐑩𐑯 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑦𐑓 𐑩𐑝𐑱𐑤𐑩𐑚𐑩𐑤
+        # Add obfuscation suggestion annotations if available
         if suggestions:
-            hex_viewer.add_suggestion_annotations(suggestions)
+            hex_viewer.add_analysis_annotations({"obfuscation_suggestions": suggestions})
         
         # 𐑡𐑧𐑯𐑼𐑱𐑑 HTML 𐑮𐑦𐑐𐑹𐑑 𐑢𐑦𐑞 𐑦𐑯𐑑𐑧𐑜𐑮𐑱𐑑𐑦𐑛 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
         report_generator = ReportGenerator(config)

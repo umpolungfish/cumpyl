@@ -108,15 +108,15 @@ class CumpylStartMenu:
     def launch_lucky_strikes(self):
         """Launch the Lucky Strikes (Packers) menu"""
         try:
-            # Try to import the plugin packer menu
-            from .plugin_packer_menu import launch_plugin_packer_menu
+            # Import the Lucky Strikes menu
+            from .lucky_strikes_menu import launch_lucky_strikes_menu
             # We need a target file for the packer menu
             target_file = self.select_target_file()
             if target_file:
-                launch_plugin_packer_menu(self.config, target_file)
+                launch_lucky_strikes_menu(self.config, target_file)
         except ImportError:
             # Fallback to original packer menu in main menu
-            self.console.print("[yellow]Plugin packer menu not available, launching main menu[/yellow]")
+            self.console.print("[yellow]Lucky Strikes menu not available, launching main menu[/yellow]")
             menu = CumpylMenu(self.config)
             # Directly call the packer menu
             menu.pe_packer_menu()

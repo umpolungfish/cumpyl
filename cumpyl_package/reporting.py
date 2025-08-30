@@ -107,9 +107,9 @@ class HTMLReportFormatter(ReportFormatter):
         # 𐑦𐑓 𐑩 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑦𐑟 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒𐑩𐑤𐑦 𐑐𐑮𐑴𐑝𐑲𐑛𐑦𐑛, 𐑿𐑟 𐑦𐑑
         if 'hex_viewer' in data and data['hex_viewer'] is not None:
             hex_viewer = data['hex_viewer']
-            hex_viewer_content = hex_viewer.generate_html_hex_view()
-            hex_viewer_css = hex_viewer.get_css_styles()
-            hex_viewer_js = hex_viewer.get_javascript()
+            hex_viewer_content = hex_viewer.generate_hex_dump_html()
+            hex_viewer_css = self._get_css_styles()
+            hex_viewer_js = ""
         elif 'binary_data' in data:
             # 𐑓𐑷𐑤𐑚𐑨𐑒 𐑑 𐑒𐑮𐑦𐑱𐑑𐑦𐑙 𐑩 𐑯𐑿 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
             hex_viewer = HexViewer(self.config)
@@ -128,9 +128,9 @@ class HTMLReportFormatter(ReportFormatter):
             if 'obfuscation_suggestions' in data:
                 hex_viewer.add_suggestion_annotations(data['obfuscation_suggestions'])
                 
-            hex_viewer_content = hex_viewer.generate_html_hex_view()
-            hex_viewer_css = hex_viewer.get_css_styles()
-            hex_viewer_js = hex_viewer.get_javascript()
+            hex_viewer_content = hex_viewer.generate_hex_dump_html()
+            hex_viewer_css = self._get_css_styles()
+            hex_viewer_js = ""
         
         html = f"""<!DOCTYPE html>
 <html lang="en">
