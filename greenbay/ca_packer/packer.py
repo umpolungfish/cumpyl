@@ -20,8 +20,13 @@ except ImportError:
     import sys
     import os
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from ca_packer.ca_engine import generate_mask
-    from ca_packer.crypto_engine import encrypt_payload
+    try:
+        from ca_packer.ca_engine import generate_mask
+        from ca_packer.crypto_engine import encrypt_payload
+    except ImportError:
+        # Try the full path if running as a module
+        from greenbay.ca_packer.ca_engine import generate_mask
+        from greenbay.ca_packer.crypto_engine import encrypt_payload
 # TODO: Import other necessary modules (e.g., for compression, binary analysis, integration)
 
 import lief
@@ -253,7 +258,11 @@ def generate_stub_mvp(oep_rva, key, nonce, ca_params, block_lengths, payload_rva
 
         # CA Steps (4 bytes, little-endian)
         # Get the CA steps from the ca_engine module (which might have been updated via command line)
-        import ca_packer.ca_engine as ca_engine
+        try:
+            import ca_packer.ca_engine as ca_engine
+        except ImportError:
+            # Try the full path if running as a module
+            import greenbay.ca_packer.ca_engine as ca_engine
         ca_steps = getattr(ca_engine, 'NUM_STEPS', 100)  # Default to 100 if not set
         stub_data[STUB_PARAMETER_OFFSET + 0x34:STUB_PARAMETER_OFFSET + 0x38] = ca_steps.to_bytes(4, 'little')
 
@@ -436,7 +445,11 @@ def pack_binary(input_path, output_path):
 
 
 # Allow importing ca_engine for NUM_STEPS constant
-import ca_packer.ca_engine as ca_engine
+try:
+    import ca_packer.ca_engine as ca_engine
+except ImportError:
+    # Try the full path if running as a module
+    import greenbay.ca_packer.ca_engine as ca_engine
 
 if __name__ == "__main__":
     import sys
@@ -453,7 +466,11 @@ if __name__ == "__main__":
     output_file = args.output_packed_binary
     
     # Update the CA steps in the ca_engine module
-    import ca_packer.ca_engine as ca_engine
+    try:
+        import ca_packer.ca_engine as ca_engine
+    except ImportError:
+        # Try the full path if running as a module
+        import greenbay.ca_packer.ca_engine as ca_engine
     ca_engine.NUM_STEPS = args.ca_steps
     
     # Debug output to verify the value was updated
