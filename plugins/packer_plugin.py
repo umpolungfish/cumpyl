@@ -89,7 +89,9 @@ class PackerPlugin(AnalysisPlugin, BasePlugin):
     """Universal binary packer analysis plugin for cumpyl framework"""
     
     def __init__(self, config):
+        # Initialize both parent classes
         BasePlugin.__init__(self, config)
+        AnalysisPlugin.__init__(self, config)
         self.name = "packer"
         self.version = "1.1.0"
         self.description = "Universal binary packer and obfuscator with compression and encryption"
@@ -182,7 +184,9 @@ class PackerTransformationPlugin(TransformationPlugin, BasePlugin):
     """Universal binary packer transformation plugin for cumpyl framework"""
     
     def __init__(self, config):
+        # Initialize both parent classes
         BasePlugin.__init__(self, config)
+        TransformationPlugin.__init__(self, config)
         self.name = "packer_transform"
         self.version = "1.1.0"
         self.description = "Universal binary packer transformation plugin"
