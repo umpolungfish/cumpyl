@@ -320,98 +320,92 @@ class CumpylMenu:
     
     def pe_packer_menu(self):
         """Binary Packers menu with plugin support"""
-        # Launch the new plugin-based packer menu
-        try:
-            from .plugin_packer_menu import launch_plugin_packer_menu
-            launch_plugin_packer_menu(self.config, self.target_file)
-        except ImportError as e:
-            self.console.print(f"[red]❌ Failed to load plugin packer menu: {e}[/red]")
-            self.console.print("[yellow]Falling back to real packer integration...[/yellow]")
+        self.console.print("[yellow]Plugin packer menu not available[/yellow]")
+        
+        # Fallback to original real packer integration
+        self.console.print(Panel("📦 Binary Packers", style="bold magenta"))
+        
+        options = [
+            ("1", "Analyze for Packing Opportunities", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --analyze"),
+            ("2", "Pack Binary (Generic PE)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_{os.path.basename(self.target_file)}"),
+            ("3", "Pack Binary (Go-aware)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_go_{os.path.basename(self.target_file)}"),
+            ("4", "Pack Binary (CGO-aware)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_cgo_{os.path.basename(self.target_file)}"),
+            ("5", "Pack with Custom Settings", "Pack with custom compression level and password"),
+            ("6", "Unpack Binary", "Restore a previously packed binary"),
+            ("b", "Back to Main Menu", "")
+        ]
+        
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Option", style="cyan", width=8)
+        table.add_column("Description", style="white", width=35)
+        table.add_column("Details", style="dim")
+        
+        for opt, desc, cmd in options:
+            table.add_row(opt, desc, cmd)
             
-            # Fallback to original real packer integration
-            self.console.print(Panel("📦 Binary Packers", style="bold magenta"))
+        self.console.print(table)
+        
+        choice = Prompt.ask(
+            "\n[yellow]Select packer option[/yellow]",
+            choices=[opt[0] for opt in options],
+            default="2"
+        )
+        
+        if choice == "b":
+            return
+        elif choice == "1":
+            # Analyze for Packing Opportunities
+            cmd = options[0][2]
+            self.execute_command(cmd)
+        elif choice == "2":
+            # Pack Binary (Generic PE)
+            self.console.print("[bold blue]Generic PE Binary Packing[/bold blue]")
+            self.console.print("[dim]Packing binary with standard compression and encryption[/dim]")
             
-            options = [
-                ("1", "Analyze for Packing Opportunities", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --analyze"),
-                ("2", "Pack Binary (Generic PE)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_{os.path.basename(self.target_file)}"),
-                ("3", "Pack Binary (Go-aware)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_go_{os.path.basename(self.target_file)}"),
-                ("4", "Pack Binary (CGO-aware)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_cgo_{os.path.basename(self.target_file)}"),
-                ("5", "Pack with Custom Settings", "Pack with custom compression level and password"),
-                ("6", "Unpack Binary", "Restore a previously packed binary"),
-                ("b", "Back to Main Menu", "")
-            ]
+            # Use the real packer for generic packing
+            output_file = f"packed_{os.path.basename(self.target_file)}"
+            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
+            self.execute_command(cmd)
+        elif choice == "3":
+            # Pack Binary (Go-aware)
+            self.console.print("[bold blue]Go-aware Binary Packing[/bold blue]")
+            self.console.print("[dim]Packing Go binary with Go-specific anti-detection techniques[/dim]")
             
-            table = Table(show_header=True, header_style="bold")
-            table.add_column("Option", style="cyan", width=8)
-            table.add_column("Description", style="white", width=35)
-            table.add_column("Details", style="dim")
+            # Use the real packer but with Go-specific output naming
+            output_file = f"packed_go_{os.path.basename(self.target_file)}"
+            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
+            self.execute_command(cmd)
+        elif choice == "4":
+            # Pack Binary (CGO-aware)
+            self.console.print("[bold blue]CGO-aware Binary Packing[/bold blue]")
+            self.console.print("[dim]Packing CGO binary with CGO-specific anti-detection techniques[/dim]")
             
-            for opt, desc, cmd in options:
-                table.add_row(opt, desc, cmd)
-                
-            self.console.print(table)
+            # Use the real packer but with CGO-specific output naming
+            output_file = f"packed_cgo_{os.path.basename(self.target_file)}"
+            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
+            self.execute_command(cmd)
+        elif choice == "5":
+            # Custom packer settings
+            compression_level = Prompt.ask("Compression level (1-9)", default="6")
+            password = Prompt.ask("Encryption password (leave empty for random)", default="")
             
-            choice = Prompt.ask(
-                "\n[yellow]Select packer option[/yellow]",
-                choices=[opt[0] for opt in options],
-                default="2"
-            )
+            output_file = Prompt.ask("Output file name", default=f"packed_{os.path.basename(self.target_file)}")
             
-            if choice == "b":
-                return
-            elif choice == "1":
-                # Analyze for Packing Opportunities
-                cmd = options[0][2]
-                self.execute_command(cmd)
-            elif choice == "2":
-                # Pack Binary (Generic PE)
-                self.console.print("[bold blue]Generic PE Binary Packing[/bold blue]")
-                self.console.print("[dim]Packing binary with standard compression and encryption[/dim]")
+            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file} --compression-level {compression_level}"
+            if password:
+                cmd += f" --password {password}"
                 
-                # Use the real packer for generic packing
-                output_file = f"packed_{os.path.basename(self.target_file)}"
-                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
-                self.execute_command(cmd)
-            elif choice == "3":
-                # Pack Binary (Go-aware)
-                self.console.print("[bold blue]Go-aware Binary Packing[/bold blue]")
-                self.console.print("[dim]Packing Go binary with Go-specific anti-detection techniques[/dim]")
+            self.execute_command(cmd)
+        elif choice == "6":
+            # Unpack binary
+            password = Prompt.ask("Encryption password", default="")
+            output_file = Prompt.ask("Output file name", default=f"unpacked_{os.path.basename(self.target_file)}")
+            
+            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --unpack -o {output_file}"
+            if password:
+                cmd += f" --password {password}"
                 
-                # Use the real packer but with Go-specific output naming
-                output_file = f"packed_go_{os.path.basename(self.target_file)}"
-                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
-                self.execute_command(cmd)
-            elif choice == "4":
-                # Pack Binary (CGO-aware)
-                self.console.print("[bold blue]CGO-aware Binary Packing[/bold blue]")
-                self.console.print("[dim]Packing CGO binary with CGO-specific anti-detection techniques[/dim]")
-                
-                # Use the real packer but with CGO-specific output naming
-                output_file = f"packed_cgo_{os.path.basename(self.target_file)}"
-                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
-                self.execute_command(cmd)
-            elif choice == "5":
-                # Custom packer settings
-                compression_level = Prompt.ask("Compression level (1-9)", default="6")
-                password = Prompt.ask("Encryption password (leave empty for random)", default="")
-                
-                output_file = Prompt.ask("Output file name", default=f"packed_{os.path.basename(self.target_file)}")
-                
-                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file} --compression-level {compression_level}"
-                if password:
-                    cmd += f" --password {password}"
-                    
-                self.execute_command(cmd)
-            elif choice == "6":
-                # Unpack binary
-                password = Prompt.ask("Encryption password", default="")
-                output_file = Prompt.ask("Output file name", default=f"unpacked_{os.path.basename(self.target_file)}")
-                
-                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --unpack -o {output_file}"
-                if password:
-                    cmd += f" --password {password}"
-                    
-                self.execute_command(cmd)
+            self.execute_command(cmd)
     
     def report_generation_menu(self):
         """𐑮𐑦𐑐𐑹𐑑 𐑡𐑧𐑯𐑼𐑱𐑖𐑩𐑯 𐑥𐑧𐑯𐑿"""
