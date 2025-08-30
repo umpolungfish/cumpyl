@@ -132,10 +132,9 @@ class LuckyStrikesMenu:
         menu_options = [
             ("1", "Analyze Binary", "Analyze binary for packing opportunities"),
             ("2", "Pack Binary", "Apply packing with various techniques"),
-            ("3", "CA Packer", "Cellular Automata-based packer with configurable steps"),
-            ("4", "Interactive Hex Viewer", "Explore packed binary with interactive hex dump"),
-            ("5", "View Analysis Results", "Display previous analysis results"),
-            ("6", "Change Target", "Select a different binary file"),
+            ("3", "Interactive Hex Viewer", "Explore packed binary with interactive hex dump"),
+            ("4", "View Analysis Results", "Display previous analysis results"),
+            ("5", "Change Target", "Select a different binary file"),
             ("b", "Back", "Return to main start menu"),
             ("h", "Help", "Show detailed help and examples"),
             ("q", "Quit", "Exit the framework")
@@ -554,15 +553,13 @@ class LuckyStrikesMenu:
         plugins = self.list_available_plugins()
         transform_plugins = plugins['transformation']
         
-        if not transform_plugins:
-            self.console.print("[red]No transformation plugins available[/red]")
-            return
-        
-        # Display plugin options
+        # Display plugin options including CA Packer
         plugin_options = []
         for i, plugin_name in enumerate(transform_plugins, 1):
             plugin_options.append((str(i), f"{plugin_name} plugin", f"Pack with {plugin_name} plugin"))
         
+        # Add CA Packer as an option
+        plugin_options.append((str(len(transform_plugins) + 1), "CA Packer", "Cellular Automata-based packer with configurable steps"))
         plugin_options.append(("b", "Back to Main Menu", ""))
         
         table = Table(show_header=True, header_style="bold")
@@ -582,6 +579,13 @@ class LuckyStrikesMenu:
         )
         
         if choice == "b":
+            return
+        
+        # Check if CA Packer was selected
+        ca_packer_index = str(len(transform_plugins) + 1)
+        if choice == ca_packer_index:
+            # Run CA Packer
+            self.run_ca_packer()
             return
         
         # Get selected plugin
@@ -791,8 +795,8 @@ class LuckyStrikesMenu:
         self.console.print()
         Prompt.ask("Press Enter to continue", default="")
     
-    def ca_packer_menu(self):
-        """CA Packer menu for Cellular Automata-based packing"""
+    def run_ca_packer(self):
+        """Run the Cellular Automata-based packer with configurable steps"""
         self.console.print(Panel("Cellular Automata Packer", style="bold red"))
         
         # Get CA steps from user
@@ -931,14 +935,12 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                 elif choice == "2":
                     self.pack_binary_menu()
                 elif choice == "3":
-                    self.ca_packer_menu()
-                elif choice == "4":
                     self.hex_viewer_menu()
-                elif choice == "5":
+                elif choice == "4":
                     # TODO: Implement viewing of previous analysis results
                     self.console.print("[yellow]Viewing previous analysis results coming soon![/yellow]")
                     Prompt.ask("Press Enter to continue", default="")
-                elif choice == "6":
+                elif choice == "5":
                     self.select_target_file()
                 elif choice == "h":
                     self.show_help()
