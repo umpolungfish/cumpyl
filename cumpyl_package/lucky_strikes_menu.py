@@ -553,13 +553,16 @@ class LuckyStrikesMenu:
         plugins = self.list_available_plugins()
         transform_plugins = plugins['transformation']
         
-        # Display plugin options including CA Packer
+        # Display plugin options including CA Packer options
         plugin_options = []
         for i, plugin_name in enumerate(transform_plugins, 1):
             plugin_options.append((str(i), f"{plugin_name} plugin", f"Pack with {plugin_name} plugin"))
         
-        # Add CA Packer as an option
-        plugin_options.append((str(len(transform_plugins) + 1), "CA Packer", "Cellular Automata-based packer with configurable steps"))
+        # Add CA Packer options
+        ca_base_index = len(transform_plugins)
+        plugin_options.append((str(ca_base_index + 1), "CA Quick Pack", "Quick pack with default settings (100 steps, 1 iteration)"))
+        plugin_options.append((str(ca_base_index + 2), "CA Steps", "Choose number of CA steps for packing"))
+        plugin_options.append((str(ca_base_index + 3), "CA Iterative", "Iterative packing with custom steps and iterations"))
         plugin_options.append(("b", "Back to Main Menu", ""))
         
         table = Table(show_header=True, header_style="bold")
@@ -581,11 +584,18 @@ class LuckyStrikesMenu:
         if choice == "b":
             return
         
-        # Check if CA Packer was selected
-        ca_packer_index = str(len(transform_plugins) + 1)
-        if choice == ca_packer_index:
-            # Run CA Packer
-            self.run_ca_packer()
+        # Check if a CA Packer option was selected
+        if choice == str(ca_base_index + 1):
+            # CA Quick Pack
+            self.run_ca_packer_quick()
+            return
+        elif choice == str(ca_base_index + 2):
+            # CA Steps
+            self.run_ca_packer_steps()
+            return
+        elif choice == str(ca_base_index + 3):
+            # CA Iterative
+            self.run_ca_packer_iterative()
             return
         
         # Get selected plugin
@@ -795,9 +805,52 @@ class LuckyStrikesMenu:
         self.console.print()
         Prompt.ask("Press Enter to continue", default="")
     
-    def run_ca_packer(self):
-        """Run the Cellular Automata-based packer with configurable steps"""
-        self.console.print(Panel("Cellular Automata Packer", style="bold red"))
+    def run_ca_packer_quick(self):
+        """Run the Cellular Automata-based packer with quick default settings"""
+        self.console.print(Panel("CA Quick Pack", style="bold red"))
+        
+        # Use default settings: 100 CA steps, 1 iteration
+        ca_steps = 100
+        iterations = 1
+        
+        # Get output file name
+        default_output = f"ca_quick_packed_{os.path.basename(self.target_file)}"
+        output_file = Prompt.ask(f"Output file name (default: {default_output})", default=default_output)
+        
+        # Build command using the correct path
+        cmd = f"python -m greenbay.ca_packer.packer {self.target_file} {output_file} --ca-steps {ca_steps}"
+        
+        # Execute command
+        self.execute_ca_command(cmd)
+    
+    def run_ca_packer_steps(self):
+        """Run the Cellular Automata-based packer with custom CA steps"""
+        self.console.print(Panel("CA Steps", style="bold red"))
+        
+        # Get CA steps from user
+        ca_steps = Prompt.ask("Enter number of CA steps (default: 100)", default="100")
+        try:
+            ca_steps = int(ca_steps)
+        except ValueError:
+            self.console.print("[yellow]Invalid CA steps, using default value of 100[/yellow]")
+            ca_steps = 100
+        
+        # Use default iterations: 1
+        iterations = 1
+        
+        # Get output file name
+        default_output = f"ca_steps_packed_{os.path.basename(self.target_file)}"
+        output_file = Prompt.ask(f"Output file name (default: {default_output})", default=default_output)
+        
+        # Build command using the correct path
+        cmd = f"python -m greenbay.ca_packer.packer {self.target_file} {output_file} --ca-steps {ca_steps}"
+        
+        # Execute command
+        self.execute_ca_command(cmd)
+    
+    def run_ca_packer_iterative(self):
+        """Run the Cellular Automata-based packer with iterative packing"""
+        self.console.print(Panel("CA Iterative Packing", style="bold red"))
         
         # Get CA steps from user
         ca_steps = Prompt.ask("Enter number of CA steps (default: 100)", default="100")
@@ -816,10 +869,10 @@ class LuckyStrikesMenu:
             iterations = 1
         
         # Get output file name
-        default_output = f"ca_packed_{os.path.basename(self.target_file)}"
+        default_output = f"ca_iter_packed_{os.path.basename(self.target_file)}"
         output_file = Prompt.ask(f"Output file name (default: {default_output})", default=default_output)
         
-        # Build command
+        # Build command using the correct path
         cmd = f"python -m greenbay.ca_packer.packer {self.target_file} {output_file} --ca-steps {ca_steps}"
         
         # For iterative packing, we'll need to run the packer multiple times
@@ -827,7 +880,7 @@ class LuckyStrikesMenu:
             self.console.print(f"[yellow]Iterative packing: {iterations} iterations with {ca_steps} CA steps each[/yellow]")
             current_input = self.target_file
             for i in range(iterations):
-                iter_output = f"ca_packed_iter_{i+1}_{os.path.basename(self.target_file)}"
+                iter_output = f"ca_iter_packed_{i+1}_{os.path.basename(self.target_file)}"
                 iter_cmd = f"python -m greenbay.ca_packer.packer {current_input} {iter_output} --ca-steps {ca_steps}"
                 
                 self.console.print(f"[cyan]Running iteration {i+1}/{iterations}[/cyan]")
@@ -849,12 +902,17 @@ class LuckyStrikesMenu:
         self.console.print("─" * 80)
         
         try:
-            # Run the command
+            # Run the command with the correct working directory and PYTHONPATH
+            env = os.environ.copy()
+            project_root = os.path.join(os.path.dirname(__file__), '..')
+            env['PYTHONPATH'] = project_root + ':' + env.get('PYTHONPATH', '')
+            
             result = subprocess.run(
                 command.split(),
                 capture_output=True,
                 text=True,
-                cwd=os.path.join(os.path.dirname(__file__), '..')
+                cwd=project_root,
+                env=env
             )
             
             self.console.print("─" * 80)
