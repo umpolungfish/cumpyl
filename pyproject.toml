@@ -36,6 +36,7 @@ dependencies = [
     "bitsandbytes",
     "cryptography",
     "pyyaml",
+    "textual",
     "jsonschema"
 ]
 

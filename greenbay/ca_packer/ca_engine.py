@@ -7,13 +7,10 @@ Implements a 1D Cellular Automaton (Rule 30) to function as a PRNG for mask gene
 import hashlib
 import logging
 
-# Allow importing ca_engine for NUM_STEPS constant
-NUM_STEPS = 100
-
 # --- CA Configuration ---
 CA_RULE = 30
 GRID_SIZE = 256 # Number of cells, must be even for byte alignment (256 bits = 32 bytes)
-NUM_STEPS = 100
+NUM_STEPS = 100  # Default number of CA steps, can be modified at runtime
 # --------------------------
 
 def _apply_rule_30(left: int, center: int, right: int) -> int:
@@ -38,6 +35,10 @@ def generate_mask(key_material: bytes, block_index: int, mask_length: int) -> by
     """
     if mask_length > (GRID_SIZE // 8):
         raise ValueError(f"Requested mask_length ({mask_length}) exceeds maximum possible from {GRID_SIZE}-bit grid ({GRID_SIZE // 8} bytes).")
+
+    # Log CA steps value only for the first block to avoid spam during testing
+    if block_index == 0:
+        logging.info(f"CA mask generation: block_index={block_index}, NUM_STEPS={NUM_STEPS}")
 
     # 1. Seeding
     seed_input = key_material + block_index.to_bytes(4, byteorder='big')
@@ -89,10 +90,10 @@ def generate_mask(key_material: bytes, block_index: int, mask_length: int) -> by
 if __name__ == "__main__":
     import os
     # Configure logging
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     test_key = os.urandom(32) # 256-bit key
-    test_index = 5
+    test_index = 0  # Use 0 to see our logging message
     test_length = 32 # 32 bytes = 256 bits
 
     print(f"Generating mask for block index {test_index} with key {test_key.hex()[:16]}...")

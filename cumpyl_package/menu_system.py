@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑥𐑧𐑯𐑿 𐑕𐑦𐑕𐑑𐑩𐑥 𐑓𐑹 Cumpyl Framework
-Interactive menu system for Cumpyl Framework
+Main Menu System for Cumpyl Framework
+Legacy menu system - now part of modular structure
 """
 
 import os
@@ -18,119 +18,58 @@ from rich.layout import Layout
 try:
     from .config import ConfigManager
 except ImportError:
-    from config import ConfigManager
+    try:
+        from config import ConfigManager
+    except ImportError:
+        ConfigManager = None
 
 
 class CumpylMenu:
-    """𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑥𐑧𐑯𐑿 𐑕𐑦𐑕𐑑𐑩𐑥 𐑓𐑹 Cumpyl"""
+    """Legacy Main Menu System for Cumpyl Framework"""
     
     def __init__(self, config: ConfigManager = None):
-        """𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑞 𐑥𐑧𐑯𐑿 𐑕𐑦𐑕𐑑𐑩𐑥"""
+        """Initialize the legacy menu system"""
         self.console = Console()
         self.config = config
         self.target_file = None
         
     def show_banner(self):
-        """𐑛𐑦𐑕𐑐𐑤𐑱 𐑞 Cumpyl 𐑚𐑨𐑯𐑼"""
+        """Display the Cumpyl Banner"""
         banner_text = Text()
-        banner_text.append("🔥 CUMPYL FRAMEWORK v0.3.0 🔥\n", style="bold red")
+        banner_text.append("CUMPYL FRAMEWORK v0.3.0\n", style="bold red")
         banner_text.append("Advanced Binary Analysis & Rewriting Platform\n", style="bold cyan")
-        banner_text.append("Interactive Menu System", style="bold yellow")
+        banner_text.append("Legacy Menu System", style="bold yellow")
         
         banner_panel = Panel(
             banner_text,
             border_style="bright_blue",
             padding=(1, 2),
-            title="🚀 Welcome",
+            title="⚠️ Legacy Menu",
             title_align="center"
         )
         
         self.console.print(banner_panel)
         self.console.print()
         
-    def select_target_file(self) -> bool:
-        """𐑕𐑧𐑤𐑧𐑒𐑑 𐑞 𐑑𐑸𐑜𐑧𐑑 𐑚𐑲𐑯𐑩𐑮𐑦 𐑓𐑲𐑤"""
-        self.console.print(Panel("🎯 Target File Selection", style="bold green"))
-        
-        # 𐑕𐑴 𐑮𐑦𐑕𐑧𐑯𐑑 𐑓𐑲𐑤𐑟 𐑦𐑯 𐑞 𐑒𐑻𐑩𐑯𐑑 𐑛𐑲𐑮𐑧𐑒𐑑𐑼𐑦
-        current_dir = os.getcwd()
-        binary_files = []
-        
-        # 𐑤𐑵𐑒 𐑓𐑹 𐑒𐑪𐑥𐑩𐑯 𐑚𐑲𐑯𐑩𐑮𐑦 𐑦𐑒𐑕𐑑𐑧𐑯𐑖𐑩𐑯𐑟
-        for root, dirs, files in os.walk(current_dir):
-            for file in files:
-                if file.lower().endswith(('.exe', '.dll', '.so', '.bin', '.elf')):
-                    rel_path = os.path.relpath(os.path.join(root, file), current_dir)
-                    if len(rel_path) < 80:  # 𐑴𐑯𐑤𐑦 𐑕𐑴 𐑮𐑰𐑟𐑩𐑯𐑩𐑚𐑩𐑤 𐑤𐑧𐑙𐑔 𐑐𐑨𐑔𐑟
-                        binary_files.append(rel_path)
-                if len(binary_files) >= 20:  # 𐑤𐑦𐑥𐑦𐑑 𐑑 20 𐑓𐑲𐑤𐑟
-                    break
-            if len(binary_files) >= 20:
-                break
-        
-        if binary_files:
-            self.console.print("📁 Found binary files in current directory:")
-            
-            table = Table(show_header=True, header_style="bold")
-            table.add_column("Index", style="cyan", width=8)
-            table.add_column("File Path", style="green")
-            table.add_column("Size", style="yellow", width=12)
-            
-            for i, file_path in enumerate(binary_files[:15]):  # 𐑕𐑴 𐑑𐑩𐑐 15
-                try:
-                    size = os.path.getsize(file_path)
-                    if size > 1024*1024:
-                        size_str = f"{size/(1024*1024):.1f} MB"
-                    elif size > 1024:
-                        size_str = f"{size/1024:.1f} KB"
-                    else:
-                        size_str = f"{size} bytes"
-                except:
-                    size_str = "Unknown"
-                
-                table.add_row(str(i), file_path, size_str)
-            
-            self.console.print(table)
-            self.console.print()
-            
-            choice = Prompt.ask(
-                "Select file by index, or enter custom path",
-                default="0"
-            )
-            
-            if choice.isdigit() and 0 <= int(choice) < len(binary_files):
-                self.target_file = binary_files[int(choice)]
-            else:
-                self.target_file = choice
-        else:
-            self.target_file = Prompt.ask("Enter path to binary file")
-        
-        # 𐑝𐑧𐑮𐑦𐑓𐑲 𐑞 𐑓𐑲𐑤 𐑦𐑜𐑟𐑦𐑕𐑑𐑕
-        if not os.path.exists(self.target_file):
-            self.console.print(f"[red]❌ File not found: {self.target_file}[/red]")
-            return False
-        
-        self.console.print(f"[green]✅ Target selected: {self.target_file}[/green]")
-        return True
-        
     def show_main_menu(self) -> str:
-        """𐑛𐑦𐑕𐑐𐑤𐑱 𐑞 𐑥𐑱𐑯 𐑥𐑧𐑯𐑿"""
-        menu_options = [
-            ("1", "🔍 Quick Analysis", "Fast section analysis and obfuscation suggestions"),
-            ("2", "🧪 Deep Analysis", "Comprehensive plugin-based analysis with reporting"),
-            ("3", "🔧 Interactive Hex Viewer", "Explore binary with interactive hex dump"),
-            ("4", "⚡ Batch Processing", "Process multiple files with automated workflows"),
-            ("5", "🎯 Encoding Operations", "Obfuscate specific sections with various encodings"),
-            ("6", "🔓 Payload Transmutation", "Transform payloads with advanced obfuscation techniques"),
-            ("7", "📦 Binary Packers", "Analyze and pack binaries with compression and encryption (Plugin-based and Real Packer)"),
-            ("8", "📊 Generate Reports", "Create detailed analysis reports in multiple formats"),
-            ("9", "⚙️ Configuration", "View and modify framework settings"),
-            ("10", "📁 Change Target", "Select a different binary file"),
-            ("h", "❓ Help", "Show detailed help and examples"),
-            ("q", "🚪 Quit", "Exit the menu system")
-        ]
+        """Display the legacy main menu"""
+        self.console.print(Panel("⚠️  Legacy Menu System", style="bold red"))
+        self.console.print("[yellow]This is the legacy menu system. We recommend using the new modular menu system.[/yellow]")
         
-        self.console.print(Panel(f"🎯 Target: {self.target_file}", style="bold blue"))
+        menu_options = [
+            ("1", "Launch New Menu System", "Start the new modular menu system"),
+            ("2", "Quick Analysis", "Fast section analysis and obfuscation suggestions"),
+            ("3", "Deep Analysis", "Comprehensive plugin-based analysis with reporting"),
+            ("4", "Interactive Hex Viewer", "Explore binary with interactive hex dump"),
+            ("5", "Batch Processing", "Process multiple files with automated workflows"),
+            ("6", "Encoding Operations", "Obfuscate specific sections with various encodings"),
+            ("7", "Payload Transmutation", "Transform payloads with advanced obfuscation techniques"),
+            ("8", "Binary Packers", "Analyze and pack binaries with compression and encryption (Plugin-based and Real Packer)"),
+            ("9", "Generate Reports", "Create detailed analysis reports in multiple formats"),
+            ("10", "Configuration", "View and modify framework settings"),
+            ("h", "Help", "Show detailed help and examples"),
+            ("q", "Quit", "Exit the menu system")
+        ]
         
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_column("Option", style="bold cyan", width=8)
@@ -142,7 +81,7 @@ class CumpylMenu:
         
         menu_panel = Panel(
             table,
-            title="🚀 Main Menu",
+            title="🔄 Legacy Menu Options",
             border_style="bright_green",
             padding=(1, 1)
         )
@@ -154,6 +93,7 @@ class CumpylMenu:
             choices=[opt[0] for opt in menu_options],
             default="1"
         )
+
         
     def quick_analysis_menu(self):
         """𐑒𐑢𐑦𐑒 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑥𐑧𐑯𐑿"""
@@ -757,13 +697,8 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
         Prompt.ask("\nPress Enter to continue", default="")
     
     def run(self):
-        """𐑮𐑳𐑯 𐑞 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑥𐑧𐑯𐑿 𐑤𐑵𐑐"""
+        """Run the legacy menu loop"""
         self.show_banner()
-        
-        # 𐑦𐑓 𐑯𐑴 𐑑𐑸𐑜𐑧𐑑 𐑓𐑲𐑤 𐑦𐑟 𐑕𐑧𐑑, 𐑕𐑧𐑤𐑧𐑒𐑑 𐑢𐑳𐑯
-        if not self.target_file:
-            if not self.select_target_file():
-                return
         
         while True:
             try:
@@ -773,16 +708,19 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                     self.console.print("[bold green]👋 Thank you for using Cumpyl Framework![/bold green]")
                     break
                 elif choice == "1":
-                    self.quick_analysis_menu()
+                    # Launch the new modular menu system
+                    launch_start_menu(self.config)
                 elif choice == "2":
-                    self.deep_analysis_menu()
+                    self.quick_analysis_menu()
                 elif choice == "3":
-                    self.hex_viewer_menu()
+                    self.deep_analysis_menu()
                 elif choice == "4":
-                    self.batch_processing_menu()
+                    self.hex_viewer_menu()
                 elif choice == "5":
-                    self.encoding_operations_menu()
+                    self.batch_processing_menu()
                 elif choice == "6":
+                    self.encoding_operations_menu()
+                elif choice == "7":
                     # Launch the new payload transmutation menu
                     try:
                         # Use absolute import instead of relative import to avoid issues
@@ -793,15 +731,13 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                         self.console.print(f"[red]❌ Import error: {e}[/red]")
                         self.console.print("[yellow]Make sure the payload_transmutation_menu module is properly installed[/yellow]")
                         Prompt.ask("Press Enter to continue", default="")
-                elif choice == "7":
+                elif choice == "8":
                     # Launch the PE Packer menu
                     self.pe_packer_menu()
-                elif choice == "8":
-                    self.report_generation_menu()
                 elif choice == "9":
-                    self.configuration_menu()
+                    self.report_generation_menu()
                 elif choice == "10":
-                    self.select_target_file()
+                    self.configuration_menu()
                 elif choice == "h":
                     self.show_help()
                     

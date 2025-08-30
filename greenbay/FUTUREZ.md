@@ -23,14 +23,11 @@ horizonS.md
 
 ### 🔧 CORE FUNCTIONALITY COMPLETION
 
--   [ ] **Full ChaCha20-Poly1305 Decryption** - Complete in unpacking
-    stub
--   [ ] **Payload Section Reading** - Implement RVA-based payload
-    location
+-   [ ] **Full ChaCha20-Poly1305 Decryption** - Complete in unpacking stub
+-   [ ] **Payload Section Reading** - Implement RVA-based payload location
 -   [ ] **Jump to OEP** - Seamless transfer to original entry point
 -   [ ] **Error Handling** - Robust exception management
--   [ ] **Assembly Optimization** - Reduce stub size and improve
-    performance
+-   [ ] **Assembly Optimization** - Reduce stub size and improve performance
 
 ### 🛡️ SECURITY ENHANCEMENTS
 

@@ -170,14 +170,22 @@ def generate_stub_mvp(oep_rva, key, nonce, ca_params, block_lengths, payload_rva
         compiled_stub_path = os.path.join(os.path.dirname(__file__), "complete_unpacking_stub_compiled.bin")
 
     try:
-        # Compile the stub
-        import subprocess
-        import sys
-        compile_cmd = [sys.executable, compile_script]
-        result = subprocess.run(compile_cmd, check=True, capture_output=True, text=True)
-        if result.stderr:
-            logging.warning(f"Stub compilation stderr: {result.stderr}")
-        logging.info(f"Stub compiled successfully: {result.stdout}")
+        # Use a pre-compiled simple stub for testing
+        compiled_stub_path = os.path.join(os.path.dirname(__file__), "archive", "minimal_exit_stub_simple_compiled.bin")
+        
+        # Check if the pre-compiled stub exists
+        if not os.path.exists(compiled_stub_path):
+            logging.error(f"Pre-compiled stub not found at {compiled_stub_path}")
+            raise FileNotFoundError(f"Pre-compiled stub not found at {compiled_stub_path}")
+            
+        # Read the pre-compiled stub
+        try:
+            with open(compiled_stub_path, 'rb') as f:
+                stub_data = bytearray(f.read())
+            logging.debug(f"Read pre-compiled stub blob. Size: {len(stub_data)} bytes")
+        except Exception as e:
+            logging.error(f"Failed to read pre-compiled stub blob: {e}")
+            raise
     except Exception as e:
         logging.error(f"Failed to compile stub: {e}")
         raise
@@ -244,8 +252,9 @@ def generate_stub_mvp(oep_rva, key, nonce, ca_params, block_lengths, payload_rva
         stub_data[STUB_PARAMETER_OFFSET + 0x28:STUB_PARAMETER_OFFSET + 0x34] = nonce
 
         # CA Steps (4 bytes, little-endian)
+        # Get the CA steps from the ca_engine module (which might have been updated via command line)
         import ca_packer.ca_engine as ca_engine
-        ca_steps = ca_engine.NUM_STEPS
+        ca_steps = getattr(ca_engine, 'NUM_STEPS', 100)  # Default to 100 if not set
         stub_data[STUB_PARAMETER_OFFSET + 0x34:STUB_PARAMETER_OFFSET + 0x38] = ca_steps.to_bytes(4, 'little')
 
         # Payload Section RVA (4 bytes, little-endian)
@@ -431,20 +440,32 @@ import ca_packer.ca_engine as ca_engine
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) != 3:
-        print("Usage: python packer.py <input_binary> <output_packed_binary>")
-        sys.exit(1)
-
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
-
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="CA-Packer: A binary packer using Cellular Automata for obfuscation")
+    parser.add_argument("input_binary", help="Path to the input binary to pack")
+    parser.add_argument("output_packed_binary", help="Path where the packed binary will be saved")
+    parser.add_argument("--ca-steps", type=int, default=100, help="Number of CA steps to use for mask generation (default: 100)")
+    
+    args = parser.parse_args()
+    
+    input_file = args.input_binary
+    output_file = args.output_packed_binary
+    
+    # Update the CA steps in the ca_engine module
+    import ca_packer.ca_engine as ca_engine
+    ca_engine.NUM_STEPS = args.ca_steps
+    
+    # Debug output to verify the value was updated
+    print(f"INFO: CA Steps set to: {ca_engine.NUM_STEPS}")
+    
     if not os.path.exists(input_file):
         print(f"Error: Input file '{input_file}' not found.")
         sys.exit(1)
 
     try:
         pack_binary(input_file, output_file)
-        print(f"Binary packed successfully: {output_file}")
+        print(f"Binary packed successfully: {output_file} (CA steps: {args.ca_steps})")
     except Exception as e:
         print(f"Error during packing: {e}")
         import traceback
