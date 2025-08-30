@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Main Menu System for Cumpyl Framework
-Legacy menu system - now part of modular structure
+𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑥𐑧𐑯𐑿 𐑕𐑦𐑕𐑑𐑩𐑥 𐑓𐑹 Cumpyl Framework
+Interactive menu system for Cumpyl Framework
 """
 
 import os
@@ -18,58 +18,119 @@ from rich.layout import Layout
 try:
     from .config import ConfigManager
 except ImportError:
-    try:
-        from config import ConfigManager
-    except ImportError:
-        ConfigManager = None
+    from config import ConfigManager
 
 
 class CumpylMenu:
-    """Legacy Main Menu System for Cumpyl Framework"""
+    """𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑥𐑧𐑯𐑿 𐑕𐑦𐑕𐑑𐑩𐑥 𐑓𐑹 Cumpyl"""
     
     def __init__(self, config: ConfigManager = None):
-        """Initialize the legacy menu system"""
+        """𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑞 𐑥𐑧𐑯𐑿 𐑕𐑦𐑕𐑑𐑩𐑥"""
         self.console = Console()
         self.config = config
         self.target_file = None
         
     def show_banner(self):
-        """Display the Cumpyl Banner"""
+        """𐑛𐑦𐑕𐑐𐑤𐑱 𐑞 Cumpyl 𐑚𐑨𐑯𐑼"""
         banner_text = Text()
-        banner_text.append("CUMPYL FRAMEWORK v0.3.0\n", style="bold red")
+        banner_text.append("🔥 CUMPYL FRAMEWORK v0.3.0 🔥\n", style="bold red")
         banner_text.append("Advanced Binary Analysis & Rewriting Platform\n", style="bold cyan")
-        banner_text.append("Legacy Menu System", style="bold yellow")
+        banner_text.append("Interactive Menu System", style="bold yellow")
         
         banner_panel = Panel(
             banner_text,
             border_style="bright_blue",
             padding=(1, 2),
-            title="⚠️ Legacy Menu",
+            title="🚀 Welcome",
             title_align="center"
         )
         
         self.console.print(banner_panel)
         self.console.print()
         
-    def show_main_menu(self) -> str:
-        """Display the legacy main menu"""
-        self.console.print(Panel("⚠️  Legacy Menu System", style="bold red"))
-        self.console.print("[yellow]This is the legacy menu system. We recommend using the new modular menu system.[/yellow]")
+    def select_target_file(self) -> bool:
+        """𐑕𐑧𐑤𐑧𐑒𐑑 𐑞 𐑑𐑸𐑜𐑧𐑑 𐑚𐑲𐑯𐑩𐑮𐑦 𐑓𐑲𐑤"""
+        self.console.print(Panel("🎯 Target File Selection", style="bold green"))
         
+        # 𐑕𐑴 𐑮𐑦𐑕𐑧𐑯𐑑 𐑓𐑲𐑤𐑟 𐑦𐑯 𐑞 𐑒𐑻𐑩𐑯𐑑 𐑛𐑲𐑮𐑧𐑒𐑑𐑼𐑦
+        current_dir = os.getcwd()
+        binary_files = []
+        
+        # 𐑤𐑵𐑒 𐑓𐑹 𐑒𐑪𐑥𐑩𐑯 𐑚𐑲𐑯𐑩𐑮𐑦 𐑦𐑒𐑕𐑑𐑧𐑯𐑖𐑩𐑯𐑟
+        for root, dirs, files in os.walk(current_dir):
+            for file in files:
+                if file.lower().endswith(('.exe', '.dll', '.so', '.bin', '.elf')):
+                    rel_path = os.path.relpath(os.path.join(root, file), current_dir)
+                    if len(rel_path) < 80:  # 𐑴𐑯𐑤𐑦 𐑕𐑴 𐑮𐑰𐑟𐑩𐑯𐑩𐑚𐑩𐑤 𐑤𐑧𐑙𐑔 𐑐𐑨𐑔𐑟
+                        binary_files.append(rel_path)
+                if len(binary_files) >= 20:  # 𐑤𐑦𐑥𐑦𐑑 𐑑 20 𐑓𐑲𐑤𐑟
+                    break
+            if len(binary_files) >= 20:
+                break
+        
+        if binary_files:
+            self.console.print("📁 Found binary files in current directory:")
+            
+            table = Table(show_header=True, header_style="bold")
+            table.add_column("Index", style="cyan", width=8)
+            table.add_column("File Path", style="green")
+            table.add_column("Size", style="yellow", width=12)
+            
+            for i, file_path in enumerate(binary_files[:15]):  # 𐑕𐑴 𐑑𐑩𐑐 15
+                try:
+                    size = os.path.getsize(file_path)
+                    if size > 1024*1024:
+                        size_str = f"{size/(1024*1024):.1f} MB"
+                    elif size > 1024:
+                        size_str = f"{size/1024:.1f} KB"
+                    else:
+                        size_str = f"{size} bytes"
+                except:
+                    size_str = "Unknown"
+                
+                table.add_row(str(i), file_path, size_str)
+            
+            self.console.print(table)
+            self.console.print()
+            
+            choice = Prompt.ask(
+                "Select file by index, or enter custom path",
+                default="0"
+            )
+            
+            if choice.isdigit() and 0 <= int(choice) < len(binary_files):
+                self.target_file = binary_files[int(choice)]
+            else:
+                self.target_file = choice
+        else:
+            self.target_file = Prompt.ask("Enter path to binary file")
+        
+        # 𐑝𐑧𐑮𐑦𐑓𐑲 𐑞 𐑓𐑲𐑤 𐑦𐑜𐑟𐑦𐑕𐑑𐑕
+        if not os.path.exists(self.target_file):
+            self.console.print(f"[red]❌ File not found: {self.target_file}[/red]")
+            return False
+        
+        self.console.print(f"[green]✅ Target selected: {self.target_file}[/green]")
+        return True
+        
+    def show_main_menu(self) -> str:
+        """𐑛𐑦𐑕𐑐𐑤𐑱 𐑞 𐑥𐑱𐑯 𐑥𐑧𐑯𐑿"""
         menu_options = [
-            ("1", "Launch New Menu System", "Start the new modular menu system"),
-            ("2", "Quick Analysis", "Fast section analysis and obfuscation suggestions"),
-            ("3", "Deep Analysis", "Comprehensive plugin-based analysis with reporting"),
-            ("4", "Interactive Hex Viewer", "Explore binary with interactive hex dump"),
-            ("5", "Batch Processing", "Process multiple files with automated workflows"),
-            ("6", "Encoding Operations", "Obfuscate specific sections with various encodings"),
-            ("7", "Payload Transmutation", "Transform payloads with advanced obfuscation techniques"),
-            ("8", "Binary Packers", "Analyze and pack binaries with compression and encryption (Plugin-based and Real Packer)"),
-            ("9", "Generate Reports", "Create detailed analysis reports in multiple formats"),
-            ("10", "Configuration", "View and modify framework settings"),
-            ("h", "Help", "Show detailed help and examples"),
-            ("q", "Quit", "Exit the menu system")
+            ("1", "🔍 Quick Analysis", "Fast section analysis and obfuscation suggestions"),
+            ("2", "🧪 Deep Analysis", "Comprehensive plugin-based analysis with reporting"),
+            ("3", "🔧 Interactive Hex Viewer", "Explore binary with interactive hex dump"),
+            ("4", "⚡ Batch Processing", "Process multiple files with automated workflows"),
+            ("5", "🎯 Encoding Operations", "Obfuscate specific sections with various encodings"),
+            ("6", "🔓 Payload Transmutation", "Transform payloads with advanced obfuscation techniques"),
+            ("7", "📦 Binary Packers", "Analyze and pack binaries with compression and encryption (Plugin-based and Real Packer)"),
+            ("8", "📊 Generate Reports", "Create detailed analysis reports in multiple formats"),
+            ("9", "⚙️ Configuration", "View and modify framework settings"),
+            ("10", "📁 Change Target", "Select a different binary file"),
+            ("h", "❓ Help", "Show detailed help and examples"),
+            ("q", "🚪 Quit", "Exit the menu system")
         ]
+        
+        self.console.print(Panel(f"🎯 Target: {self.target_file}", style="bold blue"))
         
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_column("Option", style="bold cyan", width=8)
@@ -81,7 +142,7 @@ class CumpylMenu:
         
         menu_panel = Panel(
             table,
-            title="🔄 Legacy Menu Options",
+            title="🚀 Main Menu",
             border_style="bright_green",
             padding=(1, 1)
         )
@@ -93,7 +154,6 @@ class CumpylMenu:
             choices=[opt[0] for opt in menu_options],
             default="1"
         )
-
         
     def quick_analysis_menu(self):
         """𐑒𐑢𐑦𐑒 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑥𐑧𐑯𐑿"""
@@ -320,92 +380,98 @@ class CumpylMenu:
     
     def pe_packer_menu(self):
         """Binary Packers menu with plugin support"""
-        self.console.print("[yellow]Plugin packer menu not available[/yellow]")
-        
-        # Fallback to original real packer integration
-        self.console.print(Panel("📦 Binary Packers", style="bold magenta"))
-        
-        options = [
-            ("1", "Analyze for Packing Opportunities", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --analyze"),
-            ("2", "Pack Binary (Generic PE)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_{os.path.basename(self.target_file)}"),
-            ("3", "Pack Binary (Go-aware)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_go_{os.path.basename(self.target_file)}"),
-            ("4", "Pack Binary (CGO-aware)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_cgo_{os.path.basename(self.target_file)}"),
-            ("5", "Pack with Custom Settings", "Pack with custom compression level and password"),
-            ("6", "Unpack Binary", "Restore a previously packed binary"),
-            ("b", "Back to Main Menu", "")
-        ]
-        
-        table = Table(show_header=True, header_style="bold")
-        table.add_column("Option", style="cyan", width=8)
-        table.add_column("Description", style="white", width=35)
-        table.add_column("Details", style="dim")
-        
-        for opt, desc, cmd in options:
-            table.add_row(opt, desc, cmd)
+        # Launch the new plugin-based packer menu
+        try:
+            from .plugin_packer_menu import launch_plugin_packer_menu
+            launch_plugin_packer_menu(self.config, self.target_file)
+        except ImportError as e:
+            self.console.print(f"[red]❌ Failed to load plugin packer menu: {e}[/red]")
+            self.console.print("[yellow]Falling back to real packer integration...[/yellow]")
             
-        self.console.print(table)
-        
-        choice = Prompt.ask(
-            "\n[yellow]Select packer option[/yellow]",
-            choices=[opt[0] for opt in options],
-            default="2"
-        )
-        
-        if choice == "b":
-            return
-        elif choice == "1":
-            # Analyze for Packing Opportunities
-            cmd = options[0][2]
-            self.execute_command(cmd)
-        elif choice == "2":
-            # Pack Binary (Generic PE)
-            self.console.print("[bold blue]Generic PE Binary Packing[/bold blue]")
-            self.console.print("[dim]Packing binary with standard compression and encryption[/dim]")
+            # Fallback to original real packer integration
+            self.console.print(Panel("📦 Binary Packers", style="bold magenta"))
             
-            # Use the real packer for generic packing
-            output_file = f"packed_{os.path.basename(self.target_file)}"
-            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
-            self.execute_command(cmd)
-        elif choice == "3":
-            # Pack Binary (Go-aware)
-            self.console.print("[bold blue]Go-aware Binary Packing[/bold blue]")
-            self.console.print("[dim]Packing Go binary with Go-specific anti-detection techniques[/dim]")
+            options = [
+                ("1", "Analyze for Packing Opportunities", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --analyze"),
+                ("2", "Pack Binary (Generic PE)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_{os.path.basename(self.target_file)}"),
+                ("3", "Pack Binary (Go-aware)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_go_{os.path.basename(self.target_file)}"),
+                ("4", "Pack Binary (CGO-aware)", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o packed_cgo_{os.path.basename(self.target_file)}"),
+                ("5", "Pack with Custom Settings", "Pack with custom compression level and password"),
+                ("6", "Unpack Binary", "Restore a previously packed binary"),
+                ("b", "Back to Main Menu", "")
+            ]
             
-            # Use the real packer but with Go-specific output naming
-            output_file = f"packed_go_{os.path.basename(self.target_file)}"
-            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
-            self.execute_command(cmd)
-        elif choice == "4":
-            # Pack Binary (CGO-aware)
-            self.console.print("[bold blue]CGO-aware Binary Packing[/bold blue]")
-            self.console.print("[dim]Packing CGO binary with CGO-specific anti-detection techniques[/dim]")
+            table = Table(show_header=True, header_style="bold")
+            table.add_column("Option", style="cyan", width=8)
+            table.add_column("Description", style="white", width=35)
+            table.add_column("Details", style="dim")
             
-            # Use the real packer but with CGO-specific output naming
-            output_file = f"packed_cgo_{os.path.basename(self.target_file)}"
-            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
-            self.execute_command(cmd)
-        elif choice == "5":
-            # Custom packer settings
-            compression_level = Prompt.ask("Compression level (1-9)", default="6")
-            password = Prompt.ask("Encryption password (leave empty for random)", default="")
-            
-            output_file = Prompt.ask("Output file name", default=f"packed_{os.path.basename(self.target_file)}")
-            
-            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file} --compression-level {compression_level}"
-            if password:
-                cmd += f" --password {password}"
+            for opt, desc, cmd in options:
+                table.add_row(opt, desc, cmd)
                 
-            self.execute_command(cmd)
-        elif choice == "6":
-            # Unpack binary
-            password = Prompt.ask("Encryption password", default="")
-            output_file = Prompt.ask("Output file name", default=f"unpacked_{os.path.basename(self.target_file)}")
+            self.console.print(table)
             
-            cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --unpack -o {output_file}"
-            if password:
-                cmd += f" --password {password}"
+            choice = Prompt.ask(
+                "\n[yellow]Select packer option[/yellow]",
+                choices=[opt[0] for opt in options],
+                default="2"
+            )
+            
+            if choice == "b":
+                return
+            elif choice == "1":
+                # Analyze for Packing Opportunities
+                cmd = options[0][2]
+                self.execute_command(cmd)
+            elif choice == "2":
+                # Pack Binary (Generic PE)
+                self.console.print("[bold blue]Generic PE Binary Packing[/bold blue]")
+                self.console.print("[dim]Packing binary with standard compression and encryption[/dim]")
                 
-            self.execute_command(cmd)
+                # Use the real packer for generic packing
+                output_file = f"packed_{os.path.basename(self.target_file)}"
+                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
+                self.execute_command(cmd)
+            elif choice == "3":
+                # Pack Binary (Go-aware)
+                self.console.print("[bold blue]Go-aware Binary Packing[/bold blue]")
+                self.console.print("[dim]Packing Go binary with Go-specific anti-detection techniques[/dim]")
+                
+                # Use the real packer but with Go-specific output naming
+                output_file = f"packed_go_{os.path.basename(self.target_file)}"
+                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
+                self.execute_command(cmd)
+            elif choice == "4":
+                # Pack Binary (CGO-aware)
+                self.console.print("[bold blue]CGO-aware Binary Packing[/bold blue]")
+                self.console.print("[dim]Packing CGO binary with CGO-specific anti-detection techniques[/dim]")
+                
+                # Use the real packer but with CGO-specific output naming
+                output_file = f"packed_cgo_{os.path.basename(self.target_file)}"
+                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file}"
+                self.execute_command(cmd)
+            elif choice == "5":
+                # Custom packer settings
+                compression_level = Prompt.ask("Compression level (1-9)", default="6")
+                password = Prompt.ask("Encryption password (leave empty for random)", default="")
+                
+                output_file = Prompt.ask("Output file name", default=f"packed_{os.path.basename(self.target_file)}")
+                
+                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --pack -o {output_file} --compression-level {compression_level}"
+                if password:
+                    cmd += f" --password {password}"
+                    
+                self.execute_command(cmd)
+            elif choice == "6":
+                # Unpack binary
+                password = Prompt.ask("Encryption password", default="")
+                output_file = Prompt.ask("Output file name", default=f"unpacked_{os.path.basename(self.target_file)}")
+                
+                cmd = f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --unpack -o {output_file}"
+                if password:
+                    cmd += f" --password {password}"
+                    
+                self.execute_command(cmd)
     
     def report_generation_menu(self):
         """𐑮𐑦𐑐𐑹𐑑 𐑡𐑧𐑯𐑼𐑱𐑖𐑩𐑯 𐑥𐑧𐑯𐑿"""
@@ -691,8 +757,13 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
         Prompt.ask("\nPress Enter to continue", default="")
     
     def run(self):
-        """Run the legacy menu loop"""
+        """𐑮𐑳𐑯 𐑞 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑥𐑧𐑯𐑿 𐑤𐑵𐑐"""
         self.show_banner()
+        
+        # 𐑦𐑓 𐑯𐑴 𐑑𐑸𐑜𐑧𐑑 𐑓𐑲𐑤 𐑦𐑟 𐑕𐑧𐑑, 𐑕𐑧𐑤𐑧𐑒𐑑 𐑢𐑳𐑯
+        if not self.target_file:
+            if not self.select_target_file():
+                return
         
         while True:
             try:
@@ -702,19 +773,16 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                     self.console.print("[bold green]👋 Thank you for using Cumpyl Framework![/bold green]")
                     break
                 elif choice == "1":
-                    # Launch the new modular menu system
-                    launch_start_menu(self.config)
-                elif choice == "2":
                     self.quick_analysis_menu()
-                elif choice == "3":
+                elif choice == "2":
                     self.deep_analysis_menu()
-                elif choice == "4":
+                elif choice == "3":
                     self.hex_viewer_menu()
-                elif choice == "5":
+                elif choice == "4":
                     self.batch_processing_menu()
-                elif choice == "6":
+                elif choice == "5":
                     self.encoding_operations_menu()
-                elif choice == "7":
+                elif choice == "6":
                     # Launch the new payload transmutation menu
                     try:
                         # Use absolute import instead of relative import to avoid issues
@@ -725,13 +793,15 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                         self.console.print(f"[red]❌ Import error: {e}[/red]")
                         self.console.print("[yellow]Make sure the payload_transmutation_menu module is properly installed[/yellow]")
                         Prompt.ask("Press Enter to continue", default="")
-                elif choice == "8":
+                elif choice == "7":
                     # Launch the PE Packer menu
                     self.pe_packer_menu()
-                elif choice == "9":
+                elif choice == "8":
                     self.report_generation_menu()
-                elif choice == "10":
+                elif choice == "9":
                     self.configuration_menu()
+                elif choice == "10":
+                    self.select_target_file()
                 elif choice == "h":
                     self.show_help()
                     

@@ -24,15 +24,6 @@ except ImportError:
     except ImportError:
         ConfigManager = None
 
-# Import CumpylMenu for fallback options
-try:
-    from .menu_system import CumpylMenu
-except ImportError:
-    try:
-        from menu_system import CumpylMenu
-    except ImportError:
-        CumpylMenu = None
-
 class CumpylStartMenu:
     """Main Start Menu for Cumpyl Framework"""
     
@@ -102,29 +93,24 @@ class CumpylStartMenu:
         except ImportError:
             # Fallback to main menu if specialized menu not available
             self.console.print("[yellow]Build-a-Binary menu not available, launching main menu[/yellow]")
-            if CumpylMenu:
-                menu = CumpylMenu(self.config)
-                menu.run()
-            else:
-                self.console.print("[red]Main menu not available[/red]")
+            menu = CumpylMenu(self.config)
+            menu.run()
         
     def launch_lucky_strikes(self):
         """Launch the Lucky Strikes (Packers) menu"""
-        # We need a target file for the packer menu
-        target_file = self.select_target_file()
-        if not target_file:
-            self.console.print("[yellow]No target file selected, returning to main menu[/yellow]")
-            return
-            
-        self.console.print("[yellow]Plugin packer menu not available[/yellow]")
-        if CumpylMenu:
+        try:
+            # Try to import the plugin packer menu
+            from .plugin_packer_menu import launch_plugin_packer_menu
+            # We need a target file for the packer menu
+            target_file = self.select_target_file()
+            if target_file:
+                launch_plugin_packer_menu(self.config, target_file)
+        except ImportError:
+            # Fallback to original packer menu in main menu
+            self.console.print("[yellow]Plugin packer menu not available, launching main menu[/yellow]")
             menu = CumpylMenu(self.config)
-            # Set the target file for the menu
-            menu.target_file = target_file
             # Directly call the packer menu
             menu.pe_packer_menu()
-        else:
-            self.console.print("[red]Main menu not available[/red]")
             
     def launch_silly_string(self):
         """Launch the Silly String (Payload Obfuscation) menu"""
