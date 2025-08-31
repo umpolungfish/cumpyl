@@ -1,0 +1,421 @@
+{
+  "plugin_name": "go_binary_analyzer",
+  "version": "1.0.0",
+  "description": "Analysis-only detection of Go binaries and packing opportunities",
+  "binary_format": "PE",
+  "analysis": {
+    "binary_size": 558257,
+    "sections_count": 18,
+    "sections": [
+      {
+        "name": ".text",
+        "size": 29256,
+        "virtual_address": 4096,
+        "is_executable": true,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 6.254430344486535,
+        "confidence": 1.0
+      },
+      {
+        "name": ".data",
+        "size": 272,
+        "virtual_address": 36864,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": true,
+        "entropy": 1.765060956568459,
+        "confidence": 0.2390625
+      },
+      {
+        "name": ".rdata",
+        "size": 4112,
+        "virtual_address": 40960,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 5.220257562671847,
+        "confidence": 1.0
+      },
+      {
+        "name": ".pdata",
+        "size": 1308,
+        "virtual_address": 49152,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.276325523612748,
+        "confidence": 1.0
+      },
+      {
+        "name": ".xdata",
+        "size": 1232,
+        "virtual_address": 53248,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.366081356551801,
+        "confidence": 1.0
+      },
+      {
+        "name": ".bss",
+        "size": 0,
+        "virtual_address": 57344,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": true,
+        "entropy": 0.0,
+        "confidence": 0.0
+      },
+      {
+        "name": ".idata",
+        "size": 2796,
+        "virtual_address": 61440,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": true,
+        "entropy": 4.188891446093231,
+        "confidence": 1.0
+      },
+      {
+        "name": ".CRT",
+        "size": 104,
+        "virtual_address": 65536,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": true,
+        "entropy": 0.0,
+        "confidence": 0.1
+      },
+      {
+        "name": ".tls",
+        "size": 16,
+        "virtual_address": 69632,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": true,
+        "entropy": 0.0,
+        "confidence": 0.1
+      },
+      {
+        "name": ".reloc",
+        "size": 144,
+        "virtual_address": 73728,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 0.0,
+        "confidence": 0.1
+      },
+      {
+        "name": "/4",
+        "size": 1808,
+        "virtual_address": 77824,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 1.9300793681094883,
+        "confidence": 1.0
+      },
+      {
+        "name": "/19",
+        "size": 329437,
+        "virtual_address": 81920,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 6.043542791761247,
+        "confidence": 1.0
+      },
+      {
+        "name": "/31",
+        "size": 16414,
+        "virtual_address": 413696,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.708259350513873,
+        "confidence": 1.0
+      },
+      {
+        "name": "/45",
+        "size": 33093,
+        "virtual_address": 434176,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 5.467264783455072,
+        "confidence": 1.0
+      },
+      {
+        "name": "/57",
+        "size": 6344,
+        "virtual_address": 471040,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.591955920417112,
+        "confidence": 1.0
+      },
+      {
+        "name": "/70",
+        "size": 2369,
+        "virtual_address": 479232,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 4.750908574927185,
+        "confidence": 1.0
+      },
+      {
+        "name": "/81",
+        "size": 69818,
+        "virtual_address": 483328,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 2.664202187635342,
+        "confidence": 1.0
+      },
+      {
+        "name": "/92",
+        "size": 3680,
+        "virtual_address": 557056,
+        "is_executable": false,
+        "is_readable": true,
+        "is_writable": false,
+        "entropy": 1.8157873039966979,
+        "confidence": 1.0
+      }
+    ],
+    "packing_opportunities": [
+      {
+        "section": ".rdata",
+        "size": 4112,
+        "type": "low_entropy_data",
+        "entropy": 5.220257562671847,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": ".pdata",
+        "size": 1308,
+        "type": "low_entropy_data",
+        "entropy": 4.276325523612748,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": ".xdata",
+        "size": 1232,
+        "type": "low_entropy_data",
+        "entropy": 4.366081356551801,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": ".idata",
+        "size": 2796,
+        "type": "low_entropy_data",
+        "entropy": 4.188891446093231,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/4",
+        "size": 1808,
+        "type": "low_entropy_data",
+        "entropy": 1.9300793681094883,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/31",
+        "size": 16414,
+        "type": "low_entropy_data",
+        "entropy": 4.708259350513873,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/45",
+        "size": 33093,
+        "type": "low_entropy_data",
+        "entropy": 5.467264783455072,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/57",
+        "size": 6344,
+        "type": "low_entropy_data",
+        "entropy": 4.591955920417112,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/70",
+        "size": 2369,
+        "type": "low_entropy_data",
+        "entropy": 4.750908574927185,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/81",
+        "size": 69818,
+        "type": "low_entropy_data",
+        "entropy": 2.664202187635342,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      },
+      {
+        "section": "/92",
+        "size": 3680,
+        "type": "low_entropy_data",
+        "entropy": 1.8157873039966979,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression"
+      }
+    ],
+    "go_detection": {
+      "detected": false,
+      "methods": [],
+      "evidence": {},
+      "confidence": 0.0,
+      "go_version": null
+    }
+  },
+  "transformation_plan": {
+    "actions_count": 11,
+    "actions": [
+      {
+        "type": "packing_opportunity",
+        "section": ".rdata",
+        "size": 4112,
+        "entropy": 5.220257562671847,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section .rdata",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": ".pdata",
+        "size": 1308,
+        "entropy": 4.276325523612748,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section .pdata",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": ".xdata",
+        "size": 1232,
+        "entropy": 4.366081356551801,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section .xdata",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": ".idata",
+        "size": 2796,
+        "entropy": 4.188891446093231,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section .idata",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": "/4",
+        "size": 1808,
+        "entropy": 1.9300793681094883,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section /4",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": "/31",
+        "size": 16414,
+        "entropy": 4.708259350513873,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section /31",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": "/45",
+        "size": 33093,
+        "entropy": 5.467264783455072,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section /45",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": "/57",
+        "size": 6344,
+        "entropy": 4.591955920417112,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section /57",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": "/70",
+        "size": 2369,
+        "entropy": 4.750908574927185,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section /70",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": "/81",
+        "size": 69818,
+        "entropy": 2.664202187635342,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section /81",
+        "timestamp": 1756607507
+      },
+      {
+        "type": "packing_opportunity",
+        "section": "/92",
+        "size": 3680,
+        "entropy": 1.8157873039966979,
+        "confidence": 1.0,
+        "recommendation": "Good candidate for compression",
+        "description": "Potential packing opportunity in section /92",
+        "timestamp": 1756607507
+      }
+    ],
+    "metadata": {
+      "plugin_name": "go_binary_analyzer",
+      "analysis_based": true,
+      "actual_transformation": false,
+      "timestamp": 1756607507,
+      "binary_format": "PE",
+      "sections_count": 18,
+      "packing_opportunities_count": 11
+    }
+  },
+  "suggestions": [
+    {
+      "type": "large_sections",
+      "count": 10,
+      "description": "Found 10 large sections",
+      "recommendation": "Analyze for data compression opportunities"
+    }
+  ]
+}
