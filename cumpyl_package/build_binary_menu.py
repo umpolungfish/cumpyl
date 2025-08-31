@@ -147,7 +147,7 @@ class BuildBinaryMenu:
         
         menu_panel = Panel(
             table,
-            title="🛠️ Build-a-Binary Menu",
+            title="Build-a-Binary Menu",
             border_style="bright_green",
             padding=(1, 1)
         )

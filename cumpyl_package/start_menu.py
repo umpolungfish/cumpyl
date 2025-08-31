@@ -129,7 +129,7 @@ class CumpylStartMenu:
             pt_menu = PayloadTransmutationMenu(self.config)
             pt_menu.run()
         except ImportError:
-            self.console.print("[red]❌ Payload transmutation menu not available[/red]")
+            self.console.print("[red]Payload transmutation menu not available[/red]")
             self.console.print("[yellow]Make sure the payload_transmutation_menu module is properly installed[/yellow]")
             
     def select_target_file(self) -> Optional[str]:
@@ -253,7 +253,7 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                     self.show_help()
                     
             except KeyboardInterrupt:
-                self.console.print("\n[bold yellow]💡 Use 'q' to quit gracefully[/bold yellow]")
+                self.console.print("\n[bold yellow]Use 'q' to quit gracefully[/bold yellow]")
             except Exception as e:
                 self.console.print(f"[bold red]Menu error: {e}[/bold red]")
                 Prompt.ask("Press Enter to continue", default="")

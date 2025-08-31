@@ -64,7 +64,7 @@ class LuckyStrikesMenu:
         
     def select_target_file(self) -> bool:
         """Select the target binary file"""
-        self.console.print(Panel("🎯 Target File Selection", style="bold green"))
+        self.console.print(Panel("Target File Selection", style="bold green"))
         
         # Present files in current directory
         current_dir = os.getcwd()
@@ -83,7 +83,7 @@ class LuckyStrikesMenu:
                 break
         
         if binary_files:
-            self.console.print("📁 Found binary files in current directory:")
+            self.console.print("Found binary files in current directory:")
             
             table = Table(show_header=True, header_style="bold")
             table.add_column("Index", style="cyan", width=8)
@@ -121,10 +121,10 @@ class LuckyStrikesMenu:
         
         # Verify the file exists
         if not os.path.exists(self.target_file):
-            self.console.print(f"[red]❌ File not found: {self.target_file}[/red]")
+            self.console.print(f"[red]File not found: {self.target_file}[/red]")
             return False
         
-        self.console.print(f"[green]✅ Target selected: {self.target_file}[/green]")
+        self.console.print(f"[green]Target selected: {self.target_file}[/green]")
         return True
         
     def show_main_menu(self) -> str:
@@ -140,7 +140,7 @@ class LuckyStrikesMenu:
             ("q", "Quit", "Exit the framework")
         ]
         
-        self.console.print(Panel(f"🎯 Target: {self.target_file}", style="bold blue"))
+        self.console.print(Panel(f"Target: {self.target_file}", style="bold blue"))
         
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_column("Option", style="bold cyan", width=8)
@@ -152,7 +152,7 @@ class LuckyStrikesMenu:
         
         menu_panel = Panel(
             table,
-            title="🎯 Lucky Strikes Menu",
+            title="Lucky Strikes Menu",
             border_style="bright_green",
             padding=(1, 1)
         )
@@ -480,7 +480,7 @@ class LuckyStrikesMenu:
     
     def analyze_binary_menu(self):
         """Analyze binary menu"""
-        self.console.print(Panel("🔍 Binary Analysis Options", style="bold green"))
+        self.console.print(Panel("Binary Analysis Options", style="bold green"))
         
         # Get available plugins
         plugins = self.list_available_plugins()
@@ -735,7 +735,7 @@ class LuckyStrikesMenu:
         try:
             rewriter = BinaryRewriter(self.target_file, self.config)
             if rewriter.load_binary():
-                self.console.print("[green]✅ Detected structured binary (PE/ELF/Mach-O)[/green]")
+                self.console.print("[green]Detected structured binary (PE/ELF/Mach-O)[/green]")
                 # Add section annotations
                 if rewriter.binary and hasattr(rewriter.binary, 'sections'):
                     sections = list(rewriter.binary.sections)
@@ -752,13 +752,13 @@ class LuckyStrikesMenu:
                         suggestions = rewriter.suggest_obfuscation()
                         hex_viewer.add_suggestion_annotations(suggestions)
                     except Exception as e:
-                        self.console.print(f"[yellow]⚠️  Analysis failed, continuing with basic hex view: {str(e)}[/yellow]")
+                        self.console.print(f"[yellow]Analysis failed, continuing with basic hex view: {str(e)}[/yellow]")
             else:
-                self.console.print("[blue]ℹ️  Raw binary file (no structured format detected)[/blue]")
+                self.console.print("[blue]Raw binary file (no structured format detected)[/blue]")
         except Exception as e:
-            self.console.print(f"[blue]ℹ️  Treating as raw binary file: {str(e)}[/blue]")
+            self.console.print(f"[blue]Treating as raw binary file: {str(e)}[/blue]")
             
-        self.console.print(f"[green]📁 Loaded {len(binary_data)} bytes for hex viewing[/green]")
+        self.console.print(f"[green]Loaded {len(binary_data)} bytes for hex viewing[/green]")
         self.console.print("[green]Launching fallback hex viewer...[/green]")
         self.console.print("[yellow]Note: For the full interactive experience, use the Textual hex viewer option[/yellow]")
         
@@ -779,7 +779,7 @@ class LuckyStrikesMenu:
     
     def execute_command(self, command: str):
         """Execute a Cumpyl command"""
-        self.console.print(f"[bold green]🚀 Executing:[/bold green] [cyan]{command}[/cyan]")
+        self.console.print(f"[bold green]Executing:[/bold green] [cyan]{command}[/cyan]")
         self.console.print("─" * 80)
         
         try:
@@ -792,12 +792,12 @@ class LuckyStrikesMenu:
             
             self.console.print("─" * 80)
             if result.returncode == 0:
-                self.console.print("[bold green]✅ Command completed successfully![/bold green]")
+                self.console.print("[bold green]Command completed successfully![/bold green]")
             else:
-                self.console.print(f"[bold red]❌ Command failed with return code: {result.returncode}[/bold red]")
+                self.console.print(f"[bold red]Command failed with return code: {result.returncode}[/bold red]")
                 
         except Exception as e:
-            self.console.print(f"[bold red]❌ Error executing command: {e}[/bold red]")
+            self.console.print(f"[bold red]Error executing command: {e}[/bold red]")
         
         self.console.print()
         Prompt.ask("Press Enter to continue", default="")
@@ -936,7 +936,7 @@ class LuckyStrikesMenu:
     
     def execute_ca_command(self, command: str):
         """Execute a CA packer command"""
-        self.console.print(f"[bold green]🚀 Executing CA Packer:[/bold green] [cyan]{command}[/cyan]")
+        self.console.print(f"[bold green]Executing CA Packer:[/bold green] [cyan]{command}[/cyan]")
         self.console.print("─" * 80)
         
         try:
@@ -955,16 +955,16 @@ class LuckyStrikesMenu:
             
             self.console.print("─" * 80)
             if result.returncode == 0:
-                self.console.print("[bold green]✅ CA Packer completed successfully![/bold green]")
+                self.console.print("[bold green]CA Packer completed successfully![/bold green]")
                 if result.stdout:
                     self.console.print(f"[dim]{result.stdout}[/dim]")
             else:
-                self.console.print(f"[bold red]❌ CA Packer failed with return code: {result.returncode}[/bold red]")
+                self.console.print(f"[bold red]CA Packer failed with return code: {result.returncode}[/bold red]")
                 if result.stderr:
                     self.console.print(f"[red]{result.stderr}[/red]")
                     
         except Exception as e:
-            self.console.print(f"[bold red]❌ Error executing CA Packer: {e}[/bold red]")
+            self.console.print(f"[bold red]Error executing CA Packer: {e}[/bold red]")
         
         self.console.print()
         Prompt.ask("Press Enter to continue", default="")
@@ -972,16 +972,16 @@ class LuckyStrikesMenu:
     def show_help(self):
         """Display help information"""
         help_text = """
-🎯 **LUCKY STRIKES MODULE** - Binary Packers & Compression Tools
+**LUCKY STRIKES MODULE** - Binary Packers & Compression Tools
 
-**💣 Features:**
+**Features:**
 • **Binary Analysis**: Analyze binaries for packing opportunities
 • **Binary Packing**: Apply packing with various techniques (Generic, Go-aware, CGO-aware)
 • **Plugin System**: Multiple packer plugins with different capabilities
 • **Interactive Hex Viewer**: Explore packed binaries with rich annotations
 • **Configuration Options**: Fine-tune compression, encryption, and other settings
 
-**🔧 Key Features:**
+**Key Features:**
 • Multiple packer plugins (Generic, Go-aware, CGO-aware)
 • Compression with configurable levels (1-9)
 • Encryption with key management
@@ -989,7 +989,7 @@ class LuckyStrikesMenu:
 • Dry-run mode for testing
 • Safe mode for cautious operations
 
-**⚡ Command Examples:**
+**Command Examples:**
 • Analyze: Use the analysis menu to identify packing opportunities
 • Pack: Use the packing menu to apply transformations
 • View: Examine packed binaries with the hex viewer
@@ -999,7 +999,7 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
         
         help_panel = Panel(
             help_text.strip(),
-            title="📚 Lucky Strikes Help",
+            title="Lucky Strikes Help",
             border_style="bright_yellow",
             padding=(1, 2)
         )
@@ -1021,7 +1021,7 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                 choice = self.show_main_menu()
                 
                 if choice == "q":
-                    self.console.print("[bold green]👋 Exiting Cumpyl Framework![/bold green]")
+                    self.console.print("[bold green]Exiting Cumpyl Framework![/bold green]")
                     break
                 elif choice == "b":
                     # Return to start menu
@@ -1042,9 +1042,9 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                     self.show_help()
                     
             except KeyboardInterrupt:
-                self.console.print("[bold yellow]💡 Use 'q' to quit gracefully[/bold yellow]")
+                self.console.print("[bold yellow]Use 'q' to quit gracefully[/bold yellow]")
             except Exception as e:
-                self.console.print(f"[bold red]❌ Menu error: {e}[/bold red]")
+                self.console.print(f"[bold red]Menu error: {e}[/bold red]")
                 Prompt.ask("Press Enter to continue", default="")
 
 def launch_lucky_strikes_menu(config: ConfigManager = None, target_file: str = None):

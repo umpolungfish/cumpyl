@@ -33,7 +33,7 @@ class CumpylMenu:
     def show_banner(self):
         """𐑛𐑦𐑕𐑐𐑤𐑱 𐑞 Cumpyl 𐑚𐑨𐑯𐑼"""
         banner_text = Text()
-        banner_text.append("🔥 CUMPYL FRAMEWORK v0.3.0 🔥\n", style="bold red")
+        banner_text.append("CUMPYL FRAMEWORK v0.3.0\n", style="bold red")
         banner_text.append("Advanced Binary Analysis & Rewriting Platform\n", style="bold cyan")
         banner_text.append("Interactive Menu System", style="bold yellow")
         
@@ -41,7 +41,7 @@ class CumpylMenu:
             banner_text,
             border_style="bright_blue",
             padding=(1, 2),
-            title="🚀 Welcome",
+            title="Welcome",
             title_align="center"
         )
         
@@ -50,7 +50,7 @@ class CumpylMenu:
         
     def select_target_file(self) -> bool:
         """𐑕𐑧𐑤𐑧𐑒𐑑 𐑞 𐑑𐑸𐑜𐑧𐑑 𐑚𐑲𐑯𐑩𐑮𐑦 𐑓𐑲𐑤"""
-        self.console.print(Panel("🎯 Target File Selection", style="bold green"))
+        self.console.print(Panel("Target File Selection", style="bold green"))
         
         # 𐑕𐑴 𐑮𐑦𐑕𐑧𐑯𐑑 𐑓𐑲𐑤𐑟 𐑦𐑯 𐑞 𐑒𐑻𐑩𐑯𐑑 𐑛𐑲𐑮𐑧𐑒𐑑𐑼𐑦
         current_dir = os.getcwd()
@@ -69,7 +69,7 @@ class CumpylMenu:
                 break
         
         if binary_files:
-            self.console.print("📁 Found binary files in current directory:")
+            self.console.print("Found binary files in current directory:")
             
             table = Table(show_header=True, header_style="bold")
             table.add_column("Index", style="cyan", width=8)
@@ -107,10 +107,10 @@ class CumpylMenu:
         
         # 𐑝𐑧𐑮𐑦𐑓𐑲 𐑞 𐑓𐑲𐑤 𐑦𐑜𐑟𐑦𐑕𐑑𐑕
         if not os.path.exists(self.target_file):
-            self.console.print(f"[red]❌ File not found: {self.target_file}[/red]")
+            self.console.print(f"[red]File not found: {self.target_file}[/red]")
             return False
         
-        self.console.print(f"[green]✅ Target selected: {self.target_file}[/green]")
+        self.console.print(f"[green]Target selected: {self.target_file}[/green]")
         return True
         
     def show_main_menu(self) -> str:
@@ -130,7 +130,7 @@ class CumpylMenu:
             ("q", "🚪 Quit", "Exit the menu system")
         ]
         
-        self.console.print(Panel(f"🎯 Target: {self.target_file}", style="bold blue"))
+        self.console.print(Panel(f"Target: {self.target_file}", style="bold blue"))
         
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_column("Option", style="bold cyan", width=8)
@@ -142,7 +142,7 @@ class CumpylMenu:
         
         menu_panel = Panel(
             table,
-            title="🚀 Main Menu",
+            title="Main Menu",
             border_style="bright_green",
             padding=(1, 1)
         )
@@ -157,7 +157,7 @@ class CumpylMenu:
         
     def quick_analysis_menu(self):
         """𐑒𐑢𐑦𐑒 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑥𐑧𐑯𐑿"""
-        self.console.print(Panel("🔍 Quick Analysis Options", style="bold green"))
+        self.console.print(Panel("Quick Analysis Options", style="bold green"))
         
         options = [
             ("1", "Section Analysis Only", f"cumpyl {self.target_file} --analyze-sections"),
@@ -192,7 +192,7 @@ class CumpylMenu:
         
     def hex_viewer_menu(self):
         """𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑥𐑧𐑯𐑿"""
-        self.console.print(Panel("🔧 Interactive Hex Viewer Options", style="bold magenta"))
+        self.console.print(Panel("Interactive Hex Viewer Options", style="bold magenta"))
         
         options = [
             ("1", "Basic Hex View (HTML)", f"cumpyl {self.target_file} --hex-view"),
@@ -253,7 +253,7 @@ class CumpylMenu:
     
     def deep_analysis_menu(self):
         """𐑛𐑰𐑐 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑥𐑧𐑯𐑿"""
-        self.console.print(Panel("🧪 Deep Analysis Options", style="bold blue"))
+        self.console.print(Panel("Deep Analysis Options", style="bold blue"))
         
         options = [
             ("1", "Plugin Analysis Only", f"cumpyl {self.target_file} --run-analysis"),
@@ -289,7 +289,7 @@ class CumpylMenu:
     
     def batch_processing_menu(self):
         """Batch processing menu"""
-        self.console.print(Panel("⚡ Batch Processing Options", style="bold yellow"))
+        self.console.print(Panel("Batch Processing Options", style="bold yellow"))
         
         options = [
             ("1", "Process Directory", "Process all binaries in a directory"),
@@ -337,7 +337,7 @@ class CumpylMenu:
     
     def encoding_operations_menu(self):
         """Encoding operations menu"""
-        self.console.print(Panel("🎯 Encoding Operations", style="bold red"))
+        self.console.print(Panel("Encoding Operations", style="bold red"))
         
         options = [
             ("1", "Encode Single Section", f"cumpyl {self.target_file} --encode-section .text --encoding base64 -o encoded.exe"),
@@ -385,11 +385,11 @@ class CumpylMenu:
             from .plugin_packer_menu import launch_plugin_packer_menu
             launch_plugin_packer_menu(self.config, self.target_file)
         except ImportError as e:
-            self.console.print(f"[red]❌ Failed to load plugin packer menu: {e}[/red]")
+            self.console.print(f"[red]Failed to load plugin packer menu: {e}[/red]")
             self.console.print("[yellow]Falling back to real packer integration...[/yellow]")
             
             # Fallback to original real packer integration
-            self.console.print(Panel("📦 Binary Packers", style="bold magenta"))
+            self.console.print(Panel("Binary Packers", style="bold magenta"))
             
             options = [
                 ("1", "Analyze for Packing Opportunities", f"python {os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'real_packer.py'))} {self.target_file} --analyze"),
@@ -475,7 +475,7 @@ class CumpylMenu:
     
     def report_generation_menu(self):
         """𐑮𐑦𐑐𐑹𐑑 𐑡𐑧𐑯𐑼𐑱𐑖𐑩𐑯 𐑥𐑧𐑯𐑿"""
-        self.console.print(Panel("📊 Report Generation Options", style="bold green"))
+        self.console.print(Panel("Report Generation Options", style="bold green"))
         
         options = [
             ("1", "HTML Report", f"cumpyl {self.target_file} --run-analysis --report-format html --report-output analysis.html"),
@@ -523,7 +523,7 @@ class CumpylMenu:
     
     def configuration_menu(self):
         """𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯 𐑥𐑧𐑯𐑿"""
-        self.console.print(Panel("⚙️ Configuration Options", style="bold magenta"))
+        self.console.print(Panel("Configuration Options", style="bold magenta"))
         
         options = [
             ("1", "Show Current Config", "cumpyl --show-config"),
@@ -623,7 +623,7 @@ class CumpylMenu:
         try:
             rewriter = BinaryRewriter(self.target_file, self.config)
             if rewriter.load_binary():
-                self.console.print("[green]✅ Detected structured binary (PE/ELF/Mach-O)[/green]")
+                self.console.print("[green]Detected structured binary (PE/ELF/Mach-O)[/green]")
                 # 𐑨𐑛 𐑕𐑧𐑒𐑖𐑩𐑯 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟
                 if rewriter.binary and hasattr(rewriter.binary, 'sections'):
                     sections = list(rewriter.binary.sections)
@@ -640,13 +640,13 @@ class CumpylMenu:
                         suggestions = rewriter.suggest_obfuscation()
                         hex_viewer.add_suggestion_annotations(suggestions)
                     except Exception as e:
-                        self.console.print(f"[yellow]⚠️  Analysis failed, continuing with basic hex view: {str(e)}[/yellow]")
+                        self.console.print(f"[yellow]Analysis failed, continuing with basic hex view: {str(e)}[/yellow]")
             else:
-                self.console.print("[blue]ℹ️  Raw binary file (no structured format detected)[/blue]")
+                self.console.print("[blue]Raw binary file (no structured format detected)[/blue]")
         except Exception as e:
-            self.console.print(f"[blue]ℹ️  Treating as raw binary file: {str(e)}[/blue]")
+            self.console.print(f"[blue]Treating as raw binary file: {str(e)}[/blue]")
             
-        self.console.print(f"[green]📁 Loaded {len(binary_data)} bytes for hex viewing[/green]")
+        self.console.print(f"[green]Loaded {len(binary_data)} bytes for hex viewing[/green]")
         self.console.print("[green]Launching fallback hex viewer...[/green]")
         self.console.print("[yellow]Note: For the full interactive experience, use the Textual hex viewer option[/yellow]")
         
@@ -667,7 +667,7 @@ class CumpylMenu:
     
     def execute_command(self, command: str):
         """𐑧𐑒𐑕𐑦𐑒𐑿𐑑 𐑩 Cumpyl 𐑒𐑩𐑥𐑭𐑯𐑛"""
-        self.console.print(f"\n[bold green]🚀 Executing:[/bold green] [cyan]{command}[/cyan]")
+        self.console.print(f"\n[bold green]Executing:[/bold green] [cyan]{command}[/cyan]")
         self.console.print("─" * 80)
         
         try:
@@ -691,12 +691,12 @@ class CumpylMenu:
             
             self.console.print("─" * 80)
             if result.returncode == 0:
-                self.console.print("[bold green]✅ Command completed successfully![/bold green]")
+                self.console.print("[bold green]Command completed successfully![/bold green]")
             else:
-                self.console.print(f"[bold red]❌ Command failed with return code: {result.returncode}[/bold red]")
+                self.console.print(f"[bold red]Command failed with return code: {result.returncode}[/bold red]")
                 
         except Exception as e:
-            self.console.print(f"[bold red]❌ Error executing command: {e}[/bold red]")
+            self.console.print(f"[bold red]Error executing command: {e}[/bold red]")
         
         self.console.print()
         Prompt.ask("Press Enter to continue", default="")
@@ -706,38 +706,38 @@ class CumpylMenu:
         help_text = """
 🔥 **CUMPYL FRAMEWORK** - Advanced Binary Analysis & Rewriting Platform
 
-**🎯 Quick Start Guide:**
+**Quick Start Guide:**
 1. Use menu option 1 for fast analysis and obfuscation suggestions
 2. Use menu option 3 for interactive hex exploration with visual tooltips
 3. Use menu option 2 for comprehensive analysis with detailed reports
 
-**🔧 Key Features:**
+**Key Features:**
 • **Interactive Hex Viewer**: Hover over bytes for detailed analysis tooltips
 • **Section Analysis**: Automatic classification and safety assessment
 • **Plugin System**: Entropy analysis, string extraction, and more
 • **Batch Processing**: Analyze multiple files simultaneously
 • **Multiple Report Formats**: HTML, JSON, YAML, XML output options
 
-**🎨 Hex Viewer Highlights:**
+**Hex Viewer Highlights:**
 • Color-coded annotations by type and severity
 • Interactive section selection with tabular overview
 • Custom range specification with hex notation support
 • Real-time annotation counting and display
 • Working hover tooltips with detailed information
 
-**📊 Analysis Capabilities:**
+**Analysis Capabilities:**
 • Shannon entropy calculation for packed binary detection
 • Advanced string extraction with context scoring
 • Section-by-section safety assessment for obfuscation
 • Multi-tier recommendation system (Advanced/Intermediate/Basic/Avoid)
 
-**⚡ Command Examples:**
+**Command Examples:**
 • Quick analysis: `cumpyl binary.exe --analyze-sections --suggest-obfuscation`
 • Interactive hex: `cumpyl binary.exe --hex-view-interactive`
 • Full workflow: `cumpyl binary.exe --hex-view --run-analysis --suggest-obfuscation`
 • Custom range: `cumpyl binary.exe --hex-view --hex-view-offset 0x1000 --hex-view-bytes 2048`
 
-**📁 File Support:**
+**File Support:**
 • PE files (.exe, .dll)
 • ELF files (.so, .bin)
 • Mach-O files
@@ -748,7 +748,7 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
         
         help_panel = Panel(
             help_text.strip(),
-            title="📚 Cumpyl Framework Help",
+            title="Cumpyl Framework Help",
             border_style="bright_yellow",
             padding=(1, 2)
         )
@@ -790,7 +790,7 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                         pt_menu = PayloadTransmutationMenu(self.config)
                         pt_menu.run()
                     except ImportError as e:
-                        self.console.print(f"[red]❌ Import error: {e}[/red]")
+                        self.console.print(f"[red]Import error: {e}[/red]")
                         self.console.print("[yellow]Make sure the payload_transmutation_menu module is properly installed[/yellow]")
                         Prompt.ask("Press Enter to continue", default="")
                 elif choice == "7":
@@ -806,9 +806,9 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                     self.show_help()
                     
             except KeyboardInterrupt:
-                self.console.print("\n[bold yellow]💡 Use 'q' to quit gracefully[/bold yellow]")
+                self.console.print("\n[bold yellow]Use 'q' to quit gracefully[/bold yellow]")
             except Exception as e:
-                self.console.print(f"[bold red]❌ Menu error: {e}[/bold red]")
+                self.console.print(f"[bold red]Menu error: {e}[/bold red]")
                 Prompt.ask("Press Enter to continue", default="")
 
 

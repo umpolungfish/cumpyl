@@ -43,10 +43,8 @@ class SillyStringMenu:
     def show_banner(self):
         """Display the Silly String Banner"""
         banner_text = Text()
-        banner_text.append("SILLY STRING MODULE
-", style="bold magenta")
-        banner_text.append("Payload & String Obfuscation Tools
-", style="bold cyan")
+        banner_text.append("SILLY STRING MODULE", style="bold magenta")
+        banner_text.append("Payload & String Obfuscation Tools", style="bold cyan")
         banner_text.append("Part of Cumpyl Framework", style="bold blue")
         
         banner_panel = Panel(
@@ -84,7 +82,7 @@ class SillyStringMenu:
         
         menu_panel = Panel(
             table,
-            title="Silly String Menu",
+            title="Silly Strings",
             border_style="bright_green",
             padding=(1, 1)
         )
@@ -92,8 +90,7 @@ class SillyStringMenu:
         self.console.print(menu_panel)
         
         return Prompt.ask(
-            "
-[bold yellow]Select an option[/bold yellow]",
+            "[bold yellow]Select an option[/bold yellow]",
             choices=[opt[0] for opt in menu_options],
             default="1"
         )
@@ -161,8 +158,7 @@ class SillyStringMenu:
         self.console.print(table)
         
         choice = Prompt.ask(
-            "
-[yellow]Select payload category[/yellow]",
+            "[yellow]Select payload category[/yellow]",
             choices=[opt[0] for opt in category_options],
             default="1"
         )
@@ -199,8 +195,7 @@ class SillyStringMenu:
         self.console.print(table)
         
         choice = Prompt.ask(
-            "
-[yellow]Select payload[/yellow]",
+            "[yellow]Select payload[/yellow]",
             choices=[opt[0] for opt in payload_options],
             default="1"
         )
@@ -233,8 +228,7 @@ class SillyStringMenu:
             self.display_transmutation_result(selected_payload, method, result)
             
             # Ask if user wants to save results
-            save_choice = Prompt.ask("
-Save results to file? (y/n)", default="n").strip().lower()
+            save_choice = Prompt.ask("Save results to file? (y/n)", default="n").strip().lower()
             if save_choice == 'y':
                 output_file = Prompt.ask("Enter output filename", default="transmuted_payload.txt").strip()
                 self.save_transmutation_result(selected_payload, method, result, output_file)
@@ -335,8 +329,7 @@ Save results to file? (y/n)", default="n").strip().lower()
             table.add_row(method.value, desc)
         
         self.console.print(table)
-        Prompt.ask("
-Press Enter to continue", default="")
+        Prompt.ask("Press Enter to continue", default="")
     
     def list_templates_menu(self):
         """List available payload templates"""
@@ -349,16 +342,14 @@ Press Enter to continue", default="")
         
         for category in categories:
             payloads = PayloadLibrary.get_payloads(category)
-            self.console.print(f"
-[bold]{category}[/bold] ({len(payloads)} payloads):")
+            self.console.print(f"[bold]{category}[/bold] ({len(payloads)} payloads):")
             
             for i, payload in enumerate(payloads, 1):
                 # Show preview of payload
                 preview = payload[:60] + "..." if len(payload) > 60 else payload
                 self.console.print(f"  {i}. {preview}")
         
-        Prompt.ask("
-Press Enter to continue", default="")
+        Prompt.ask("Press Enter to continue", default="")
     
     def select_transmutation_method(self) -> Optional[TransmuteMethod]:
         """Prompt user to select a transmutation method"""
@@ -397,8 +388,7 @@ Press Enter to continue", default="")
         self.console.print(table)
         
         choice = Prompt.ask(
-            "
-[yellow]Select transmutation method[/yellow]",
+            "[yellow]Select transmutation method[/yellow]",
             choices=[opt[0] for opt in method_options],
             default="1"
         )
@@ -556,8 +546,7 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                     self.show_help()
                     
             except KeyboardInterrupt:
-                self.console.print("
-[bold yellow]Use 'q' to quit gracefully[/bold yellow]")
+                self.console.print("[bold yellow]Use 'q' to quit gracefully[/bold yellow]")
             except Exception as e:
                 self.console.print(f"[bold red]Menu error: {e}[/bold red]")
                 Prompt.ask("Press Enter to continue", default="")
