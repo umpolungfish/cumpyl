@@ -112,9 +112,34 @@ Each plugin can be configured with options such as:
 
 The menu system automatically detects available plugins in the `plugins/` directory and provides a guided interface for their use.
 
+#### Enhanced CA-Based Packer Implementation
+
+Cumpyl now includes a new high-performance CA (Cellular Automata) based packer implementation that provides enhanced security and performance:
+
+- **Cellular Automata Obfuscation**: Uses Rule 30 cellular automata for generating pseudo-random masks
+- **ChaCha20-Poly1305 Encryption**: Modern authenticated encryption for payload protection
+- **Multi-Format Support**: Comprehensive support for PE, ELF, and Mach-O binary formats
+- **Optimized Performance**: Improved algorithms for faster packing operations
+- **Enhanced Security**: Secure key derivation and management
+
+The CA-based packer implements a sophisticated packing pipeline:
+1. Loading and analysis of target binaries using LIEF
+2. Initial entropy and structure analysis
+3. Payload preparation with compression and encryption
+4. CA-based masking using Rule 30 cellular automata
+5. Stub generation with embedded parameters
+6. Integration of payload and stub into final binary
+
+The packer features configurable CA steps for mask generation (default: 100 steps) and supports command-line customization:
+
+```bash
+ca_packer.py input_binary output_packed_binary --ca-steps 150
+```
+
 #### Plugin Menu Improvements
 
 Recent improvements to the plugin packer menu include:
+- Integration of high-performance CA-based packer
 - Fixed binary saving functionality in transformation plugins
 - Enhanced compatibility with Go and CGO packer plugins
 - Improved error handling and user feedback
