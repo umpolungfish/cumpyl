@@ -322,18 +322,17 @@ class PackerTransformationPlugin(TransformationPlugin, BasePlugin):
                         # For PE, use add_section; for ELF, use appropriate builder calls
                         # Use duck-typing and LIEF API for your format
                         new_section_name = ".cgo_meta"
+                        # Use the new utility function to create format-appropriate sections
+                        from plugins.format_utils import create_section_for_format
+                        section_obj = create_section_for_format(self.format, new_section_name, payload)
+                        sec = binary.add_section(section_obj)
+                        
+                        # Ensure non-exec flags for PE format
                         if self.format == "PE":
-                            # Create a proper Section object
-                            section_obj = lief.PE.Section(new_section_name)
-                            section_obj.content = list(payload)
-                            sec = binary.add_section(section_obj)
-                            # ensure non-exec flags
                             sec.characteristics &= ~lief.PE.Section.CHARACTERISTICS.MEM_EXECUTE.value
-                        else:
-                            # Create a proper Section object
-                            section_obj = lief.PE.Section(new_section_name)
-                            section_obj.content = list(payload)
-                            sec = binary.add_section(section_obj)
+                        elif self.format == "ELF":
+                            # Ensure proper ELF section flags
+                            sec.flags = lief.ELF.SECTION_FLAGS.ALLOC | lief.ELF.SECTION_FLAGS.WRITE
                         logger.info("Added metadata section %s (len=%d)", new_section_name, len(payload))
                     except Exception as e:
                         logger.error(f"Failed to modify binary: {e}")

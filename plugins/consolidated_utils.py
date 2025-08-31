@@ -131,7 +131,9 @@ def is_executable_section(section: Any, binary_format: str) -> bool:
             return bool(chars & mem_execute)
         elif binary_format == "ELF":
             flags = section.flags if hasattr(section, 'flags') else section.flags_value
-            return bool(flags & lief.ELF.SECTION_FLAGS.EXECINSTR)
+            # For ELF, check if the section has execute permissions using the correct flag
+            execinstr_flag = lief.ELF.Section.FLAGS.EXECINSTR.value if hasattr(lief.ELF.Section.FLAGS.EXECINSTR, 'value') else 0x4
+            return bool(flags & execinstr_flag)
         elif binary_format == "MACHO":
             if hasattr(section, 'segment') and hasattr(section.segment, 'flags'):
                 return bool(section.segment.flags & lief.MachO.SEGMENT_FLAGS.VM_PROT_EXECUTE)
@@ -153,7 +155,9 @@ def is_readable_section(section: Any, binary_format: str) -> bool:
             return bool(chars & mem_read)
         elif binary_format == "ELF":
             flags = section.flags if hasattr(section, 'flags') else section.flags_value
-            return bool(flags & lief.ELF.SECTION_FLAGS.ALLOC)
+            # For ELF, check if the section is allocated (readable) using the correct flag
+            alloc_flag = lief.ELF.Section.FLAGS.ALLOC.value if hasattr(lief.ELF.Section.FLAGS.ALLOC, 'value') else 0x2
+            return bool(flags & alloc_flag)
         elif binary_format == "MACHO":
             if hasattr(section, 'segment') and hasattr(section.segment, 'flags'):
                 return bool(section.segment.flags & lief.MachO.SEGMENT_FLAGS.VM_PROT_READ)
@@ -176,7 +180,9 @@ def is_writable_section(section: Any, binary_format: str) -> bool:
             return bool(chars & mem_write)
         elif binary_format == "ELF":
             flags = section.flags if hasattr(section, 'flags') else section.flags_value
-            return bool(flags & lief.ELF.SECTION_FLAGS.WRITE)
+            # For ELF, check if the section is writable using the correct flag
+            write_flag = lief.ELF.Section.FLAGS.WRITE.value if hasattr(lief.ELF.Section.FLAGS.WRITE, 'value') else 0x1
+            return bool(flags & write_flag)
         elif binary_format == "MACHO":
             if hasattr(section, 'segment') and hasattr(section.segment, 'flags'):
                 return bool(section.segment.flags & lief.MachO.SEGMENT_FLAGS.VM_PROT_WRITE)

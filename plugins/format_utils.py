@@ -40,3 +40,32 @@ def section_permissions_from_program_headers(binary, section) -> Dict[str, bool]
         raise
     
     return permissions
+
+def create_section_for_format(format_type: str, name: str, content: bytes = None) -> Any:
+    """Create a section object appropriate for the binary format."""
+    try:
+        if format_type == "PE":
+            section = lief.PE.Section(name)
+            if content:
+                section.content = list(content)
+        elif format_type == "ELF":
+            section = lief.ELF.Section(name)
+            if content:
+                section.content = list(content)
+            # Set default flags for ELF sections
+            section.flags = lief.ELF.SECTION_FLAGS.ALLOC
+        elif format_type == "MACHO":
+            # For Mach-O, we might need to handle this differently depending on the specific use case
+            section = lief.PE.Section(name)  # Fallback to PE section for now
+            if content:
+                section.content = list(content)
+        else:
+            # Unknown format, fallback to PE section
+            section = lief.PE.Section(name)
+            if content:
+                section.content = list(content)
+        
+        return section
+    except Exception as e:
+        logger.error(f"Error creating section for format {format_type}: {e}")
+        raise
