@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="800"
+   height="600"
+   viewBox="0 0 800 600"
+   version="1.1"
+   id="svg8"
+   inkscape:version="1.0.2 (e86c870879, 2021-01-15)"
+   sodipodi:docname="ca_packing_process.svg">
+  <defs
+     id="defs2">
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path846" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="400"
+     inkscape:cy="300"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     units="px"
+     inkscape:window-width="1920"
+     inkscape:window-height="1016"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <!-- Title -->
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:24px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="200"
+       y="40"
+       id="text833"><tspan
+         sodipodi:role="line"
+         id="tspan831"
+         x="200"
+         y="40">Cellular Automata Packing Process</tspan></text>
+    
+    <!-- Step 1: Original Binary -->
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:2;fill-opacity:1"
+       id="rect835"
+       width="120"
+       height="80"
+       x="50"
+       y="100" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="60"
+       y="130"
+       id="text839"><tspan
+         sodipodi:role="line"
+         id="tspan837"
+         x="60"
+         y="130">Original</tspan><tspan
+         sodipodi:role="line"
+         x="60"
+         y="150"
+         id="tspan841">Binary</tspan></text>
+    
+    <!-- Step 2: Encryption -->
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:2;fill-opacity:1"
+       id="rect843"
+       width="120"
+       height="80"
+       x="250"
+       y="100" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="260"
+       y="130"
+       id="text849"><tspan
+         sodipodi:role="line"
+         id="tspan847"
+         x="260"
+         y="130">ChaCha20-</tspan><tspan
+         sodipodi:role="line"
+         x="260"
+         y="150"
+         id="tspan851">Poly1305</tspan><tspan
+         sodipodi:role="line"
+         x="260"
+         y="170"
+         id="tspan853">Encryption</tspan></text>
+    
+    <!-- Step 3: CA Masking -->
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:2;fill-opacity:1"
+       id="rect855"
+       width="120"
+       height="80"
+       x="450"
+       y="100" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="460"
+       y="130"
+       id="text861"><tspan
+         sodipodi:role="line"
+         id="tspan859"
+         x="460"
+         y="130">CA-Based</tspan><tspan
+         sodipodi:role="line"
+         x="460"
+         y="150"
+         id="tspan863">Masking</tspan><tspan
+         sodipodi:role="line"
+         x="460"
+         y="170"
+         id="tspan865">(Rule 30)</tspan></text>
+    
+    <!-- Step 4: Packed Binary -->
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:2;fill-opacity:1"
+       id="rect867"
+       width="120"
+       height="80"
+       x="650"
+       y="100" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="660"
+       y="130"
+       id="text871"><tspan
+         sodipodi:role="line"
+         id="tspan869"
+         x="660"
+         y="130">Packed</tspan><tspan
+         sodipodi:role="line"
+         x="660"
+         y="150"
+         id="tspan873">Binary</tspan></text>
+    
+    <!-- Arrows between steps -->
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 170,140 H 250"
+       id="path875" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 370,140 H 450"
+       id="path877" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 570,140 H 650"
+       id="path879" />
+    
+    <!-- Unpacking Process -->
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:20px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="300"
+       y="250"
+       id="text883"><tspan
+         sodipodi:role="line"
+         id="tspan881"
+         x="300"
+         y="250">Unpacking Process</tspan></text>
+    
+    <!-- Stub Execution -->
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:2;fill-opacity:1"
+       id="rect885"
+       width="120"
+       height="80"
+       x="150"
+       y="300" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="160"
+       y="330"
+       id="text891"><tspan
+         sodipodi:role="line"
+         id="tspan889"
+         x="160"
+         y="330">Stub</tspan><tspan
+         sodipodi:role="line"
+         x="160"
+         y="350"
+         id="tspan893">Execution</tspan></text>
+    
+    <!-- CA Unmasking -->
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:2;fill-opacity:1"
+       id="rect895"
+       width="120"
+       height="80"
+       x="350"
+       y="300" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="360"
+       y="330"
+       id="text901"><tspan
+         sodipodi:role="line"
+         id="tspan899"
+         x="360"
+         y="330">CA-Based</tspan><tspan
+         sodipodi:role="line"
+         x="360"
+         y="350"
+         id="tspan903">Unmasking</tspan><tspan
+         sodipodi:role="line"
+         x="360"
+         y="370"
+         id="tspan905">(Rule 30)</tspan></text>
+    
+    <!-- Decryption -->
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:2;fill-opacity:1"
+       id="rect907"
+       width="120"
+       height="80"
+       x="550"
+       y="300" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="560"
+       y="330"
+       id="text913"><tspan
+         sodipodi:role="line"
+         id="tspan911"
+         x="560"
+         y="330">ChaCha20-</tspan><tspan
+         sodipodi:role="line"
+         x="560"
+         y="350"
+         id="tspan915">Poly1305</tspan><tspan
+         sodipodi:role="line"
+         x="560"
+         y="370"
+         id="tspan917">Decryption</tspan></text>
+    
+    <!-- Arrows for unpacking process -->
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 270,340 H 350"
+       id="path919" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 470,340 H 550"
+       id="path921" />
+    
+    <!-- Return to OEP -->
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 670,340 750,200"
+       id="path923" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="680"
+       y="330"
+       id="text927"><tspan
+         sodipodi:role="line"
+         id="tspan925"
+         x="680"
+         y="330">Return to</tspan><tspan
+         sodipodi:role="line"
+         x="680"
+         y="350"
+         id="tspan929">OEP</tspan></text>
+    
+    <!-- Key Components -->
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:18px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="50"
+       y="450"
+       id="text933"><tspan
+         sodipodi:role="line"
+         id="tspan931"
+         x="50"
+         y="450">Key Components:</tspan></text>
+    
+    <!-- Key 1 -->
+    <rect
+       style="fill:#aaccff;stroke:#000000;stroke-width:1;fill-opacity:1"
+       id="rect935"
+       width="20"
+       height="20"
+       x="60"
+       y="470" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:14px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="90"
+       y="485"
+       id="text939"><tspan
+         sodipodi:role="line"
+         id="tspan937"
+         x="90"
+         y="485">Encryption Key</tspan></text>
+    
+    <!-- Key 2 -->
+    <rect
+       style="fill:#88aa00;stroke:#000000;stroke-width:1;fill-opacity:1"
+       id="rect941"
+       width="20"
+       height="20"
+       x="200"
+       y="470" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:14px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="230"
+       y="485"
+       id="text945"><tspan
+         sodipodi:role="line"
+         id="tspan943"
+         x="230"
+         y="485">Nonce</tspan></text>
+    
+    <!-- Key 3 -->
+    <rect
+       style="fill:#ffaaaa;stroke:#000000;stroke-width:1;fill-opacity:1"
+       id="rect947"
+       width="20"
+       height="20"
+       x="300"
+       y="470" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:14px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="330"
+       y="485"
+       id="text951"><tspan
+         sodipodi:role="line"
+         id="tspan949"
+         x="330"
+         y="485">CA Parameters</tspan></text>
+    
+    <!-- Key 4 -->
+    <rect
+       style="fill:#e9ddaf;stroke:#000000;stroke-width:1;fill-opacity:1"
+       id="rect953"
+       width="20"
+       height="20"
+       x="450"
+       y="470" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:14px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+       x="480"
+       y="485"
+       id="text957"><tspan
+         sodipodi:role="line"
+         id="tspan955"
+         x="480"
+         y="485">Block Index</tspan></text>
+  </g>
+</svg>

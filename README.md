@@ -158,6 +158,42 @@ To access the plugin packer menu directly, run:
 python3 plugin_packer_menu.py [binary_file]
 ```
 
+#### Menu Structure Diagram
+
+Below is a diagram showing the structure of Cumpyl's interactive menu system:
+
+```
+Cumpyl Main Menu
+├── 1. Quick Analysis
+├── 2. Deep Analysis
+├── 3. Interactive Hex Viewer
+├── 4. Batch Processing
+├── 5. Encoding Operations
+├── 6. Binary Packers
+│   ├── Plugin Packer Menu
+│   │   ├── 1. Analyze binary
+│   │   │   ├── Select analysis plugin
+│   │   │   │   ├── packer plugin
+│   │   │   │   ├── cgo_packer plugin
+│   │   │   │   └── go_packer plugin
+│   │   │   └── Configure plugin
+│   │   ├── 2. Transform binary
+│   │   │   ├── Select transformation plugin
+│   │   │   │   ├── packer_transform plugin
+│   │   │   │   ├── cgo_packer plugin
+│   │   │   │   └── go_packer plugin
+│   │   │   └── Configure plugin
+│   │   ├── 3. Change binary file
+│   │   └── 4. List available plugins
+│   └── Real Packer Integration
+├── 7. Report Generation
+├── 8. Configuration
+├── 9. Change Target
+└── 0. Exit
+```
+
+The plugin packer menu provides a specialized interface for working with binary packers and transformation plugins. Each plugin offers unique capabilities for analyzing and transforming binary files.
+
 ## Command Line Interface
 
 Cumpyl provides a comprehensive command-line interface for binary analysis and manipulation.
@@ -717,6 +753,13 @@ cumpyl binary.exe --pack --packer ca --dry-run
 ```
 
 ### CA Packer Architecture
+
+#### Packing Process Diagram
+
+Below is a diagram illustrating the CA packing process:
+
+![CA Packing Process](images/ca_packing_process.svg)
+
 
 The CA packer consists of several modules:
 
