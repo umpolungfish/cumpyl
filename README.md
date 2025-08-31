@@ -5,6 +5,26 @@
 
 Cumpyl is a powerful Python-based binary analysis framework for analyzing, modifying, and rewriting binary files (PE, ELF, Mach-O). It features a plugin architecture, batch processing capabilities, and comprehensive reporting functions.
 
+## Table of Contents
+
+1. [Key Features](#key-features)
+2. [Obfuscation Tiers](#obfuscation-tiers)
+3. [Installation](#installation)
+4. [Quick Start](#quick-start)
+5. [Interactive Menu System](#interactive-menu-system)
+6. [Command Line Interface](#command-line-interface)
+7. [Plugin System](#plugin-system)
+8. [Batch Processing](#batch-processing)
+9. [Encoding and Obfuscation](#encoding-and-obfuscation)
+10. [Hex Viewer](#hex-viewer)
+11. [Configuration](#configuration)
+12. [Reporting](#reporting)
+13. [Binary Packers](#binary-packers)
+14. [Payload Transmutation](#payload-transmutation)
+15. [Documentation](#documentation)
+16. [Contributing](#contributing)
+17. [License](#license)
+
 ## Key Features
 
 - **Multi-format Support**: Native support for PE, ELF, and Mach-O binaries
@@ -55,6 +75,19 @@ cd cumpyl
 pip install -e .
 ```
 
+### Dependencies
+
+Cumpyl relies on several key libraries:
+
+- **lief**: Binary parsing and manipulation library
+- **capstone**: Disassembly framework
+- **keystone-engine**: Assembly framework
+- **rich**: Rich text and beautiful formatting in the terminal
+- **tqdm**: Progress bar library
+- **pyyaml**: YAML parsing and generation
+- **textual**: Text User Interface (TUI) framework for interactive hex viewer
+- **numpy**: For entropy analysis plugin
+
 ## Quick Start
 
 The easiest way to get started with Cumpyl is to use the interactive menu system:
@@ -89,6 +122,27 @@ Cumpyl features a rich interactive menu system that provides guided access to al
 8. **Configuration**: View and modify framework settings
 9. **Change Target**: Select a different binary file
 
+### Menu Navigation
+
+The interactive menu system provides a text-based user interface with the following options:
+
+```bash
+# Launch the main menu
+cumpyl binary.exe --menu
+
+# Menu options include:
+1. Quick Analysis
+2. Deep Analysis
+3. Interactive Hex Viewer
+4. Batch Processing
+5. Encoding Operations
+6. Binary Packers
+7. Report Generation
+8. Configuration
+9. Change Target
+0. Exit
+```
+
 ### Plugin-Based Packer Menu (𐑜𐑴 𐑐𐑨𐑒)
 
 The Binary Packers option includes a plugin-based packer menu that supports:
@@ -110,46 +164,89 @@ Cumpyl provides a comprehensive command-line interface for binary analysis and m
 ### Basic Analysis
 
 ```bash
+# Analyze binary structure and sections
 cumpyl binary.exe --analyze-sections
-```
 
-Analyze binary structure and sections.
+# Analyze with detailed output
+cumpyl binary.exe --analyze-sections --verbose
+
+# Save analysis to file
+cumpyl binary.exe --analyze-sections --output analysis.txt
+```
 
 ### Obfuscation Suggestions
 
 ```bash
+# Get intelligent section encoding recommendations
 cumpyl binary.exe --suggest-obfuscation
-```
 
-Get intelligent section encoding recommendations based on the obfuscation tier system.
+# Get suggestions with verbose output
+cumpyl binary.exe --suggest-obfuscation --verbose
+
+# Export suggestions to JSON
+cumpyl binary.exe --suggest-obfuscation --output suggestions.json
+```
 
 ### Hex View
 
 ```bash
+# Generate interactive hex viewer
 cumpyl binary.exe --hex-view
-```
 
-Generate interactive hex viewer.
+# Generate hex view with specific byte count
+cumpyl binary.exe --hex-view --hex-bytes 4096
+
+# Save hex view to HTML file
+cumpyl binary.exe --hex-view --output hex_view.html
+```
 
 ### Comprehensive Analysis
 
 ```bash
+# Run comprehensive analysis with interactive hex view
 cumpyl binary.exe --hex-view --run-analysis --suggest-obfuscation
-```
 
-Run comprehensive analysis with interactive hex view.
+# Comprehensive analysis with all plugins
+cumpyl binary.exe --run-analysis --all-plugins --verbose
+
+# Run specific plugins only
+cumpyl binary.exe --run-analysis --plugins entropy_analysis,string_extraction
+```
 
 ### Reporting
 
 ```bash
+# Run comprehensive analysis with HTML report output
 cumpyl binary.exe --run-analysis --report-format html --report-output analysis.html
+
+# Generate JSON report
+cumpyl binary.exe --run-analysis --report-format json --report-output analysis.json
+
+# Generate YAML report
+cumpyl binary.exe --run-analysis --report-format yaml --report-output analysis.yaml
+
+# Generate XML report
+cumpyl binary.exe --run-analysis --report-format xml --report-output analysis.xml
 ```
 
-Run comprehensive analysis with HTML report output.
+### Output Control
+
+```bash
+# Suppress all output
+cumpyl binary.exe --analyze-sections --quiet
+
+# Enable debug output
+cumpyl binary.exe --analyze-sections --debug
+
+# Verbose output with detailed information
+cumpyl binary.exe --analyze-sections --verbose
+```
 
 ## Plugin System
 
 Cumpyl's plugin system allows for extensible analysis and transformation capabilities:
+
+### Analysis Plugins
 
 - **Entropy Analysis**: Calculate Shannon entropy for packed binary detection
 - **String Extraction**: Advanced string extraction with context scoring
@@ -157,6 +254,27 @@ Cumpyl's plugin system allows for extensible analysis and transformation capabil
 - **Packer Detection**: Identify potential packing techniques
 - **Go Binary Analysis**: Specialized analysis for Go binaries
 - **CGO Analysis**: Analysis for CGO-enabled Go binaries
+
+### Transformation Plugins
+
+- **Encoder Plugins**: Transform binary sections with various encoding methods
+- **Packer Plugins**: Compress and encrypt binary sections
+
+### Plugin Management
+
+```bash
+# List available plugins
+cumpyl --list-plugins
+
+# List only analysis plugins
+cumpyl --list-analysis-plugins
+
+# List only transformation plugins
+cumpyl --list-transformation-plugins
+
+# Show plugin details
+cumpyl --plugin-info entropy_analysis
+```
 
 ### Packer Plugins
 
@@ -171,6 +289,25 @@ Each plugin can be configured with options such as:
 - Encryption key path for secure transformations
 - Safe mode and dry run options for testing
 - Section skipping preferences
+
+### Plugin Configuration
+
+Plugins can be configured through the `cumpyl.yaml` configuration file:
+
+```yaml
+plugins:
+  entropy_analysis:
+    enabled: true
+    min_entropy: 7.0
+    max_entropy: 8.0
+  string_extraction:
+    enabled: true
+    min_length: 4
+    max_length: 1024
+  packer_plugin:
+    compression_level: 6
+    encryption_enabled: false
+```
 
 ### Obfuscation Tier Integration
 
@@ -188,26 +325,57 @@ Process multiple files efficiently with Cumpyl's batch processing capabilities.
 ### Directory Processing
 
 ```bash
+# Process all binaries in a specified directory
 cumpyl --batch-directory /samples --batch-operation plugin_analysis --report-format json
-```
 
-Process all binaries in a specified directory.
+# Process with custom extensions
+cumpyl --batch-directory /samples --batch-extensions ".exe,.dll,.so" --batch-operation analyze_sections
+
+# Process with verbose output
+cumpyl --batch-directory /samples --batch-operation plugin_analysis --verbose
+```
 
 ### Pattern-based Processing
 
 ```bash
+# Process files matching glob patterns
 cumpyl --batch-pattern "*.exe" --batch-pattern "*.dll" --batch-operation analyze_sections
-```
 
-Process files matching glob patterns.
+# Process with multiple patterns
+cumpyl --batch-pattern "/samples/*.exe" --batch-pattern "/binaries/*.dll" --batch-operation plugin_analysis
+```
 
 ### Recursive Processing
 
 ```bash
+# Recursive processing with custom extensions
 cumpyl --batch-directory /dataset --batch-extensions ".exe,.dll" --batch-recursive
+
+# Recursive processing with all default extensions
+cumpyl --batch-directory /dataset --batch-recursive --batch-operation plugin_analysis
 ```
 
-Recursive processing with custom extensions.
+### Batch Output
+
+```bash
+# Save batch results to a single report
+cumpyl --batch-directory /samples --batch-operation plugin_analysis --report-format json --report-output batch_results.json
+
+# Save individual reports for each file
+cumpyl --batch-directory /samples --batch-operation plugin_analysis --report-format html --report-output /reports/
+```
+
+### Batch Configuration
+
+Batch processing can be configured in `cumpyl.yaml`:
+
+```yaml
+batch:
+  max_workers: 4
+  default_extensions: [".exe", ".dll", ".so", ".bin", ".elf"]
+  recursive: false
+  output_directory: "batch_results"
+```
 
 ## Encoding and Obfuscation
 
@@ -215,39 +383,100 @@ Cumpyl provides advanced encoding and obfuscation capabilities for binary sectio
 
 ### Supported Encodings
 
-- **Hex**: Simple hexadecimal encoding
-- **Octal**: Octal escape sequence encoding
-- **Null**: Null byte padding
-- **Base64**: Standard Base64 encoding
-- **Compressed Base64**: Zlib compression + Base64 encoding
+1. **Hex**: Simple hexadecimal encoding
+   ```bash
+   cumpyl binary.exe --encode-section .data --encoding hex -o encoded.exe
+   ```
 
-### Payload Transmutation
+2. **Octal**: Octal escape sequence encoding
+   ```bash
+   cumpyl binary.exe --encode-section .data --encoding octal -o encoded.exe
+   ```
 
-Cumpyl integrates the sc8r payload transmutation tool, which provides additional encoding methods specifically for security research:
+3. **Null**: Null byte padding
+   ```bash
+   cumpyl binary.exe --encode-section .data --encoding null -o encoded.exe
+   ```
 
-- **Unicode Encoding**: Convert payloads to Unicode escape sequences
-- **URL Encoding**: Encode payloads for URL contexts
-- **ROT13**: Classic ROT13 cipher
-- **Reverse Encoding**: Reverse string encoding
-- **Environment Variable Substitution**: Replace characters with environment variables
-- **Compound Encoding**: Chain multiple encoding methods together
-- **Mixed Encoding**: Apply multiple encoding methods and output all variants
+4. **Base64**: Standard Base64 encoding
+   ```bash
+   cumpyl binary.exe --encode-section .data --encoding base64 -o encoded.exe
+   ```
+
+5. **Compressed Base64**: Zlib compression + Base64 encoding
+   ```bash
+   cumpyl binary.exe --encode-section .data --encoding compressed_base64 -o encoded.exe
+   ```
 
 ### Section Encoding
 
 ```bash
+# Encode specific sections
 cumpyl binary.exe --encode-section .text --encoding base64 -o encoded.exe
-```
 
-Encode specific sections.
+# Encode multiple sections with different encodings
+cumpyl binary.exe --encode-section .text --encoding base64 --encode-section .data --encoding hex -o encoded.exe
+
+# Encode with compression level
+cumpyl binary.exe --encode-section .data --encoding compressed_base64 --compression-level 9 -o encoded.exe
+```
 
 ### Multi-section Encoding
 
 ```bash
-cumpyl binary.exe --encode-section .text --encoding base64 --encode-section .data --encoding hex
+# Apply encodings to multiple sections
+cumpyl binary.exe --encode-section .text --encoding base64 --encode-section .data --encoding hex -o encoded.exe
+
+# Encode all non-critical sections
+cumpyl binary.exe --encode-all-safe --encoding base64 -o encoded.exe
 ```
 
-Apply encodings to multiple sections.
+### Encoding Safety
+
+Cumpyl includes safety features to prevent encoding critical sections:
+
+```bash
+# Safe mode prevents encoding critical sections
+cumpyl binary.exe --encode-section .text --encoding base64 --safe-mode -o encoded.exe
+
+# Dry run to see what would be encoded
+cumpyl binary.exe --encode-section .text --encoding base64 --dry-run
+```
+
+## Hex Viewer
+
+Cumpyl includes a dual-mode hex viewer for exploring binary files:
+
+### Terminal-based Hex Viewer (Textual TUI)
+
+```bash
+# Launch interactive terminal hex viewer
+cumpyl binary.exe --hex-view
+
+# View specific byte range
+cumpyl binary.exe --hex-view --hex-start 0x1000 --hex-end 0x2000
+
+# View with custom byte count
+cumpyl binary.exe --hex-view --hex-bytes 4096
+```
+
+### Browser-based Hex Viewer
+
+```bash
+# Generate HTML hex viewer
+cumpyl binary.exe --hex-view --output hex_viewer.html
+
+# Generate hex viewer with custom styling
+cumpyl binary.exe --hex-view --hex-theme dark --output hex_viewer.html
+```
+
+### Hex Viewer Features
+
+- Syntax highlighting for different data types
+- Search functionality
+- Bookmarking capabilities
+- Export to various formats
+- Side-by-side comparison mode
 
 ## Configuration
 
@@ -278,6 +507,19 @@ hex_viewer:
   max_bytes: 16384
 ```
 
+### Configuration Commands
+
+```bash
+# Show current configuration
+cumpyl --show-config
+
+# Validate configuration file
+cumpyl --validate-config
+
+# Reset configuration to defaults
+cumpyl --reset-config
+```
+
 ### Obfuscation Tier System
 
 The obfuscation tier system can be configured in the `cumpyl.yaml` file:
@@ -306,20 +548,243 @@ Cumpyl includes predefined analysis profiles:
 Use profiles with:
 ```bash
 cumpyl binary.exe --profile malware_analysis --run-analysis
+
+# Available profiles:
+# - malware_analysis
+# - forensics
+# - research
+# - default
+```
+
+## Reporting
+
+Cumpyl generates comprehensive analysis reports in multiple formats:
+
+### Report Formats
+
+1. **HTML**: Rich interactive reports with visualizations
+   ```bash
+   cumpyl binary.exe --run-analysis --report-format html --report-output analysis.html
+   ```
+
+2. **JSON**: Machine-readable structured data
+   ```bash
+   cumpyl binary.exe --run-analysis --report-format json --report-output analysis.json
+   ```
+
+3. **YAML**: Human-readable structured data
+   ```bash
+   cumpyl binary.exe --run-analysis --report-format yaml --report-output analysis.yaml
+   ```
+
+4. **XML**: Standardized structured data format
+   ```bash
+   cumpyl binary.exe --run-analysis --report-format xml --report-output analysis.xml
+   ```
+
+### Report Content
+
+Reports include:
+- File metadata and basic information
+- Section analysis with obfuscation recommendations
+- Plugin analysis results
+- Entropy analysis
+- String extraction results
+- Packer detection results
+- Security assessment
+
+### Report Customization
+
+```bash
+# Include only specific sections in report
+cumpyl binary.exe --run-analysis --report-sections metadata,sections,plugins --report-format html
+
+# Exclude sensitive information
+cumpyl binary.exe --run-analysis --report-exclude-strings --report-format html
+
+# Custom report template
+cumpyl binary.exe --run-analysis --report-template custom_template.html --report-format html
+```
+
+## Binary Packers
+
+Cumpyl includes advanced binary packing capabilities:
+
+### Packer Types
+
+1. **Universal Packer**: General-purpose binary packer
+   ```bash
+   cumpyl binary.exe --pack --packer universal --compression-level 9 -o packed.exe
+   ```
+
+2. **Go Binary Packer**: Specialized for Go binaries
+   ```bash
+   cumpyl binary.exe --pack --packer go --anti-detection true -o packed.exe
+   ```
+
+3. **CGO-Aware Packer**: For CGO-enabled Go binaries
+   ```bash
+   cumpyl binary.exe --pack --packer cgo --compression-level 6 -o packed.exe
+   ```
+
+### Packer Options
+
+```bash
+# Set compression level (1-9)
+cumpyl binary.exe --pack --compression-level 7 -o packed.exe
+
+# Enable encryption
+cumpyl binary.exe --pack --encrypt --key-file secret.key -o packed.exe
+
+# Safe mode packing
+cumpyl binary.exe --pack --safe-mode -o packed.exe
+
+# Dry run to see what would be packed
+cumpyl binary.exe --pack --dry-run
+```
+
+### Packer Analysis
+
+```bash
+# Analyze binary for packing opportunities
+cumpyl binary.exe --analyze-packing
+
+# Detailed packing analysis
+cumpyl binary.exe --analyze-packing --verbose
+
+# Export packing analysis
+cumpyl binary.exe --analyze-packing --output packing_analysis.json
+```
+
+## Payload Transmutation
+
+Cumpyl integrates the sc8r payload transmutation tool, which provides additional encoding methods specifically for security research:
+
+### Transmutation Methods
+
+1. **Unicode Encoding**: Convert payloads to Unicode escape sequences
+   ```bash
+   cumpyl --transmute "Hello World" --method unicode
+   ```
+
+2. **URL Encoding**: Encode payloads for URL contexts
+   ```bash
+   cumpyl --transmute "Hello World" --method url
+   ```
+
+3. **ROT13**: Classic ROT13 cipher
+   ```bash
+   cumpyl --transmute "Hello World" --method rot13
+   ```
+
+4. **Reverse Encoding**: Reverse string encoding
+   ```bash
+   cumpyl --transmute "Hello World" --method reverse
+   ```
+
+5. **Environment Variable Substitution**: Replace characters with environment variables
+   ```bash
+   cumpyl --transmute "Hello World" --method env_substitution
+   ```
+
+6. **Compound Encoding**: Chain multiple encoding methods together
+   ```bash
+   cumpyl --transmute "Hello World" --method compound --compound-methods "base64,rot13,url"
+   ```
+
+7. **Mixed Encoding**: Apply multiple encoding methods and output all variants
+   ```bash
+   cumpyl --transmute "Hello World" --method mixed
+   ```
+
+### Transmutation Commands
+
+```bash
+# Basic transmutation
+cumpyl --transmute "payload" --method base64
+
+# Transmute from file
+cumpyl --transmute-file payload.txt --method base64
+
+# Transmute with custom alphabet
+cumpyl --transmute "payload" --method base64 --custom-alphabet "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+# Batch transmutation
+cumpyl --transmute-batch payloads.txt --method base64 --output results.txt
+```
+
+### Transmutation Output
+
+```bash
+# Output to stdout (default)
+cumpyl --transmute "Hello World" --method base64
+
+# Output to file
+cumpyl --transmute "Hello World" --method base64 --output result.txt
+
+# Output in JSON format
+cumpyl --transmute "Hello World" --method base64 --output-format json
 ```
 
 ## Documentation
 
 For detailed information about Cumpyl's features and usage, please refer to the documentation:
 
-- [User Guide](CUMPYL_USER_GUIDE.md) - Comprehensive guide for using Cumpyl
-- [Developer Guide](CUMPYL_DEVELOPER_GUIDE.md) - Information for extending Cumpyl with custom plugins
-- [API Reference](CUMPYL_API_REFERENCE.md) - Detailed API documentation
-- [Release Notes](CUMPYL_RELEASE_NOTES.md) - Version history and changes
+- [User Guide](docs/CUMPYL_USER_GUIDE.md) - Comprehensive guide for using Cumpyl
+- [Developer Guide](docs/CUMPYL_DEVELOPER_GUIDE.md) - Information for extending Cumpyl with custom plugins
+- [API Reference](docs/CUMPYL_API_REFERENCE.md) - Detailed API documentation
+- [Release Notes](docs/CUMPYL_RELEASE_NOTES.md) - Version history and changes
+
+### User Guide Contents
+
+The User Guide covers:
+- Installation and setup
+- Basic usage patterns
+- Advanced features
+- Troubleshooting
+- Best practices
+
+### Developer Guide Contents
+
+The Developer Guide covers:
+- Plugin development
+- API usage
+- Custom analysis modules
+- Extending core functionality
+- Contributing guidelines
+
+### API Reference
+
+The API Reference provides:
+- Class documentation
+- Method signatures
+- Return value descriptions
+- Usage examples
+- Error handling
 
 ## Contributing
 
-We welcome contributions to Cumpyl! Please see the [Developer Guide](CUMPYL_DEVELOPER_GUIDE.md) for information on how to contribute.
+We welcome contributions to Cumpyl! Please see the [Developer Guide](docs/CUMPYL_DEVELOPER_GUIDE.md) for information on how to contribute.
+
+### Contribution Process
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Update documentation
+6. Submit a pull request
+
+### Code Style
+
+- Follow PEP 8 guidelines
+- Use type hints where possible
+- Write clear docstrings
+- Include unit tests for new functionality
+
+### Reporting Issues
+
+Please report bugs and feature requests through the GitHub issue tracker.
 
 ## License
 
