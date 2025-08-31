@@ -1,5 +1,0 @@
-' OR '1'='1
-'; DROP TABLE users; --
-' UNION SELECT NULL,NULL,NULL --
-' AND 1=1 --
-' OR 1=1 LIMIT 1 --

