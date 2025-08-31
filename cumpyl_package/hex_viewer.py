@@ -225,16 +225,7 @@ class HexViewer:
             # 𐑗𐑧𐑒 𐑦𐑓 𐑯𐑿 offset 𐑦𐑟 𐑬𐑑 𐑝 ℌ𐑻𐑦𐑙 ℌ
             if abs(old_offset - new_offset) > buffer_distance:
                 self._viewport_dirty = True
-        
-        # 𐑒𐑤𐑽 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 offset ℌ𐑦 ℌ 𐑚 ℌ ℌ𐑻𐑦𐑙
-        if abs(old_offset - new_offset) > 0:
-            # 𐑳𐑯𐑤𐑦 𐑒𐑤𐑽 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 cache entries that 𐑨 far from 𐑞 𐑯𐑿 offset
-            keys_to_remove = []
-            for offset in self._annotation_cache.keys():
-                if abs(offset - new_offset) > buffer_distance:
-                    keys_to_remove.append(offset)
-            for key in keys_to_remove:
-                del self._annotation_cache[key]
+                self._annotation_cache.clear()
         
     def add_annotation(self, annotation: HexViewAnnotation):
         """𐑨𐑛 𐑩 𐑯𐑿 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑑 𐑞 𐑝𐑿𐑼"""
@@ -584,20 +575,12 @@ class HexViewer:
         buffer_size = self.scroll_buffer_rows * self.bytes_per_row
         buffer_start = max(0, start_offset - buffer_size)
         buffer_end = min(self.file_size, end_offset + buffer_size)
-        
-        # 𐑯𐑿: 𐑦𐑓 𐑞 𐑩𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑕𐑧𐑑 𐑦𐑟 ℌ𐑿𐑡, 𐑿𐑟 𐑩 𐑥𐑹 𐑩𐑓𐑦𐑖𐑩𐑯𐑑 𐑓𐑦𐑤𐑑𐑼
-        self._viewport_annotations = []
-        if len(self.annotations) > self.lazy_annotation_threshold:
-            # 𐑳𐑯𐑤𐑦 𐑒𐑩𐑯𐑕𐑦𐑛𐑼 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑞𐑨𐑑 𐑞 𐑚𐑳𐑓𐑼 𐑮𐑱𐑯𐑡
-            for annotation in self.annotations:
-                if (annotation.start_offset <= buffer_end and annotation.end_offset >= buffer_start):
-                    self._viewport_annotations.append(annotation)
-        else:
-            # 𐑓𐑹 𐑕𐑥𐑷𐑤 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯 𐑕𐑧𐑑𐑕, 𐑿𐑟 𐑞 𐑷𐑤𐑛 𐑤𐑪𐑡𐑦𐑒 
-            for annotation in self.annotations:
-                if (annotation.start_offset <= end_offset and annotation.end_offset >= start_offset):
-                    self._viewport_annotations.append(annotation)
-        
+
+        self._viewport_annotations = [
+            ann for ann in self.annotations
+            if ann.start_offset <= buffer_end and ann.end_offset >= buffer_start
+        ]
+
         # 𐑥𐑸𐑒 𐑨𐑟 𐑯𐑪𐑑 𐑛𐑻𐑑𐑦
         self._viewport_dirty = False
     
@@ -620,9 +603,9 @@ class HexViewer:
             return "𐑯𐑴 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑤𐑴𐑛𐑦𐑛"
             
         # 𐑯𐑿: 𐑒𐑨𐑖 𐑝𐑦𐑿 𐑦𐑓 𐑟𐑱𐑥 𐑗𐑱𐑯𐑡𐑱𐑛
-        view_cache_key = (self.current_offset, max_bytes)
-        if (self._current_view_data is not None and 
-            self._last_offset == self.current_offset and
+        cursor_offset = getattr(self, 'cursor_offset', 0)
+        view_cache_key = (self.current_offset, max_bytes, cursor_offset, self.current_theme)
+        if (self._current_view_data is not None and
             view_cache_key == getattr(self, '_last_view_key', None)):
             return self._current_view_data
             
@@ -913,50 +896,45 @@ class HexViewer:
             else:
                 self._invalidate_viewport_cache_if_needed(old_offset, self.current_offset)
     
+    def _search_bytes(self, search_bytes: bytes) -> int:
+        """Helper to search for bytes in the binary data, reading in chunks."""
+        if not search_bytes:
+            self.search_results = []
+            self.search_index = 0
+            return 0
+
+        self.search_results = []
+        chunk_size = 8192
+        overlap = len(search_bytes) - 1
+
+        for offset in range(0, self.file_size, max(1, chunk_size - overlap)):
+            chunk = self._read_chunk(offset, chunk_size)
+            if not chunk:
+                break
+            
+            pos = 0
+            while True:
+                pos = chunk.find(search_bytes, pos)
+                if pos == -1:
+                    break
+                self.search_results.append(offset + pos)
+                pos += 1
+                        
+        self.search_index = 0
+        return len(self.search_results)
+
     def search_hex(self, hex_string: str) -> int:
         """𐑕𐑻𐑗 𐑓𐑹 𐑣𐑧𐑒𐑕 𐑚𐑲𐑑𐑟 𐑦𐑯 𐑞 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩"""
         try:
             search_bytes = bytes.fromhex(hex_string.replace(' ', ''))
-            self.search_results = []
-            
-            # 𐑕𐑻𐑗 𐑦𐑯 𐑗𐑳𐑙𐑒𐑟 𐑑 𐑩𐑝𐑶𐑛 𐑤𐑴𐑛𐑦𐑙 ℌ𐑴𐑤 𐑓𐑲𐑤
-            chunk_size = 8192  # 8KB 𐑗𐑳𐑙𐑒𐑟
-            overlap = len(search_bytes) - 1
-            
-            for offset in range(0, self.file_size, chunk_size - overlap):
-                chunk = self._read_chunk(offset, chunk_size)
-                if not chunk:
-                    break
-                    
-                for i in range(len(chunk) - len(search_bytes) + 1):
-                    if chunk[i:i + len(search_bytes)] == search_bytes:
-                        self.search_results.append(offset + i)
-                        
-            self.search_index = 0
-            return len(self.search_results)
+            return self._search_bytes(search_bytes)
         except ValueError:
             return 0
     
     def search_string(self, search_string: str) -> int:
         """𐑕𐑻𐑗 𐑓𐑹 𐑩 𐑕𐑑𐑮𐑦𐑙 𐑦𐑯 𐑞 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩"""
         search_bytes = search_string.encode('utf-8', errors='ignore')
-        self.search_results = []
-        
-        # 𐑕𐑻𐑗 𐑦𐑯 𐑗𐑳𐑙𐑒𐑟 𐑑 𐑩𐑝𐑶𐑛 𐑤𐑴𐑛𐑦𐑙 ℌ𐑴𐑤 𐑓𐑲𐑤
-        chunk_size = 8192  # 8KB 𐑗𐑳𐑙𐑒𐑟
-        overlap = len(search_bytes) - 1
-        
-        for offset in range(0, self.file_size, chunk_size - overlap):
-            chunk = self._read_chunk(offset, chunk_size)
-            if not chunk:
-                break
-                
-            for i in range(len(chunk) - len(search_bytes) + 1):
-                if chunk[i:i + len(search_bytes)] == search_bytes:
-                    self.search_results.append(offset + i)
-                    
-        self.search_index = 0
-        return len(self.search_results)
+        return self._search_bytes(search_bytes)
     
     def next_search_result(self):
         """𐑜𐑴 𐑑 𐑞 𐑯𐑧𐑒𐑕𐑑 𐑕𐑻𐑗 𐑮𐑦𐑟𐑳𐑤𐑑"""
