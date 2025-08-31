@@ -1,0 +1,732 @@
+import json
+import xml.etree.ElementTree as ET
+import yaml
+from datetime import datetime
+from typing import Dict, Any, List, Optional
+import os
+from pathlib import Path
+from abc import ABC, abstractmethod
+try:
+    from .config import ConfigManager
+    from .hex_viewer import HexViewer
+except ImportError:
+    from config import ConfigManager
+    from hex_viewer import HexViewer
+
+
+class ReportFormatter(ABC):
+    """𐑚𐑱𐑕 𐑒𐑤𐑭𐑕 𐑓𐑹 𐑷𐑤 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹𐑥𐑨𐑑𐑼𐑟"""
+    
+    def __init__(self, config: ConfigManager):
+        self.config = config
+    
+    @abstractmethod
+    def format(self, data: Dict[str, Any]) -> str:
+        """𐑓𐑹𐑥𐑨𐑑 𐑞 𐑛𐑱𐑑𐑩 𐑑 𐑩 𐑕𐑑𐑮𐑦𐑙"""
+        pass
+    
+    @abstractmethod
+    def get_file_extension(self) -> str:
+        """𐑜𐑧𐑑 𐑞 𐑞𐑦𐑤 𐑦𐑒𐑕𐑑𐑧𐑯𐑖𐑩𐑯 𐑓𐑹 𐑞𐑦𐑕 𐑓𐑹𐑥𐑨𐑑"""
+        pass
+
+
+class JSONReportFormatter(ReportFormatter):
+    """JSON 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹𐑥𐑨𐑑𐑼"""
+    
+    def format(self, data: Dict[str, Any]) -> str:
+        return json.dumps(data, indent=2, default=str, ensure_ascii=False)
+    
+    def get_file_extension(self) -> str:
+        return ".json"
+
+
+class YAMLReportFormatter(ReportFormatter):
+    """YAML 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹𐑥𐑨𐑑𐑼"""
+    
+    def format(self, data: Dict[str, Any]) -> str:
+        return yaml.dump(data, default_flow_style=False, allow_unicode=True)
+    
+    def get_file_extension(self) -> str:
+        return ".yaml"
+
+
+class XMLReportFormatter(ReportFormatter):
+    """XML 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹𐑥𐑨𐑑𐑼"""
+    
+    def format(self, data: Dict[str, Any]) -> str:
+        root = ET.Element("cumpyl_report")
+        self._dict_to_xml(data, root)
+        ET.indent(root, space="  ")
+        return ET.tostring(root, encoding='unicode')
+    
+    def _dict_to_xml(self, data: Any, parent: ET.Element):
+        """𐑒𐑩𐑯𐑝𐑻𐑑 𐑩 𐑛𐑦𐑒𐑖𐑩𐑯𐑼𐑦 𐑑 XML 𐑦𐑤𐑩𐑥𐑩𐑯𐑑𐑟"""
+        if isinstance(data, dict):
+            for key, value in data.items():
+                # 𐑞𐑰𐑯 XML 𐑦𐑤𐑩𐑥𐑩𐑯𐑑 𐑯𐑱𐑥𐑟
+                clean_key = str(key).replace(' ', '_').replace('-', '_')
+                if clean_key and (clean_key[0].isalpha() or clean_key[0] == '_'):
+                    child = ET.SubElement(parent, clean_key)
+                else:
+                    child = ET.SubElement(parent, "item")
+                    child.set("key", str(key))
+                
+                self._dict_to_xml(value, child)
+        
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                child = ET.SubElement(parent, "item")
+                child.set("index", str(i))
+                self._dict_to_xml(item, child)
+        
+        else:
+            parent.text = str(data) if data is not None else ""
+    
+    def get_file_extension(self) -> str:
+        return ".xml"
+
+
+class HTMLReportFormatter(ReportFormatter):
+    """HTML 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹𐑥𐑨𐑑𐑼"""
+    
+    def format(self, data: Dict[str, Any]) -> str:
+        html = self._generate_html_report(data)
+        return html
+    
+    def _generate_html_report(self, data: Dict[str, Any]) -> str:
+        """𐑡𐑧𐑯𐑼𐑱𐑑 𐑩 𐑒𐑩𐑥𐑐𐑤𐑰𐑑 HTML 𐑮𐑦𐑐𐑹𐑑"""
+        metadata = data.get('metadata', {})
+        title = f"Cumpyl Analysis Report - {metadata.get('target_file', 'Unknown')}"
+        
+        # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑦𐑓 𐑚𐑲𐑯𐑩𐑮𐑦 𐑛𐑱𐑑𐑩 𐑦𐑟 𐑩𐑝𐑱𐑤𐑩𐑚𐑩𐑤
+        hex_viewer_content = ""
+        hex_viewer_css = ""
+        hex_viewer_js = ""
+        
+        # 𐑦𐑓 𐑩 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼 𐑦𐑟 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒𐑩𐑤𐑦 𐑐𐑮𐑴𐑝𐑲𐑛𐑦𐑛, 𐑿𐑟 𐑦𐑑
+        if 'hex_viewer' in data and data['hex_viewer'] is not None:
+            hex_viewer = data['hex_viewer']
+            hex_viewer_content = hex_viewer.generate_hex_dump_html()
+            hex_viewer_css = self._get_css_styles()
+            hex_viewer_js = ""
+        elif 'binary_data' in data:
+            # 𐑓𐑷𐑤𐑚𐑨𐑒 𐑑 𐑒𐑮𐑦𐑱𐑑𐑦𐑙 𐑩 𐑯𐑿 𐑣𐑧𐑒𐑕 𐑝𐑿𐑼
+            hex_viewer = HexViewer(self.config)
+            hex_viewer.load_binary_data(data['binary_data'])
+            
+            # 𐑨𐑛 𐑨𐑯𐑴𐑑𐑱𐑖𐑩𐑯𐑟 𐑓𐑮𐑩𐑥 𐑝𐑸𐑦𐑩𐑕 𐑕𐑹𐑕𐑦𐑟
+            if 'sections' in data:
+                hex_viewer.add_section_annotations(data.get('sections', []))
+            if 'plugin_results' in data:
+                hex_viewer.add_analysis_annotations(data['plugin_results'])
+            if 'suggestions' in data:
+                hex_viewer.add_suggestion_annotations(data['suggestions'])
+            # 𐑯𐑿 𐑓𐑦𐑤𐑛 𐑯𐑱𐑥𐑟 𐑓𐑹 𐑦𐑯𐑑𐑧𐑜𐑮𐑱𐑑𐑦𐑛 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 
+            if 'analysis_results' in data:
+                hex_viewer.add_analysis_annotations(data['analysis_results'])
+            if 'obfuscation_suggestions' in data:
+                hex_viewer.add_suggestion_annotations(data['obfuscation_suggestions'])
+                
+            hex_viewer_content = hex_viewer.generate_hex_dump_html()
+            hex_viewer_css = self._get_css_styles()
+            hex_viewer_js = ""
+        
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        {self._get_css_styles()}
+        {hex_viewer_css}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Cumpyl Binary Analysis Report</h1>
+            <div class="metadata">
+                <p><strong>Target File:</strong> {metadata.get('target_file', 'N/A')}</p>
+                <p><strong>Analysis Date:</strong> {metadata.get('timestamp', 'N/A')}</p>
+                <p><strong>Framework Version:</strong> {metadata.get('framework_version', 'N/A')}</p>
+            </div>
+        </header>
+        
+        <main>
+            {hex_viewer_content}
+            {self._format_sections(data)}
+        </main>
+        
+        <footer>
+            <p>Generated by <strong>Cumpyl Framework</strong> - Binary Analysis & Rewriting Tool</p>
+        </footer>
+    </div>
+    <script>
+        {hex_viewer_js}
+    </script>
+</body>
+</html>"""
+        return html
+    
+    def _get_css_styles(self) -> str:
+        """𐑮𐑦𐑑𐑻𐑯 CSS 𐑕𐑑𐑲𐑤𐑟 𐑓𐑹 𐑞 HTML 𐑮𐑦𐑐𐑹𐑑"""
+        return """
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        header {
+            border-bottom: 3px solid #007acc;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #007acc;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        
+        h2 {
+            color: #005c99;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        
+        h3 {
+            color: #007acc;
+            margin-top: 25px;
+        }
+        
+        .metadata {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        
+        .metadata p {
+            margin: 5px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #007acc;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .code-block {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #007acc;
+        }
+        
+        .stat-card h4 {
+            margin: 0 0 10px 0;
+            color: #007acc;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+        }
+        """
+    
+    def _format_sections(self, data: Dict[str, Any]) -> str:
+        """𐑓𐑹𐑥𐑨𐑑 𐑷𐑤 𐑞 𐑤𐑮 𐑕𐑧𐑒𐑖𐑩𐑯𐑟 𐑦𐑯𐑑 HTML"""
+        sections = []
+        
+        # 𐑞 𐑞 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑟
+        if 'analysis_results' in data:
+            sections.append(self._format_analysis_results(data['analysis_results']))
+        
+        # 𐑞 𐑞 𐑐𐑤𐑳𐑜𐑦𐑯 𐑮𐑦𐑟𐑳𐑤𐑑𐑟
+        if 'plugin_results' in data:
+            sections.append(self._format_plugin_results(data['plugin_results']))
+        
+        # 𐑞 𐑞 𐑕𐑧𐑒𐑖𐑩𐑯 𐑦𐑯𐑓𐑼𐑥𐑱𐑖𐑩𐑯
+        if 'sections' in data:
+            sections.append(self._format_section_info(data['sections']))
+        
+        # 𐑞 𐑞 𐑩𐑯𐑦 𐑧𐑮𐑼𐑟
+        if 'errors' in data and data['errors']:
+            sections.append(self._format_errors(data['errors']))
+        
+        return '\n'.join(sections)
+    
+    def _format_analysis_results(self, results: Dict[str, Any]) -> str:
+        """𐑓𐑹𐑥𐑨𐑑 𐑞 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑟 𐑦𐑯𐑑 HTML"""
+        html = "<h2>📊 Analysis Results</h2>\n"
+        
+        # 𐑞 𐑯 𐑞 𐑕𐑑𐑩𐑑𐑦𐑕𐑑𐑦𐑒𐑕 𐑞
+        if 'statistics' in results:
+            stats = results['statistics']
+            html += '<div class="stat-grid">\n'
+            
+            for key, value in stats.items():
+                html += f'''
+                <div class="stat-card">
+                    <h4>{key.replace('_', ' ').title()}</h4>
+                    <div class="stat-value">{value}</div>
+                </div>
+                '''
+            
+            html += '</div>\n'
+        
+        return html
+    
+    def _format_plugin_results(self, results: Dict[str, Any]) -> str:
+        """𐑓𐑹𐑥𐑨𐑑 𐑞 𐑐𐑤𐑳𐑜𐑦𐑯 𐑮𐑦𐑟𐑳𐑤𐑑𐑟 𐑦𐑯𐑑 HTML"""
+        html = "<h2>🔌 Plugin Analysis Results</h2>\n"
+        
+        for plugin_name, plugin_result in results.items():
+            html += f"<h3>{plugin_name.replace('_', ' ').title()}</h3>\n"
+            
+            if 'error' in plugin_result:
+                html += f'<div class="error"><strong>Error:</strong> {plugin_result["error"]}</div>\n'
+            else:
+                # 𐑞 𐑩𐑯 𐑦𐑯𐑑𐑼𐑧𐑕𐑑𐑦𐑙 𐑓𐑦𐑯𐑛𐑦𐑙𐑟 𐑦𐑓 𐑞𐑦𐑕 𐑦𐑟 𐑞 𐑧𐑯𐑑𐑮𐑩𐑐𐑦 𐑐𐑤𐑳𐑜𐑦𐑯
+                if plugin_name == 'entropy_analysis' and 'overall_assessment' in plugin_result:
+                    assessment = plugin_result['overall_assessment']
+                    if assessment.get('likely_packed'):
+                        html += '<div class="warning"><strong>⚠️ Potential Packing Detected</strong><br>'
+                        html += f"High entropy sections: {', '.join(assessment.get('high_entropy_sections', []))}</div>\n"
+                
+                # 𐑞 𐑩𐑯 𐑦𐑯𐑑𐑼𐑧𐑕𐑑𐑦𐑙 𐑕𐑑𐑮𐑦𐑙𐑟 𐑦𐑓 𐑞𐑦𐑕 𐑦𐑟 𐑞 𐑕𐑑𐑮𐑦𐑙 𐑐𐑤𐑳𐑜𐑦𐑯
+                if plugin_name == 'string_extraction' and 'summary' in plugin_result:
+                    summary = plugin_result['summary']
+                    if summary.get('interesting_strings'):
+                        html += "<h4>🔍 Interesting Strings Found</h4>\n"
+                        html += "<table>\n<tr><th>String</th><th>Section</th><th>Score</th></tr>\n"
+                        
+                        for string_info in summary['interesting_strings'][:10]:  # 𐑕𐑴 𐑴𐑯𐑤𐑦 𐑞 𐑑𐑩𐑐 10
+                            html += f"""
+                            <tr>
+                                <td><code>{string_info.get('value', '')[:50]}...</code></td>
+                                <td>{string_info.get('section', '')}</td>
+                                <td>{string_info.get('score', 0):.1f}</td>
+                            </tr>
+                            """
+                        html += "</table>\n"
+        
+        return html
+    
+    def _classify_section_type(self, section_name: str) -> str:
+        """𐑒𐑤𐑨𐑕𐑦𐑓𐑲 𐑞 𐑕𐑧𐑒𐑖𐑩𐑯 𐑚𐑱𐑕𐑑 𐑪𐑯 𐑦𐑑𐑕 𐑯𐑱𐑥"""
+        if section_name in ['.text', '.code']:
+            return "Executable Code"
+        elif section_name in ['.data', '.bss']:
+            return "Data"
+        elif section_name in ['.rdata', '.rodata']:
+            return "Read-only Data"
+        elif section_name in ['.idata']:
+            return "Import Data"
+        elif section_name in ['.reloc']:
+            return "Relocation Data"
+        elif section_name in ['.pdata']:
+            return "Exception Data"
+        elif section_name in ['.xdata']:
+            return "Exception Unwind Data"
+        elif section_name in ['.rsrc']:
+            return "Resources"
+        elif section_name in ['.CRT']:
+            return "C Runtime"
+        elif section_name in ['.tls']:
+            return "Thread Local Storage"
+        elif section_name.startswith('/'):
+            return "Resource/Debug Data"
+        else:
+            return "Unknown"
+    
+    def _format_section_info(self, sections: Dict[str, Any]) -> str:
+        """𐑓𐑹𐑥𐑨𐑑 𐑞 𐑕𐑧𐑒𐑖𐑩𐑯 𐑦𐑯𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑦𐑯𐑑 HTML"""
+        html = "<h2>📂 Binary Sections</h2>\n"
+        
+        if sections:
+            html += """
+            <table>
+            <tr>
+                <th>Section Name</th>
+                <th>Size</th>
+                <th>Virtual Address</th>
+                <th>Type</th>
+                <th>File Offset</th>
+            </tr>
+            """
+            
+            # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑚𐑴𐑞 𐑛𐑦𐑒𐑖𐑩𐑯𐑼𐑦 𐑯 𐑤𐑦𐑕𐑑 𐑓𐑹𐑥𐑨𐑑𐑟
+            if isinstance(sections, dict):
+                section_items = sections.items()
+            else:
+                # 𐑦𐑓 𐑦𐑑'𐑟 𐑩 𐑤𐑦𐑕𐑑 𐑝 𐑛𐑦𐑒𐑖𐑩𐑯𐑼𐑦 𐑹 LIEF 𐑴𐑚𐑡𐑧𐑒𐑑𐑟, 𐑒𐑮𐑦𐑱𐑑 (𐑯𐑱𐑥, 𐑦𐑯𐑓𐑴) 𐑐𐑺𐑟
+                section_items = []
+                for s in sections if sections else []:
+                    if hasattr(s, 'get'):
+                        # 𐑦𐑑'𐑟 𐑩 𐑛𐑦𐑒𐑖𐑩𐑯𐑼𐑦
+                        section_items.append((s.get('name', 'Unknown'), s))
+                    else:
+                        # 𐑦𐑑'𐑟 𐑩 LIEF 𐑴𐑚𐑡𐑧𐑒𐑑
+                        section_items.append((getattr(s, 'name', 'Unknown'), s))
+            
+            for section_name, section_info in section_items:
+                if isinstance(section_info, dict):
+                    size = section_info.get('size', 0)
+                    vaddr = section_info.get('virtual_address', 0)
+                    characteristics = section_info.get('characteristics', 0)
+                    file_offset = section_info.get('file_offset', section_info.get('offset', 0))
+                    section_type = section_info.get('type', self._classify_section_type(section_name))
+                else:
+                    # 𐑦𐑓 section_info 𐑦𐑟 𐑯𐑪𐑑 𐑩 𐑛𐑦𐑒𐑖𐑩𐑯𐑼𐑦, 𐑜𐑧𐑑 𐑢 𐑕𐑦𐑒𐑯 𐑞 LIEF 𐑴𐑚𐑡𐑧𐑒𐑑
+                    size = getattr(section_info, 'size', 0)
+                    vaddr = getattr(section_info, 'virtual_address', 0)
+                    characteristics = getattr(section_info, 'characteristics', 0)
+                    file_offset = getattr(section_info, 'offset', getattr(section_info, 'pointerto_raw_data', 0))
+                    section_type = self._classify_section_type(section_name)
+                
+                html += f"""
+                <tr>
+                    <td><code>{section_name}</code></td>
+                    <td>{size} bytes</td>
+                    <td>0x{vaddr:x}</td>
+                    <td>{section_type}</td>
+                    <td>0x{file_offset:x}</td>
+                </tr>
+                """
+            
+            html += "</table>\n"
+        
+        return html
+    
+    def _format_errors(self, errors: List[str]) -> str:
+        """𐑓𐑹𐑥𐑨𐑑 𐑞 𐑧𐑮𐑼 𐑦𐑯𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑦𐑯𐑑 HTML"""
+        html = "<h2>❌ Errors</h2>\n"
+        
+        for error in errors:
+            html += f'<div class="error">{error}</div>\n'
+        
+        return html
+    
+    def get_file_extension(self) -> str:
+        return ".html"
+
+
+class ReportGenerator:
+    """𐑞 𐑢 𐑮𐑦𐑐𐑹𐑑 𐑡𐑧𐑯𐑼𐑱𐑑𐑼 - 𐑒𐑩𐑯𐑒𐑮𐑰𐑟 𐑯 𐑒𐑪𐑯𐑝𐑻𐑑 𐑛𐑱𐑑𐑩 𐑦𐑯𐑑 𐑝𐑸𐑦𐑩𐑕 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹𐑥𐑨𐑑𐑟"""
+    
+    def __init__(self, config: ConfigManager):
+        self.config = config
+        self.formatters = {
+            'json': JSONReportFormatter(config),
+            'yaml': YAMLReportFormatter(config),
+            'xml': XMLReportFormatter(config),
+            'html': HTMLReportFormatter(config)
+        }
+    
+    def generate_report(self, data: Dict[str, Any], format_type: str = 'json', 
+                       output_file: Optional[str] = None) -> str:
+        """𐑡𐑧𐑯𐑼𐑱𐑑 𐑩 𐑮𐑦𐑐𐑹𐑑 𐑦𐑯 𐑞 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛 𐑓𐑹𐑥𐑨𐑑"""
+        # 𐑨𐑛 𐑥𐑧𐑑𐑩𐑛𐑱𐑑𐑩 𐑦𐑓 𐑯𐑪𐑑 𐑩𐑤𐑮𐑧𐑛𐑦 𐑦𐑯𐑒𐑤𐑿𐑛𐑦𐑛
+        if 'metadata' not in data:
+            data['metadata'] = self._generate_metadata()
+        
+        # 𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑞 𐑓𐑹𐑥𐑨𐑑 𐑑𐑲𐑐
+        if format_type not in self.formatters:
+            available_formats = list(self.formatters.keys())
+            raise ValueError(f"Unsupported format: {format_type}. Available formats: {available_formats}")
+        
+        # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑
+        formatter = self.formatters[format_type]
+        report_content = formatter.format(data)
+        
+        # 𐑕𐑱𐑝 𐑑 𐑞 𐑦𐑓 𐑞 𐑦 𐑯𐑵𐑕 𐑓𐑲𐑤 𐑮 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛
+        if output_file:
+            # 𐑦𐑯𐑖𐑫𐑼 𐑞 𐑓𐑲𐑤 𐑣𐑨𐑟 𐑞 𐑮𐑲𐑑 𐑧𐑒𐑕𐑑𐑧𐑯𐑖𐑩𐑯
+            if not output_file.endswith(formatter.get_file_extension()):
+                output_file += formatter.get_file_extension()
+            
+            # 𐑒𐑮𐑦𐑱𐑑 𐑞 𐑛𐑲𐑮𐑧𐑒𐑑𐑼𐑦 𐑦𐑓 𐑦𐑑 𐑛𐑳𐑟𐑩𐑯𐑑 𐑧𐑒𐑟𐑦𐑕𐑑
+            output_dir = os.path.dirname(output_file)
+            if output_dir:  # 𐑴𐑯𐑤𐑦 𐑒𐑮𐑦𐑱𐑑 𐑛𐑲𐑮𐑧𐑒𐑑𐑼𐑦 𐑦𐑓 𐑯𐑪𐑑 𐑧𐑥𐑐𐑑𐑦
+                os.makedirs(output_dir, exist_ok=True)
+            
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(report_content)
+            
+            print(f"[+] Report saved to: {output_file}")
+        
+        return report_content
+    
+    def _generate_metadata(self) -> Dict[str, Any]:
+        """𐑡𐑧𐑯𐑼𐑱𐑑 𐑥𐑧𐑑𐑩𐑛𐑱𐑑𐑩 𐑓𐑹 𐑞 𐑮𐑦𐑐𐑹𐑑"""
+        return {
+            'timestamp': datetime.now().isoformat(),
+            'framework_version': self.config.framework.version,
+            'generator': 'Cumpyl Framework',
+            'config_file': getattr(self.config, 'config_path', 'default')
+        }
+    
+    def create_analysis_report(self, target_file: str, analysis_results: Dict[str, Any], 
+                             plugin_results: Dict[str, Any] = None, 
+                             errors: List[str] = None) -> Dict[str, Any]:
+        """𐑒𐑮𐑦𐑱𐑑 𐑩 𐑞 𐑞 𐑞 𐑒𐑩𐑥𐑐𐑤𐑰𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑐𐑹𐑑"""
+        report_data = {
+            'metadata': self._generate_metadata(),
+            'target_file': target_file,
+            'analysis_results': analysis_results,
+            'errors': errors or []
+        }
+        
+        # 𐑨𐑛 𐑞 𐑖 𐑞 target 𐑓𐑲𐑤 𐑦𐑯𐑓 𐑦𐑯 𐑞 metadata
+        if os.path.exists(target_file):
+            report_data['metadata'].update({
+                'target_file': os.path.abspath(target_file),
+                'target_file_size': os.path.getsize(target_file),
+                'target_file_modified': datetime.fromtimestamp(os.path.getmtime(target_file)).isoformat()
+            })
+        
+        # 𐑨𐑛 𐑞 𐑐𐑤𐑳𐑜𐑦𐑯 𐑮𐑦𐑟𐑳𐑤𐑑𐑟 𐑦𐑓 𐑞 𐑦 𐑞
+        if plugin_results:
+            report_data['plugin_results'] = plugin_results
+        
+        return report_data
+    
+    def get_available_formats(self) -> List[str]:
+        """𐑜𐑧𐑑 𐑞 𐑞 𐑞 𐑞 𐑞 𐑞 list 𐑞 𐑞 𐑞 𐑞 𐑞 𐑞  𐑞"""
+        return list(self.formatters.keys())
+    
+    def create_batch_report(self, batch_results: Dict[str, Any]) -> Dict[str, Any]:
+        """𐑒𐑮𐑦𐑱𐑑 𐑩 𐑮𐑦𐑐𐑹𐑑 𐑓𐑹 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑮𐑦𐑟𐑳𐑤𐑑𐑟"""
+        report_data = {
+            'metadata': self._generate_metadata(),
+            'report_type': 'batch_processing',
+            'batch_summary': {
+                'total_files': batch_results.get('total', 0),
+                'completed_files': batch_results.get('completed', 0),
+                'failed_files': batch_results.get('failed', 0),
+                'success_rate': f"{(batch_results.get('completed', 0) / batch_results.get('total', 1) * 100):.1f}%",
+                'total_duration': f"{batch_results.get('duration', 0):.2f} seconds"
+            },
+            'completed_jobs': [],
+            'failed_jobs': [],
+            'errors': []
+        }
+        
+        # 𐑨𐑛 𐑦𐑯𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑩𐑚𐑬𐑑 𐑒𐑩𐑥𐑐𐑤𐑰𐑑𐑦𐑛 𐑡𐑪𐑚𐑟
+        for job in batch_results.get('completed_jobs', []):
+            job_info = {
+                'file': job.input_file,
+                'output': job.output_file,
+                'duration': f"{job.get_duration():.2f}s",
+                'operations': len(job.operations),
+                'results': job.results
+            }
+            report_data['completed_jobs'].append(job_info)
+        
+        # 𐑨𐑛 𐑦𐑯𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑩𐑚𐑬𐑑 𐑓𐑱𐑤𐑛 𐑡𐑪𐑚𐑟
+        for job in batch_results.get('failed_jobs', []):
+            job_info = {
+                'file': job.input_file,
+                'error': job.error,
+                'duration': f"{job.get_duration():.2f}s",
+                'operations': len(job.operations)
+            }
+            report_data['failed_jobs'].append(job_info)
+            report_data['errors'].append(f"{job.input_file}: {job.error}")
+        
+        return report_data
+    
+    def generate_batch_report_chunked(self, batch_results: Dict[str, Any], format_type: str = 'json', 
+                                    output_file_base: Optional[str] = None) -> List[str]:
+        """𐑡𐑧𐑯𐑼𐑱𐑑 𐑚𐑨𐑗 𐑮𐑦𐑐𐑹𐑑 𐑦𐑯 𐑥𐑩𐑤𐑑𐑦𐑐𐑩𐑤 𐑗𐑳𐑙𐑒𐑕 𐑦𐑓 𐑑𐑵 𐑤𐑸𐑡"""
+        
+        if not self.config.output.split_large_reports:
+            # 𐑦𐑓 𐑕𐑐𐑤𐑦𐑑𐑦𐑙 𐑦𐑟 𐑛𐑦𐑟𐑱𐑚𐑩𐑤𐑛, 𐑿𐑟 𐑮𐑧𐑜𐑿𐑤𐑼 𐑚𐑨𐑗 𐑮𐑦𐑐𐑹𐑑 𐑥𐑧𐑔𐑩𐑛
+            report_data = self.generate_batch_report_data(batch_results)
+            output_file = output_file_base or f"batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            self.generate_report(report_data, format_type, output_file)
+            return [output_file]
+        
+        # 𐑜𐑧𐑑 𐑒𐑩𐑥𐑐𐑤𐑰𐑑𐑦𐑛 𐑡𐑪𐑚𐑟 𐑯 𐑗𐑳𐑙𐑒 𐑞𐑧𐑥
+        completed_jobs = batch_results.get('completed_jobs', [])
+        failed_jobs = batch_results.get('failed_jobs', [])
+        
+        chunk_size = self.config.output.files_per_chunk
+        output_files = []
+        
+        # 𐑒𐑮𐑦𐑱𐑑 𐑗𐑳𐑙𐑒𐑕 𐑝 𐑒𐑩𐑥𐑐𐑤𐑰𐑑𐑦𐑛 𐑡𐑪𐑚𐑟
+        for i in range(0, len(completed_jobs), chunk_size):
+            chunk_jobs = completed_jobs[i:i + chunk_size]
+            chunk_num = (i // chunk_size) + 1
+            total_chunks = (len(completed_jobs) + chunk_size - 1) // chunk_size
+            
+            # 𐑒𐑮𐑦𐑱𐑑 𐑩 𐑗𐑳𐑙𐑒-𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑚𐑨𐑗 𐑮𐑦𐑟𐑳𐑤𐑑 𐑛𐑦𐑒𐑖𐑩𐑯𐑧𐑮𐑦
+            chunk_batch_results = {
+                'completed': len(chunk_jobs),
+                'failed': 0,  # 𐑓𐑱𐑤𐑛 𐑡𐑪𐑚𐑟 𐑜𐑴 𐑦𐑯 𐑞 𐑤𐑭𐑕𐑑 𐑗𐑳𐑙𐑒
+                'total': len(chunk_jobs),
+                'duration': sum(job.get_duration() for job in chunk_jobs),
+                'completed_jobs': chunk_jobs,
+                'failed_jobs': []
+            }
+            
+            # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑 𐑛𐑱𐑑𐑩 𐑓𐑹 𐑞𐑦𐑕 𐑗𐑳𐑙𐑒
+            chunk_report_data = self.generate_batch_report_data(chunk_batch_results)
+            
+            # 𐑩𐑛 𐑗𐑳𐑙𐑒 𐑦𐑯𐑓𐑹𐑥𐑱𐑖𐑩𐑯 𐑑 𐑥𐑧𐑑𐑩𐑛𐑱𐑑𐑩
+            chunk_report_data['metadata'].update({
+                'chunk_number': chunk_num,
+                'total_chunks': total_chunks,
+                'chunk_size': len(chunk_jobs),
+                'chunk_description': f"Chunk {chunk_num} of {total_chunks} (files {i+1}-{min(i+chunk_size, len(completed_jobs))})"
+            })
+            
+            # 𐑒𐑮𐑦𐑱𐑑 𐑞 𐑬𐑑𐑐𐑫𐑑 𐑓𐑲𐑤 𐑯𐑱𐑥
+            base_name = output_file_base or f"batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            chunk_output_file = f"{base_name}_chunk_{chunk_num:03d}_of_{total_chunks:03d}"
+            
+            # 𐑡𐑧𐑯𐑼𐑱𐑑 𐑞 𐑮𐑦𐑐𐑹𐑑
+            self.generate_report(chunk_report_data, format_type, chunk_output_file)
+            output_files.append(chunk_output_file)
+            
+            print(f"[+] Generated chunk {chunk_num}/{total_chunks}: {chunk_output_file}")
+        
+        # 𐑞 𐑓𐑱𐑤𐑛 𐑡𐑪𐑚𐑟 𐑦𐑯 𐑩 𐑕𐑧𐑐𐑼𐑦𐑑 𐑞𐑦𐑤 (𐑦𐑓 𐑧𐑯𐑦)
+        if failed_jobs:
+            failed_batch_results = {
+                'completed': 0,
+                'failed': len(failed_jobs),
+                'total': len(failed_jobs),
+                'duration': sum(job.get_duration() for job in failed_jobs),
+                'completed_jobs': [],
+                'failed_jobs': failed_jobs
+            }
+            
+            failed_report_data = self.generate_batch_report_data(failed_batch_results)
+            failed_report_data['metadata'].update({
+                'report_type': 'failed_jobs_summary',
+                'description': f"Summary of {len(failed_jobs)} failed jobs"
+            })
+            
+            base_name = output_file_base or f"batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            failed_output_file = f"{base_name}_failed_jobs"
+            
+            self.generate_report(failed_report_data, format_type, failed_output_file)
+            output_files.append(failed_output_file)
+            
+            print(f"[+] Generated failed jobs report: {failed_output_file}")
+        
+        # 𐑒𐑮𐑦𐑱𐑑 𐑩 𐑕𐑳𐑥𐑼𐑦 𐑞𐑦𐑤 𐑢𐑦𐑞 𐑦𐑯𐑓𐑹𐑥𐑱𐑖𐑩𐑯 𐑩𐑚𐑬𐑑 𐑷𐑤 𐑗𐑳𐑙𐑒𐑕
+        summary_data = {
+            'metadata': self._generate_metadata(),
+            'batch_summary': {
+                'total_files': len(completed_jobs) + len(failed_jobs),
+                'completed_files': len(completed_jobs),
+                'failed_files': len(failed_jobs),
+                'success_rate': f"{(len(completed_jobs) / (len(completed_jobs) + len(failed_jobs)) * 100):.1f}%" if (completed_jobs or failed_jobs) else "0%",
+                'total_chunks_generated': len(output_files),
+                'chunk_files': output_files,
+                'chunk_size': chunk_size
+            }
+        }
+        
+        summary_data['metadata'].update({
+            'report_type': 'batch_processing_summary',
+            'description': f"Summary of batch processing split into {len(output_files)} chunks"
+        })
+        
+        base_name = output_file_base or f"batch_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        summary_output_file = f"{base_name}_summary"
+        
+        self.generate_report(summary_data, format_type, summary_output_file)
+        output_files.insert(0, summary_output_file)  # 𐑨𐑛 𐑕𐑳𐑥𐑼𐑦 𐑨𐑑 𐑞 𐑚𐑦𐑜𐑦𐑯𐑦𐑙
+        
+        print(f"[+] Generated summary report: {summary_output_file}")
+        print(f"[+] Total files generated: {len(output_files)}")
+        
+        return output_files
