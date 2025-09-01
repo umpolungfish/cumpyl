@@ -21,13 +21,18 @@ plugins:
     - "packer_detection"
     - "transmuter"
     - "packer"
-    - "ca_packer"
     - "go_packer"
+    - "ca_packer"
   
+  # Default settings for common plugin configurations
+  defaults:
+    compression_level: 6
+    encrypt_sections: true
+    encryption_key: null
+    
   # Individual plugin settings
   encoding:
     default_encoding: "base64"
-    compression_level: 6
     max_encode_size_mb: 10
     
   entropy_analysis:
@@ -43,31 +48,16 @@ plugins:
   
   transmuter:
     default_method: "null_padding"
-    compression_level: 6
     preserve_spacing: true
 
-  packer:
-    compression_level: 6
-    encrypt_sections: true
-    encryption_key: null
-
+  # Packer plugins - all inherit common settings but can override
+  packer: {}
   go_packer:
-    compression_level: 6
-    encrypt_sections: true
-    encryption_key: null
     obfuscate_symbols: true
-
   cgo_packer:
-    compression_level: 6
-    encrypt_sections: true
-    encryption_key: null
     obfuscate_symbols: true
     preserve_cgo_symbols: true
-
   ca_packer:
-    compression_level: 6
-    encrypt_sections: true
-    encryption_key: null
     ca_steps: 100
     debug_stub: false
 
@@ -155,12 +145,19 @@ formats:
 # Encoding Settings
 encoding:
   available_methods:
+    - "null_padding"
+    - "unicode"
     - "hex"
-    - "octal" 
+    - "octal"
+    - "mixed"
+    - "env_var"
     - "base64"
-    - "compressed_base64"
-    - "null"
-    - "custom"
+    - "url_encode"
+    - "compressed_b64"
+    - "reverse"
+    - "rot13"
+    - "double_url"
+    - "compound"
   
   # Method-specific settings
   base64:
