@@ -10,32 +10,43 @@ This module orchestrates the packing process:
 6. Integrating the payload and stub into the final binary using LIEF.
 """
 
-# Import core modules
-# Handle both relative and absolute imports
-try:
-    from .ca_engine import generate_mask
-    from .crypto_engine import encrypt_payload
-except ImportError:
-    # Fallback to absolute imports when running as script
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    try:
-        from ca_packer.ca_engine import generate_mask
-        from ca_packer.crypto_engine import encrypt_payload
-    except ImportError:
-        # Try the full path if running as a module
-        from greenbay.ca_packer.ca_engine import generate_mask
-        from greenbay.ca_packer.crypto_engine import encrypt_payload
-# TODO: Import other necessary modules (e.g., for compression, binary analysis, integration)
-
-import lief
-import os
 import logging
+import os
+import subprocess
+import sys
+import lief
+
+# --- Dynamic Path Resolution ---
+# This ensures that the script can be run from any directory and still find its modules.
+try:
+    # For relative imports when used as a module
+    from . import ca_engine
+    from . import crypto_engine
+except (ImportError, ModuleNotFoundError):
+    # For running as a script. This makes packer.py work standalone.
+    _script_dir = os.path.dirname(os.path.abspath(__file__))
+    if _script_dir not in sys.path:
+        sys.path.insert(0, _script_dir)
+
+    # Now that the path is set, we can import siblings directly
+    import ca_engine
+    import crypto_engine
+
+# Make functions available for convenience, aliasing to match original code
+generate_mask = ca_engine.generate_mask
+encrypt_payload = crypto_engine.encrypt_payload
+# TODO: Import other necessary modules (e.g., for compression, binary analysis, integration)
 
 # --- Configuration (Could be moved to a config file later) ---
 DEFAULT_BLOCK_SIZE = 32  # 256 bits, matching the CA mask size
-# TODO: Add configuration for compression, CA steps, etc.
+# The offset of the parameter_area in the stub, determined by the size of the initial jump.
+# We now use a RIP-relative LEA instruction to make the jump position-independent,
+# and we initialize %r8 with the address of the parameter area.
+STUB_PARAMETER_OFFSET = 0x12  # 7 bytes for `lea parameter_area(%rip), %r8` + 2 bytes for padding + 3 bytes for parameter_area label
+# Parameter offsets within the parameter area
+PAYLOAD_RVA_OFFSET_IN_PARAMS = 0x30  # Offset of payload RVA in parameter area
+PAYLOAD_SIZE_OFFSET_IN_PARAMS = 0x38  # Offset of payload size in parameter area
+STUB_RVA_OFFSET_IN_PARAMS = 0x40  # Offset of stub RVA in parameter area
 # -----------------------------
 
 def load_target_binary(filepath):
@@ -57,24 +68,18 @@ def load_target_binary(filepath):
 def analyze_binary(binary):
     """
     Performs initial analysis on the loaded binary.
-    - Identifies key sections (.text, .data).
-    - Determines the Original Entry Point (OEP).
-    - Plans for new section creation.
+    - Identifies key sections.
+    - OEP is no longer needed as the stub uses fexecve to let the kernel handle loading.
     """
     logging.info("Performing initial binary analysis...")
     
-    if binary.format == lief.Binary.FORMATS.PE:
-        oep = binary.optional_header.addressof_entrypoint
-        sections = [s.name for s in binary.sections]
-    elif binary.format == lief.Binary.FORMATS.ELF:
-        oep = binary.header.entrypoint
-        sections = [s.name for s in binary.sections]
-    else:
-        raise ValueError(f"Unsupported binary format: {binary.format}")
+    sections = [s.name for s in binary.sections]
+    
+    # OEP is no longer needed as we use memfd_create and fexecve in the stub.
+    # The original OEP from the header will be used by the kernel's loader.
     
     # Placeholder for analysis results
     analysis_results = {
-        "oep": oep,
         "sections": sections,
         # Add more details as needed
     }
@@ -87,7 +92,8 @@ def prepare_payload(binary_path):
     1. (Optional) Compresses the data.
     2. Encrypts the (compressed) data using the core cipher.
     3. Segments the encrypted data into fixed-size blocks.
-    Returns the list of encrypted blocks and encryption metadata (key, nonce).
+    Returns the list of encrypted blocks, encryption metadata (key, nonce),
+    and the original size of the payload before padding.
     """
     logging.info("Preparing payload...")
     
@@ -103,6 +109,7 @@ def prepare_payload(binary_path):
 
     # TODO: Implement compression logic if enabled.
     data_to_encrypt = binary_data # Placeholder
+    original_size = len(data_to_encrypt)
 
     # --- Encryption ---
     encrypted_data, key, nonce = encrypt_payload(data_to_encrypt)
@@ -119,8 +126,8 @@ def prepare_payload(binary_path):
          blocks[-1] = blocks[-1].ljust(DEFAULT_BLOCK_SIZE, b'\x00')
          logging.debug("Last block padded.")
 
-    logging.info(f"Payload prepared into {len(blocks)} blocks.")
-    return blocks, key, nonce
+    logging.info(f"Payload prepared into {len(blocks)} blocks. Original size: {original_size} bytes.")
+    return blocks, key, nonce, original_size
 
 def apply_ca_masking(blocks, key, nonce):
     """
@@ -154,7 +161,7 @@ def apply_ca_masking(blocks, key, nonce):
     logging.info("CA masking applied.")
     return final_payload, block_lengths
 
-def generate_stub_mvp(oep_rva, key, nonce, ca_params, block_lengths, payload_rva, payload_size, binary_format):
+def generate_stub_mvp(key, nonce, ca_params, block_lengths, payload_size, binary_format, debug_stub=False):
     """
     Generates the MVP stub by compiling the C code and patching parameters.
     """
@@ -174,116 +181,143 @@ def generate_stub_mvp(oep_rva, key, nonce, ca_params, block_lengths, payload_rva
         compile_script = os.path.join(os.path.dirname(__file__), "compile_complete_unpacking_stub.py")
         compiled_stub_path = os.path.join(os.path.dirname(__file__), "complete_unpacking_stub_compiled.bin")
 
+    # Run the compilation script to ensure the stub is up-to-date
+    compilation_command = [sys.executable, compile_script]
+    if not debug_stub:
+        compilation_command.append("--release")
+
+    logging.info(f"Running stub compilation script: {' '.join(compilation_command)}")
     try:
-        # Use a pre-compiled simple stub for testing
-        compiled_stub_path = os.path.join(os.path.dirname(__file__), "archive", "minimal_exit_stub_simple_compiled.bin")
-        
-        # Check if the pre-compiled stub exists
-        if not os.path.exists(compiled_stub_path):
-            logging.error(f"Pre-compiled stub not found at {compiled_stub_path}")
-            raise FileNotFoundError(f"Pre-compiled stub not found at {compiled_stub_path}")
-            
-        # Read the pre-compiled stub
-        try:
-            with open(compiled_stub_path, 'rb') as f:
-                stub_data = bytearray(f.read())
-            logging.debug(f"Read pre-compiled stub blob. Size: {len(stub_data)} bytes")
-        except Exception as e:
-            logging.error(f"Failed to read pre-compiled stub blob: {e}")
-            raise
-    except Exception as e:
-        logging.error(f"Failed to compile stub: {e}")
+        result = subprocess.run(
+            compilation_command,
+            capture_output=True, text=True, check=True
+        )
+        logging.debug(f"Stub compilation stdout: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to compile stub using {compile_script}.")
+        logging.error(f"Return code: {e.returncode}")
+        logging.error(f"Stdout: {e.stdout}")
+        logging.error(f"Stderr: {e.stderr}")
+        raise RuntimeError("Stub compilation failed.")
+    except FileNotFoundError:
+        logging.error(f"Compilation script not found at {compile_script}")
         raise
 
-    # 2. Read the compiled binary blob
+    # Read the compiled binary blob
     try:
         with open(compiled_stub_path, 'rb') as f:
             stub_data = bytearray(f.read())
         logging.debug(f"Read compiled stub blob. Size: {len(stub_data)} bytes")
+        if not stub_data:
+            raise RuntimeError("Compiled stub is empty. Compilation likely failed to produce executable code.")
+        # Log the first few bytes of the stub data
+        if len(stub_data) >= 16:
+            logging.debug(f"First 16 bytes of stub data: {stub_data[:16].hex()}")
+            
+        # Log some bytes from the parameter area to verify it's correctly embedded
+        param_offset = STUB_PARAMETER_OFFSET
+        if len(stub_data) >= param_offset + 16:
+            logging.debug(f"Parameter area bytes (offset {param_offset}): {stub_data[param_offset:param_offset+16].hex()}")
+            
     except Exception as e:
         logging.error(f"Failed to read compiled stub blob: {e}")
         raise
 
-    # 3. For simple stubs, we don't need to pad or embed parameters
-    # Only do this for complex stubs that need parameters
-    # For now, we'll just use the stub as-is without padding
-    
-    # Check if this is a complex stub that needs parameters
-    # For now, we'll assume simple stubs don't need parameter embedding
-    STUB_PARAMETER_OFFSET = 0x400
-    required_size = STUB_PARAMETER_OFFSET + 0x40 # 0x40 is enough for our parameters
-    
-    # Only pad and embed parameters if we're using a complex stub
-    # For simple exit stubs, we don't need to do this
-    if len(stub_data) >= 50:  # Arbitrary threshold to distinguish simple from complex stubs
-        # For complex stubs, we need to ensure there's enough space for parameters
-        # We'll embed parameters at the fixed offset 0x400
-        required_size = 0x400 + 0x40  # 0x400 offset + 0x40 bytes for parameters
-        if len(stub_data) < required_size:
-            # Extend the stub data with zeros
-            stub_data.extend(b'\x00' * (required_size - len(stub_data)))
-            logging.debug(f"Extended stub data to {len(stub_data)} bytes for parameters at offset 0x400")
+    # Embed parameters into the stub data.
+
+    # We will embed parameters at a fixed offset to avoid corrupting the code.
+    # The offset is determined by the size of the initial jump instruction in the stub.
+    STUB_PARAMETER_SIZE = 0x48  # 72 bytes for parameters (key, nonce, etc. + stub_rva)
+
+    # Ensure there's enough space for parameters
+    required_size = STUB_PARAMETER_OFFSET + STUB_PARAMETER_SIZE
+    if len(stub_data) < required_size:
+        stub_data.extend(b'\x00' * (required_size - len(stub_data)))
+        logging.debug(f"Extended stub data to {len(stub_data)} bytes for parameters")
         
-        STUB_PARAMETER_OFFSET = 0x400  # Fixed offset as expected by the stub
+    # Log the offset where parameters will be embedded
+    logging.debug(f"Embedding parameters at offset 0x{STUB_PARAMETER_OFFSET:x}")
 
-        # 4. Embed parameters into the stub data at the fixed offset
-        # Ensure the stub data is large enough for the parameters at offset 0x400
-        required_size = 0x400 + 0x40  # 0x400 offset + 0x40 bytes for parameters
-        if len(stub_data) < required_size:
-            # Extend the stub data with zeros
-            stub_data.extend(b'\x00' * (required_size - len(stub_data)))
-            logging.debug(f"Extended stub data to {len(stub_data)} bytes for parameters at offset 0x400")
-        
-        STUB_PARAMETER_OFFSET = 0x400  # Fixed offset as expected by the stub
-        
-        STUB_PARAMETER_OFFSET = 0x400  # Fixed offset as expected by the stub
-        
-        # OEP (8 bytes, little-endian)
-        stub_data[STUB_PARAMETER_OFFSET + 0x00:STUB_PARAMETER_OFFSET + 0x08] = oep_rva.to_bytes(8, 'little')
+    # Log the stub data before embedding parameters
+    logging.debug("Stub data before parameter embedding:")
+    for i in range(0, min(len(stub_data), 128), 16):
+        logging.debug(f"  {i:04x}: {stub_data[i:i+16].hex()}")
+
+    # Embed parameters into the stub data at the fixed offset
+    # OEP is no longer needed. The parameter block starts with the key.
+
+    # Key (32 bytes) - Simple XOR obfuscation
+    FIXED_OBFUS_KEY = 0xCABEFEBEEFBEADDE # 64-bit value (matches the one in the stub)
+    obfuscated_key_p1 = int.from_bytes(key[0:8], 'little') ^ FIXED_OBFUS_KEY
+    obfuscated_key_p2 = int.from_bytes(key[8:16], 'little') ^ FIXED_OBFUS_KEY
+    obfuscated_key_p3 = int.from_bytes(key[16:24], 'little') ^ FIXED_OBFUS_KEY
+    obfuscated_key_p4 = int.from_bytes(key[24:32], 'little') ^ FIXED_OBFUS_KEY
+
+    stub_data[STUB_PARAMETER_OFFSET + 0x00:STUB_PARAMETER_OFFSET + 0x08] = obfuscated_key_p1.to_bytes(8, 'little')
+    stub_data[STUB_PARAMETER_OFFSET + 0x08:STUB_PARAMETER_OFFSET + 0x10] = obfuscated_key_p2.to_bytes(8, 'little')
+    stub_data[STUB_PARAMETER_OFFSET + 0x10:STUB_PARAMETER_OFFSET + 0x18] = obfuscated_key_p3.to_bytes(8, 'little')
+    stub_data[STUB_PARAMETER_OFFSET + 0x18:STUB_PARAMETER_OFFSET + 0x20] = obfuscated_key_p4.to_bytes(8, 'little')
+
+    # Nonce (12 bytes)
+    stub_data[STUB_PARAMETER_OFFSET + 0x20:STUB_PARAMETER_OFFSET + 0x2C] = nonce
+
+    # CA Steps (4 bytes, little-endian)
+    # Use a fixed, reasonable number of CA steps to avoid performance issues
+    ca_steps = 100  # Fixed to 100 steps
+    stub_data[STUB_PARAMETER_OFFSET + 0x2C:STUB_PARAMETER_OFFSET + 0x30] = ca_steps.to_bytes(4, 'little')
+
+    # Payload Section RVA (8 bytes, little-endian) - Placeholder
+    payload_rva_placeholder = 0xDEADBEEFDEADBEEF
+    stub_data[STUB_PARAMETER_OFFSET + PAYLOAD_RVA_OFFSET_IN_PARAMS:STUB_PARAMETER_OFFSET + PAYLOAD_RVA_OFFSET_IN_PARAMS + 8] = payload_rva_placeholder.to_bytes(8, 'little')
+    logging.debug(f"Embedded payload RVA placeholder: 0x{payload_rva_placeholder:x}")
+
+    # Payload Size (8 bytes, little-endian)
+    payload_size_bytes = payload_size.to_bytes(8, 'little')
+    stub_data[STUB_PARAMETER_OFFSET + PAYLOAD_SIZE_OFFSET_IN_PARAMS:STUB_PARAMETER_OFFSET + PAYLOAD_SIZE_OFFSET_IN_PARAMS + 8] = payload_size_bytes
+    logging.debug(f"Embedded payload size: 0x{payload_size:x} as bytes: {payload_size_bytes.hex()}")
+
+    # Stub RVA (8 bytes, little-endian) - Placeholder
+    stub_rva_placeholder = 0xCAFEBABEDEADBEEF
+    stub_data[STUB_PARAMETER_OFFSET + STUB_RVA_OFFSET_IN_PARAMS:STUB_PARAMETER_OFFSET + STUB_RVA_OFFSET_IN_PARAMS + 8] = stub_rva_placeholder.to_bytes(8, 'little')
+    logging.debug(f"Embedded stub RVA placeholder: 0x{stub_rva_placeholder:x}")
     
-        # Key (32 bytes) - Simple XOR obfuscation
-        FIXED_OBFUS_KEY = 0xCABEFEBEEFBEADDE # 64-bit value
-        obfuscated_key_p1 = int.from_bytes(key[0:8], 'little') ^ FIXED_OBFUS_KEY
-        obfuscated_key_p2 = int.from_bytes(key[8:16], 'little') ^ FIXED_OBFUS_KEY
-        obfuscated_key_p3 = int.from_bytes(key[16:24], 'little') ^ FIXED_OBFUS_KEY
-        obfuscated_key_p4 = int.from_bytes(key[24:32], 'little') ^ FIXED_OBFUS_KEY
-    
-        stub_data[STUB_PARAMETER_OFFSET + 0x08:STUB_PARAMETER_OFFSET + 0x10] = obfuscated_key_p1.to_bytes(8, 'little')
-        stub_data[STUB_PARAMETER_OFFSET + 0x10:STUB_PARAMETER_OFFSET + 0x18] = obfuscated_key_p2.to_bytes(8, 'little')
-        stub_data[STUB_PARAMETER_OFFSET + 0x18:STUB_PARAMETER_OFFSET + 0x20] = obfuscated_key_p3.to_bytes(8, 'little')
-        stub_data[STUB_PARAMETER_OFFSET + 0x20:STUB_PARAMETER_OFFSET + 0x28] = obfuscated_key_p4.to_bytes(8, 'little')
-
-        # Nonce (12 bytes)
-        stub_data[STUB_PARAMETER_OFFSET + 0x28:STUB_PARAMETER_OFFSET + 0x34] = nonce
-
-        # CA Steps (4 bytes, little-endian)
-        # Get the CA steps from the ca_engine module (which might have been updated via command line)
-        try:
-            import ca_packer.ca_engine as ca_engine
-        except ImportError:
-            # Try the full path if running as a module
-            import greenbay.ca_packer.ca_engine as ca_engine
-        ca_steps = getattr(ca_engine, 'NUM_STEPS', 100)  # Default to 100 if not set
-        stub_data[STUB_PARAMETER_OFFSET + 0x34:STUB_PARAMETER_OFFSET + 0x38] = ca_steps.to_bytes(4, 'little')
-
-        # Payload Section RVA (4 bytes, little-endian)
-        payload_rva_bytes = payload_rva.to_bytes(4, 'little')
-        stub_data[STUB_PARAMETER_OFFSET + 0x38:STUB_PARAMETER_OFFSET + 0x3C] = payload_rva_bytes
-        logging.debug(f"Embedded payload RVA: 0x{payload_rva:x} as bytes: {payload_rva_bytes.hex()}")
-
-        # Payload Size (4 bytes, little-endian)
-        payload_size_bytes = payload_size.to_bytes(4, 'little')
-        stub_data[STUB_PARAMETER_OFFSET + 0x3C:STUB_PARAMETER_OFFSET + 0x40] = payload_size_bytes
-        logging.debug(f"Embedded payload size: 0x{payload_size:x} as bytes: {payload_size_bytes.hex()}")
-    else:
-        # For simple stubs, we don't embed parameters, but we still need to ensure
-        # we're not adding extra padding. The stub_data should be used as-is.
-        logging.debug(f"Using simple stub of size {len(stub_data)} bytes without parameter embedding")
-
     logging.info("MVP stub generated with embedded parameters.")
+    
+    # Log the parameter area after embedding to verify it's correctly embedded
+    param_offset = STUB_PARAMETER_OFFSET
+    if len(stub_data) >= param_offset + 16:
+        logging.debug(f"Parameter area bytes after embedding: {stub_data[param_offset:param_offset+16].hex()}")
+        
+    # Log the stub RVA bytes specifically
+    stub_rva_offset = param_offset + STUB_RVA_OFFSET_IN_PARAMS
+    if len(stub_data) >= stub_rva_offset + 8:
+        logging.debug(f"Stub RVA bytes after embedding: {stub_data[stub_rva_offset:stub_rva_offset+8].hex()}")
+        
+    # Log the stub data after embedding parameters
+    logging.debug("Stub data after parameter embedding:")
+    for i in range(0, min(len(stub_data), 128), 16):
+        logging.debug(f"  {i:04x}: {stub_data[i:i+16].hex()}")
+    
+    logging.info("MVP stub generated with embedded parameters.")
+    
+    # Log the parameter area after embedding to verify it's correctly embedded
+    param_offset = STUB_PARAMETER_OFFSET
+    if len(stub_data) >= param_offset + 16:
+        logging.debug(f"Parameter area bytes after embedding: {stub_data[param_offset:param_offset+16].hex()}")
+        
+    # Log the stub RVA bytes specifically
+    stub_rva_offset = param_offset + STUB_RVA_OFFSET_IN_PARAMS
+    if len(stub_data) >= stub_rva_offset + 8:
+        logging.debug(f"Stub RVA bytes after embedding: {stub_data[stub_rva_offset:stub_rva_offset+8].hex()}")
+        
+    # Log the stub data after embedding parameters
+    logging.debug("Stub data after parameter embedding:")
+    for i in range(0, min(len(stub_data), 128), 16):
+        logging.debug(f"  {i:04x}: {stub_data[i:i+16].hex()}")
+        
     return bytes(stub_data)
 
-def integrate_packed_binary(original_binary_path, original_binary, stub_data, obfuscated_payload, output_path):
+def integrate_packed_binary(original_binary_path, original_binary, stub_data, obfuscated_payload, payload_size, output_path):
     """
     Integrates the stub and obfuscated payload into the original binary using LIEF.
     1. Creates new sections for stub and payload.
@@ -299,11 +333,15 @@ def integrate_packed_binary(original_binary_path, original_binary, stub_data, ob
             # Note: Section names might need to be <= 8 characters for PE
             
             # Add Stub Section
+            # Note: Section names might need to be <= 8 characters for PE
+            
+            # Add Stub Section
             stub_section = lief.PE.Section(".stub")
             stub_section.content = list(stub_data) # LIEF expects a list of ints
             # Add common characteristics for executable code/data
             stub_section.characteristics = (
                 lief.PE.Section.CHARACTERISTICS.MEM_READ |
+                lief.PE.Section.CHARACTERISTICS.MEM_WRITE |
                 lief.PE.Section.CHARACTERISTICS.MEM_EXECUTE |
                 lief.PE.Section.CHARACTERISTICS.CNT_CODE
             )
@@ -318,6 +356,63 @@ def integrate_packed_binary(original_binary_path, original_binary, stub_data, ob
                 lief.PE.Section.CHARACTERISTICS.CNT_INITIALIZED_DATA
             )
             payload_section = original_binary.add_section(payload_section)
+
+            # --- Patch Payload RVA into Stub ---
+            payload_rva = payload_section.virtual_address
+            logging.debug(f"Payload section virtual address: 0x{payload_rva:x} ({payload_rva} decimal)")
+            logging.debug(f"Payload section virtual address type: {type(payload_rva)}")
+            logging.debug(f"Payload section virtual address repr: {repr(payload_rva)}")
+            
+            # Check if the payload_rva is actually an integer
+            if not isinstance(payload_rva, int):
+                logging.error(f"Payload section virtual address is not an integer: {type(payload_rva)}")
+                raise TypeError("Payload section virtual address is not an integer")
+            
+            # Check the value of payload_rva
+            if payload_rva != 0x1005000:
+                logging.warning(f"Payload section virtual address is not 0x1005000: 0x{payload_rva:x}")
+                
+            real_rva_bytes = payload_rva.to_bytes(8, 'little')
+            logging.debug(f"Payload RVA bytes: {real_rva_bytes.hex()}")
+            logging.debug(f"Payload RVA bytes length: {len(real_rva_bytes)}")
+            # Convert back to verify
+            converted_back = int.from_bytes(real_rva_bytes, 'little')
+            logging.debug(f"Converted back: 0x{converted_back:x} ({converted_back} decimal)")
+            logging.debug(f"Match: {payload_rva == converted_back}")
+            
+            expected_rva_bytes = (0x1005000).to_bytes(8, 'little')
+            logging.debug(f"Expected payload RVA bytes: {expected_rva_bytes.hex()}")
+            
+            # Create a mutable copy of the stub content for patching
+            stub_content_mutable = bytearray(stub_section.content)
+            
+            # Patch Payload RVA
+            patch_offset = STUB_PARAMETER_OFFSET + PAYLOAD_RVA_OFFSET_IN_PARAMS
+            logging.debug(f"Patch offset for payload RVA: 0x{patch_offset:x}")
+            
+            logging.debug(f"Original bytes at payload RVA patch offset: {bytes(stub_content_mutable[patch_offset:patch_offset + 8]).hex()}")
+            stub_content_mutable[patch_offset:patch_offset + 8] = real_rva_bytes
+            logging.debug(f"Patched bytes at payload RVA patch offset: {bytes(stub_content_mutable[patch_offset:patch_offset + 8]).hex()}")
+            logging.debug(f"Patched payload RVA 0x{payload_rva:x} into stub at offset {patch_offset}")
+            
+            # --- Patch Payload Size into Stub ---
+            payload_size_bytes = payload_size.to_bytes(8, 'little')
+            patch_offset = STUB_PARAMETER_OFFSET + PAYLOAD_SIZE_OFFSET_IN_PARAMS
+            logging.debug(f"Original bytes at payload size patch offset: {bytes(stub_content_mutable[patch_offset:patch_offset + 8]).hex()}")
+            stub_content_mutable[patch_offset:patch_offset + 8] = payload_size_bytes
+            logging.debug(f"Patched bytes at payload size patch offset: {bytes(stub_content_mutable[patch_offset:patch_offset + 8]).hex()}")
+            logging.debug(f"Patched payload size 0x{payload_size:x} into stub at offset {patch_offset}")
+            
+            # --- Patch Stub RVA into Stub ---
+            stub_rva = stub_section.virtual_address
+            patch_offset = STUB_PARAMETER_OFFSET + STUB_RVA_OFFSET_IN_PARAMS
+            logging.debug(f"Original bytes at stub RVA patch offset: {bytes(stub_content_mutable[patch_offset:patch_offset + 8]).hex()}")
+            stub_content_mutable[patch_offset:patch_offset + 8] = stub_rva.to_bytes(8, 'little')
+            logging.debug(f"Patched bytes at stub RVA patch offset: {bytes(stub_content_mutable[patch_offset:patch_offset + 8]).hex()}")
+            logging.debug(f"Patched stub RVA 0x{stub_rva:x} into stub at offset {patch_offset}")
+
+            # Re-assign the patched content
+            stub_section.content = list(stub_content_mutable)
 
             # --- Update Entry Point ---
             # Get the relative virtual address (RVA) of the stub section's content
@@ -335,43 +430,112 @@ def integrate_packed_binary(original_binary_path, original_binary, stub_data, ob
             builder.write(output_path)
             
         elif original_binary.format == lief.Binary.FORMATS.ELF:
-            # --- Add Sections ---
-            
-            # Add Stub Section
+            # --- Add Stub Section ---
             stub_section = lief.ELF.Section(".stub")
             stub_section.content = list(stub_data)
-            # Set section flags for executable code
+            stub_section.size = len(stub_data)  # Explicitly set section size
             stub_section.flags = (
                 lief.ELF.Section.FLAGS.ALLOC |
+                lief.ELF.Section.FLAGS.WRITE |
                 lief.ELF.Section.FLAGS.EXECINSTR
             )
+            stub_section.alignment = 0x1000  # Page alignment
+            stub_section.type = lief.ELF.Section.TYPE.PROGBITS  # Explicitly set to PROGBITS
             stub_section = original_binary.add(stub_section)
 
-            # Add Payload Section
+            # --- Add Stub Section ---
+            stub_section = lief.ELF.Section(".stub")
+            stub_section.content = list(stub_data)
+            stub_section.size = len(stub_data)  # Explicitly set section size
+            stub_section.flags = (
+                lief.ELF.Section.FLAGS.ALLOC |
+                lief.ELF.Section.FLAGS.WRITE |
+                lief.ELF.Section.FLAGS.EXECINSTR
+            )
+            stub_section.alignment = 0x1000  # Page alignment
+            stub_section.type = lief.ELF.Section.TYPE.PROGBITS  # Explicitly set to PROGBITS
+            stub_section = original_binary.add(stub_section)
+
+            # LIEF might place the stub in a read-only segment. We must find the segment
+            # and explicitly make it writable to allow for in-place key deobfuscation.
+            stub_segment = original_binary.segment_from_virtual_address(stub_section.virtual_address)
+            if stub_segment:
+                stub_segment.flags |= lief.ELF.Segment.FLAGS.W
+                logging.debug(f"Ensured stub segment has WRITE flag. New flags: {stub_segment.flags}")
+            else:
+                # This should not happen, but we'll log a warning if it does.
+                logging.warning("Could not find segment for stub section to make it writable.")
+
+            # --- Add Payload Section ---
             payload_section = lief.ELF.Section(".cpload")
             payload_section.content = list(obfuscated_payload)
-            # Set section flags for data
+            payload_section.size = len(obfuscated_payload)  # Explicitly set section size
             payload_section.flags = (
                 lief.ELF.Section.FLAGS.ALLOC |
                 lief.ELF.Section.FLAGS.WRITE
             )
+            payload_section.alignment = 0x1000
+            payload_section.type = lief.ELF.Section.TYPE.PROGBITS
             payload_section = original_binary.add(payload_section)
 
-            # --- Update Entry Point ---
-            new_ep_rva = stub_section.virtual_address
-            original_binary.header.entrypoint = new_ep_rva
-            
-            # Keep binary type as DYN (PIE) - this works with our stub
-            # original_binary.header.file_type = lief.ELF.Header.FILE_TYPE.EXEC
+            # Ensure the segment containing the payload is also writable for in-place decryption.
+            payload_segment = original_binary.segment_from_virtual_address(payload_section.virtual_address)
+            if payload_segment:
+                payload_segment.flags |= lief.ELF.Segment.FLAGS.W | lief.ELF.Segment.FLAGS.R
+                logging.debug(f"Ensured payload segment has WRITE and READ flags. New flags: {payload_segment.flags}")
+            else:
+                logging.warning("Could not find segment for payload section to make it writable and readable.")
 
-            logging.debug(f"New entry point set to RVA: 0x{new_ep_rva:x}")
-            logging.debug(f"Stub section RVA: 0x{stub_section.virtual_address:x}")
-            logging.debug(f"Payload section RVA: 0x{payload_section.virtual_address:x}")
+            # --- Patch Parameters into Stub ---
+            stub_content_mutable = bytearray(stub_section.content)
+            payload_rva = payload_section.virtual_address
+            stub_rva = stub_section.virtual_address
+
+            # Validate virtual addresses
+            if not isinstance(payload_rva, int) or not isinstance(stub_rva, int):
+                raise TypeError(f"Invalid RVA types: payload_rva={type(payload_rva)}, stub_rva={type(stub_rva)}")
+            if payload_rva < 0x1000 or stub_rva < 0x1000:
+                raise ValueError(f"Invalid RVAs: payload_rva=0x{payload_rva:x}, stub_rva=0x{stub_rva:x}")
+
+            # Patch Payload RVA
+            patch_offset = STUB_PARAMETER_OFFSET + PAYLOAD_RVA_OFFSET_IN_PARAMS
+            if patch_offset + 8 <= len(stub_content_mutable):
+                stub_content_mutable[patch_offset:patch_offset + 8] = payload_rva.to_bytes(8, 'little')
+                logging.debug(f"Patched payload RVA 0x{payload_rva:x} at offset 0x{patch_offset:x}")
+            else:
+                raise ValueError(f"Patch offset 0x{patch_offset:x} exceeds stub size {len(stub_content_mutable)}")
+
+            # Patch Payload Size
+            patch_offset = STUB_PARAMETER_OFFSET + PAYLOAD_SIZE_OFFSET_IN_PARAMS
+            stub_content_mutable[patch_offset:patch_offset + 8] = payload_size.to_bytes(8, 'little')
+            logging.debug(f"Patched payload size 0x{payload_size:x} at offset 0x{patch_offset:x}")
+
+            # Patch Stub RVA
+            patch_offset = STUB_PARAMETER_OFFSET + STUB_RVA_OFFSET_IN_PARAMS
+            stub_content_mutable[patch_offset:patch_offset + 8] = stub_rva.to_bytes(8, 'little')
+            logging.debug(f"Patched stub RVA 0x{stub_rva:x} at offset 0x{patch_offset:x}")
+
+            # Re-assign the patched content
+            stub_section.content = list(stub_content_mutable)
+
+            # --- Update Entry Point ---
+            original_binary.header.entrypoint = stub_rva
+            logging.debug(f"Entry point set to 0x{stub_rva:x}")
 
             # --- Save Binary ---
             builder = lief.ELF.Builder(original_binary)
             builder.build()
             builder.write(output_path)
+
+            # Verify output binary
+            with open(output_path, 'rb') as f:
+                output_data = f.read()
+            stub_offset = stub_rva - original_binary.imagebase
+            if stub_offset + 0x650 <= len(output_data):
+                logging.debug(f"Output binary stub content at offset 0x640: {output_data[stub_offset + 0x640:stub_offset + 0x650].hex()}")
+            else:
+                logging.warning("Output binary too small to verify stub content")
+
         else:
             raise ValueError(f"Unsupported binary format: {original_binary.format}")
 
@@ -381,7 +545,7 @@ def integrate_packed_binary(original_binary_path, original_binary, stub_data, ob
         logging.error(f"Failed to integrate packed binary: {e}")
         raise
 
-def pack_binary(input_path, output_path):
+def pack_binary(input_path, output_path, debug_stub=False):
     """
     Main function to pack a binary.
     Orchestrates the entire packing workflow.
@@ -396,60 +560,24 @@ def pack_binary(input_path, output_path):
 
     # 2. Analyze
     analysis_results = analyze_binary(binary)
-    oep_rva = analysis_results['oep']
 
     # 3. Prepare Payload (using the file path for accurate data extraction)
-    blocks, key, nonce = prepare_payload(input_path)
+    blocks, key, nonce, original_payload_size = prepare_payload(input_path)
 
     # 4. CA Masking
     ca_params = {} # Placeholder for CA parameters (rule, steps, etc. if needed in stub)
     obfuscated_payload, block_lengths = apply_ca_masking(blocks, key, nonce)
-    payload_size = len(obfuscated_payload)
 
     # 5. Generate Stub (MVP)
-    # Add a placeholder section to get its RVA, then regenerate the stub.
-    # Create a temporary binary object for this
-    temp_binary = lief.parse(input_path)
-    
-    if temp_binary.format == lief.Binary.FORMATS.PE:
-        temp_payload_section = lief.PE.Section(".cpload_temp")
-        temp_payload_section.content = [0x00] * 100 # Dummy content
-        temp_payload_section = temp_binary.add_section(temp_payload_section)
-        dummy_payload_rva = temp_payload_section.virtual_address
-        # Use the simple minimal exit stub for debugging
-        stub_source_path = os.path.join(os.path.dirname(__file__), "minimal_exit_stub_simple.c")
-        stub_type = "pe"
-        compile_script = os.path.join(os.path.dirname(__file__), "compile_minimal_exit_stub_simple.py")
-        compiled_stub_path = os.path.join(os.path.dirname(__file__), "minimal_exit_stub_simple_compiled.bin")
-    elif temp_binary.format == lief.Binary.FORMATS.ELF:
-        temp_payload_section = lief.ELF.Section(".cpload_temp")
-        temp_payload_section.content = [0x00] * 100 # Dummy content
-        temp_payload_section = temp_binary.add(temp_payload_section)
-        dummy_payload_rva = temp_payload_section.virtual_address
-        # Use the complete unpacking stub
-        stub_source_path = os.path.join(os.path.dirname(__file__), "complete_unpacking_stub.s")
-        stub_type = "elf"
-        compile_script = os.path.join(os.path.dirname(__file__), "compile_complete_unpacking_stub.py")
-        compiled_stub_path = os.path.join(os.path.dirname(__file__), "complete_unpacking_stub_compiled.bin")
-    else:
-        raise ValueError(f"Unsupported binary format: {temp_binary.format}")
-    
-    # Generate the stub with the dummy RVA
-    stub_data = generate_stub_mvp(oep_rva, key, nonce, ca_params, block_lengths, dummy_payload_rva, payload_size, temp_binary.format)
+    # The stub is generated with a placeholder for the payload RVA.
+    # The correct RVA will be patched in during the integration step.
+    stub_data = generate_stub_mvp(key, nonce, ca_params, block_lengths, original_payload_size, binary.format, debug_stub=debug_stub)
 
     # 6. Integrate
-    # Use the original `binary` object and the input path for integration
-    integrate_packed_binary(input_path, binary, stub_data, obfuscated_payload, output_path)
+    integrate_packed_binary(input_path, binary, stub_data, obfuscated_payload, original_payload_size, output_path)
 
     logging.info("=== CA-BASED PACKER END ===")
 
-
-# Allow importing ca_engine for NUM_STEPS constant
-try:
-    import ca_packer.ca_engine as ca_engine
-except ImportError:
-    # Try the full path if running as a module
-    import greenbay.ca_packer.ca_engine as ca_engine
 
 if __name__ == "__main__":
     import sys
@@ -459,6 +587,7 @@ if __name__ == "__main__":
     parser.add_argument("input_binary", help="Path to the input binary to pack")
     parser.add_argument("output_packed_binary", help="Path where the packed binary will be saved")
     parser.add_argument("--ca-steps", type=int, default=100, help="Number of CA steps to use for mask generation (default: 100)")
+    parser.add_argument("--debug-stub", action="store_true", help="Compile the unpacking stub in debug mode (with verbose output).")
     
     args = parser.parse_args()
     
@@ -466,11 +595,6 @@ if __name__ == "__main__":
     output_file = args.output_packed_binary
     
     # Update the CA steps in the ca_engine module
-    try:
-        import ca_packer.ca_engine as ca_engine
-    except ImportError:
-        # Try the full path if running as a module
-        import greenbay.ca_packer.ca_engine as ca_engine
     ca_engine.NUM_STEPS = args.ca_steps
     
     # Debug output to verify the value was updated
@@ -481,8 +605,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        pack_binary(input_file, output_file)
-        print(f"Binary packed successfully: {output_file} (CA steps: {args.ca_steps})")
+        pack_binary(input_file, output_file, debug_stub=args.debug_stub)
+        print(f"Binary packed successfully: {output_file} (CA steps: {args.ca_steps}, Debug Stub: {args.debug_stub})")
     except Exception as e:
         print(f"Error during packing: {e}")
         import traceback

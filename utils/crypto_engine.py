@@ -4,19 +4,19 @@ Crypto Engine Module for the CA-Packer project.
 Handles encryption and decryption of the payload using the chosen cipher (ChaCha20-Poly1305).
 """
 
-from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import os
 import logging
 
 def generate_key():
     """
-    Generates a new, random 256-bit key for ChaCha20-Poly1305.
+    Generates a new, random 256-bit key for ChaCha20.
     """
-    return ChaCha20Poly1305.generate_key()
+    return os.urandom(32)
 
 def encrypt_payload(plaintext: bytes, key: bytes = None) -> tuple[bytes, bytes, bytes]:
     """
-    Encrypts the given plaintext using ChaCha20-Poly1305.
+    Encrypts the given plaintext using the ChaCha20 stream cipher.
 
     Args:
         plaintext (bytes): The data to encrypt.
@@ -24,20 +24,27 @@ def encrypt_payload(plaintext: bytes, key: bytes = None) -> tuple[bytes, bytes, 
 
     Returns:
         tuple[bytes, bytes, bytes]: A tuple containing:
-            - ciphertext (bytes): The encrypted data (including the authentication tag).
+            - ciphertext (bytes): The encrypted data.
             - key (bytes): The 32-byte encryption key.
             - nonce (bytes): The 12-byte nonce used for encryption.
     """
     if key is None:
         key = generate_key()
     elif len(key) != 32:
-        raise ValueError("ChaCha20-Poly1305 key must be 32 bytes long.")
+        raise ValueError("ChaCha20 key must be 32 bytes long.")
 
-    nonce = os.urandom(12) # 96-bit nonce for ChaCha20-Poly1305
-    aead = ChaCha20Poly1305(key)
+    nonce = os.urandom(12)
+    # The counter for ChaCha20 is 4 bytes. We set it to a starting value of 1,
+    # which is common practice and matches the stub's expectation.
+    # The full 16-byte IV is nonce (12 bytes) + counter (4 bytes).
+    iv = nonce + (1).to_bytes(4, 'little')
+    
+    algorithm = algorithms.ChaCha20(key, iv)
+    cipher = Cipher(algorithm, mode=None)
+    encryptor = cipher.encryptor()
 
     try:
-        ciphertext = aead.encrypt(nonce, plaintext, None) # No associated data
+        ciphertext = encryptor.update(plaintext) + encryptor.finalize()
         logging.debug(f"Payload encrypted. Plaintext size: {len(plaintext)}, Ciphertext size: {len(ciphertext)}")
         return ciphertext, key, nonce
     except Exception as e:
@@ -46,32 +53,34 @@ def encrypt_payload(plaintext: bytes, key: bytes = None) -> tuple[bytes, bytes, 
 
 def decrypt_payload(ciphertext: bytes, key: bytes, nonce: bytes) -> bytes:
     """
-    Decrypts the given ciphertext using ChaCha20-Poly1305.
+    Decrypts the given ciphertext using the ChaCha20 stream cipher.
+    Note: For a stream cipher, decryption is the same operation as encryption.
 
     Args:
-        ciphertext (bytes): The data to decrypt (including the authentication tag).
+        ciphertext (bytes): The data to decrypt.
         key (bytes): The 32-byte encryption key.
         nonce (bytes): The 12-byte nonce used for encryption.
 
     Returns:
         bytes: The decrypted plaintext.
-
-    Raises:
-        cryptography.exceptions.InvalidTag: If the integrity check fails.
     """
     if len(key) != 32:
-        raise ValueError("ChaCha20-Poly1305 key must be 32 bytes long.")
+        raise ValueError("ChaCha20 key must be 32 bytes long.")
     if len(nonce) != 12:
-        raise ValueError("ChaCha20Poly1305 nonce must be 12 bytes long.")
+        raise ValueError("ChaCha20 nonce must be 12 bytes long.")
 
-    aead = ChaCha20Poly1305(key)
+    iv = nonce + (1).to_bytes(4, 'little')
+    algorithm = algorithms.ChaCha20(key, iv)
+    cipher = Cipher(algorithm, mode=None)
+    decryptor = cipher.decryptor()
+
     try:
-        plaintext = aead.decrypt(nonce, ciphertext, None) # No associated data
+        plaintext = decryptor.update(ciphertext) + decryptor.finalize()
         logging.debug(f"Payload decrypted. Ciphertext size: {len(ciphertext)}, Plaintext size: {len(plaintext)}")
         return plaintext
     except Exception as e:
-        logging.error(f"Decryption failed (integrity check or other error): {e}")
-        raise # Re-raise the exception (likely InvalidTag)
+        logging.error(f"Decryption failed: {e}")
+        raise
 
 # Example usage (if run as a script)
 if __name__ == "__main__":

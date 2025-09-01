@@ -4,7 +4,6 @@ CA Engine Module for the CA-Packer project.
 Implements a 1D Cellular Automaton (Rule 30) to function as a PRNG for mask generation.
 """
 
-import hashlib
 import logging
 
 # --- CA Configuration ---
@@ -41,17 +40,28 @@ def generate_mask(key_material: bytes, block_index: int, mask_length: int) -> by
         logging.info(f"CA mask generation: block_index={block_index}, NUM_STEPS={NUM_STEPS}")
 
     # 1. Seeding
-    seed_input = key_material + block_index.to_bytes(4, byteorder='big')
-    # Use a hash function (e.g., SHA-256) to derive a fixed-length seed
-    hash_obj = hashlib.sha256(seed_input)
-    seed_bytes = hash_obj.digest() # 32 bytes from SHA-256
+    # Simplified seeding to match the assembly implementation in the stub.
+    # The grid is initialized with the key material, then each 32-bit word
+    # is XORed with the block index.
+    if len(key_material) != (GRID_SIZE // 8):
+        # This should not happen with our 32-byte key
+        raise ValueError(f"key_material must be {GRID_SIZE // 8} bytes for this seeding method.")
+
+    grid_bytes = bytearray(key_material)
+    block_index_int = block_index & 0xFFFFFFFF # ensure it's 32-bit
+
+    for i in range(0, len(grid_bytes), 4):
+        # Extract 4-byte word (little-endian)
+        word = int.from_bytes(grid_bytes[i:i+4], 'little')
+        # XOR with block index
+        word ^= block_index_int
+        # Put it back (little-endian)
+        grid_bytes[i:i+4] = word.to_bytes(4, 'little', signed=False)
 
     # 2. Initialize Grid
-    # Use the first (GRID_SIZE // 8) bytes of the hash for the initial grid state
-    initial_grid_bytes = seed_bytes[:(GRID_SIZE // 8)]
     # Convert bytes to a list of integers (0 or 1) representing the grid
     grid = []
-    for byte_val in initial_grid_bytes:
+    for byte_val in grid_bytes:
         for i in range(8): # Process each bit in the byte
             grid.append((byte_val >> i) & 1)
 
