@@ -26,7 +26,10 @@ def find_go_build_id(binary) -> Dict[str, Any]:
     # Method 2: PCLNTAB magic (0xFFFFFFFB or 0xFFFFFFFA)
     for section in binary.sections:
         if section.name == ".gopclntab":
-            content = bytes(section.content)
+            try:
+                content = bytes(section.content)
+            except (ValueError, TypeError, UnicodeError):
+                continue
             if content.startswith(b'\xfb\xff\xff\xff') or content.startswith(b'\xfa\xff\xff\xff'):
                 result["methods"].append("pclntab_magic")
                 score += 0.3
@@ -35,7 +38,10 @@ def find_go_build_id(binary) -> Dict[str, Any]:
     # Method 3: Go build info section for version detection
     for section in binary.sections:
         if section.name == ".go.buildinfo":
-            content = bytes(section.content)
+            try:
+                content = bytes(section.content)
+            except (ValueError, TypeError, UnicodeError):
+                continue
             try:
                 # Use a more robust approach to handle invalid UTF-8 sequences
                 version_info = content.decode('utf-8', errors='replace').split('\n')
@@ -46,19 +52,34 @@ def find_go_build_id(binary) -> Dict[str, Any]:
                         score += 0.2
                         break
             except Exception as e:
-                logger.debug(f"Failed to parse go.buildinfo: {e}")
+                # Safely handle exception with potential invalid Unicode characters
+                try:
+                    error_msg = str(e)
+                except UnicodeError:
+                    error_msg = repr(e)
+                logger.debug(f"Failed to parse go.buildinfo: {error_msg}")
     
     # Method 4: Strings (medium weight)
     go_strings = [b"runtime.", b"go.buildid", b"GOROOT", b"GOPATH"]
     found_strings = []
     for section in binary.sections:
-        content = bytes(section.content)
+        try:
+            content = bytes(section.content)
+        except (ValueError, TypeError, UnicodeError):
+            continue
         # Use a more robust approach to handle invalid UTF-8 sequences
         try:
-            content_str = content.decode('utf-8', errors='replace')
-            found_strings.extend([s.decode('utf-8', errors='replace') for s in go_strings if s in content])
+            # Fix: Properly search for byte strings in byte content
+            for s in go_strings:
+                if s in content:
+                    found_strings.append(s.decode('utf-8', errors='replace'))
         except Exception as e:
-            logger.debug(f"Failed to decode section content for string search: {e}")
+            # Safely handle exception with potential invalid Unicode characters
+            try:
+                error_msg = str(e)
+            except UnicodeError:
+                error_msg = repr(e)
+            logger.debug(f"Failed to decode section content for string search: {error_msg}")
     if found_strings:
         result["methods"].append("go_strings")
         result["evidence"]["strings"] = list(set(found_strings))
@@ -83,7 +104,10 @@ def analyze_sections_for_packing(binary) -> List[Dict[str, Any]]:
     format_type = detect_format(binary)
     
     for section in binary.sections:
-        content = bytes(section.content) if hasattr(section, 'content') else b''
+        try:
+            content = bytes(section.content) if hasattr(section, 'content') else b''
+        except (ValueError, TypeError, UnicodeError):
+            continue
         size = len(content)
         entropy_result = calculate_entropy_with_confidence(content)  # From consolidated_utils
         
