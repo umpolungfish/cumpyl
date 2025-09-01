@@ -24,6 +24,8 @@ def find_go_build_id(binary) -> Dict[str, Any]:
             # Handle potential Unicode issues in section names
             if isinstance(section_name, bytes):
                 section_name = section_name.decode('utf-8', errors='replace')
+            elif not isinstance(section_name, str):
+                section_name = str(section_name)
             if section_name in go_sections:
                 found_sections.append(section_name)
         except (UnicodeError, AttributeError):
@@ -41,6 +43,8 @@ def find_go_build_id(binary) -> Dict[str, Any]:
             # Handle potential Unicode issues in section names
             if isinstance(section_name, bytes):
                 section_name = section_name.decode('utf-8', errors='replace')
+            elif not isinstance(section_name, str):
+                section_name = str(section_name)
             if section_name == ".gopclntab":
                 try:
                     content = bytes(section.content)
@@ -61,6 +65,8 @@ def find_go_build_id(binary) -> Dict[str, Any]:
             # Handle potential Unicode issues in section names
             if isinstance(section_name, bytes):
                 section_name = section_name.decode('utf-8', errors='replace')
+            elif not isinstance(section_name, str):
+                section_name = str(section_name)
             if section_name == ".go.buildinfo":
                 try:
                     content = bytes(section.content)
@@ -95,8 +101,10 @@ def find_go_build_id(binary) -> Dict[str, Any]:
             section_name = section.name
             if isinstance(section_name, bytes):
                 section_name = section_name.decode('utf-8', errors='replace')
-            # Skip sections with invalid names
+            elif not isinstance(section_name, str):
+                section_name = str(section_name)
         except (UnicodeError, AttributeError):
+            # Skip sections with invalid names
             continue
             
         try:
@@ -131,12 +139,14 @@ def find_go_build_id(binary) -> Dict[str, Any]:
                 # Handle potential Unicode issues in symbol names
                 if isinstance(sym_name, bytes):
                     sym_name = sym_name.decode('utf-8', errors='replace')
+                elif not isinstance(sym_name, str):
+                    sym_name = str(sym_name)
                 for pat in go_symbols:
                     if pat in sym_name:
                         found_symbols.append(sym_name)
                         break
-            except (UnicodeError, AttributeError):
-                # Skip symbols with invalid names
+            except (UnicodeError, AttributeError, ValueError):
+                # Skip symbols with invalid names (ValueError for invalid Unicode characters)
                 continue
         if found_symbols:
             result["methods"].append("go_symbols")

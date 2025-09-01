@@ -83,18 +83,28 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
             return {"name": "unknown", "size": 0, "virtual_address": 0, "is_executable": False, "is_readable": False, "is_writable": False, "entropy": 0.0, "confidence": 0.0}, None
             
         try:
+            # Safely extract section name with error handling for Unicode issues
+            try:
+                section_name = section.name
+                # Handle potential Unicode issues in section names
+                if isinstance(section_name, bytes):
+                    section_name = section_name.decode('utf-8', errors='replace')
+                elif not isinstance(section_name, str):
+                    section_name = str(section_name)
+            except (UnicodeError, AttributeError):
+                section_name = "unknown_section"
+            
             # Safely extract section content with error handling
             try:
                 content = bytes(section.content) if hasattr(section, 'content') else b''
             except (ValueError, TypeError, UnicodeError) as content_error:
-                section_name = getattr(section, 'name', 'unknown')
                 logger.debug(f"Failed to extract content from section {section_name}: {content_error}")
                 content = b''
             size = len(content)
             entropy_result = calculate_entropy_with_confidence(content)
             
             section_info = {
-                "name": section.name,
+                "name": section_name,
                 "size": size,
                 "virtual_address": getattr(section, 'virtual_address', 0),
                 "is_executable": is_executable_section(section, format_type),
@@ -133,7 +143,16 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
                 error_msg = repr(e)
             
             # Safely get section name for logging
-            section_name = getattr(section, 'name', 'unknown') if section else 'unknown'
+            try:
+                section_name = section.name if section else 'unknown'
+                # Handle potential Unicode issues in section names
+                if isinstance(section_name, bytes):
+                    section_name = section_name.decode('utf-8', errors='replace')
+                elif not isinstance(section_name, str):
+                    section_name = str(section_name)
+            except (UnicodeError, AttributeError):
+                section_name = "unknown_section"
+                
             logger.error(f"Failed to analyze section {section_name}: {error_msg}")
             
             # Return safe default values

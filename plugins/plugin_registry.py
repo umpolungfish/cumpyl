@@ -42,7 +42,28 @@ except ImportError:
     get_packer_plugin = None
     get_packer_transform_plugin = None
 
+try:
+    from plugins.ca_packer_plugin import get_plugin as get_ca_packer_plugin, get_transform_plugin as get_ca_packer_transform_plugin
+except ImportError:
+    # If we can't import the plugins, don't register them
+    get_ca_packer_plugin = None
+    get_ca_packer_transform_plugin = None
+
+try:
+    from plugins.go_packer_plugin import get_analysis_plugin as get_go_packer_plugin
+except ImportError:
+    # If we can't import the plugins, don't register them
+    get_go_packer_plugin = None
+
 if get_packer_plugin:
     PluginRegistry.register('analysis', 'packer', get_packer_plugin)
 if get_packer_transform_plugin:
     PluginRegistry.register('transformation', 'packer_transform', get_packer_transform_plugin)
+
+if get_ca_packer_plugin:
+    PluginRegistry.register('analysis', 'ca_packer', get_ca_packer_plugin)
+if get_ca_packer_transform_plugin:
+    PluginRegistry.register('transformation', 'ca_packer_transform', get_ca_packer_transform_plugin)
+    
+if get_go_packer_plugin:
+    PluginRegistry.register('analysis', 'go_packer', get_go_packer_plugin)
