@@ -17,7 +17,18 @@ def find_go_build_id(binary) -> Dict[str, Any]:
     
     # Method 1: Go-specific sections (high weight)
     go_sections = [".go.buildid", ".gopclntab", ".go.buildinfo"]
-    found_sections = [s.name for s in binary.sections if s.name in go_sections]
+    found_sections = []
+    for s in binary.sections:
+        try:
+            section_name = s.name
+            # Handle potential Unicode issues in section names
+            if isinstance(section_name, bytes):
+                section_name = section_name.decode('utf-8', errors='replace')
+            if section_name in go_sections:
+                found_sections.append(section_name)
+        except (UnicodeError, AttributeError):
+            # Skip sections with invalid names
+            continue
     if found_sections:
         result["methods"].append("go_sections")
         result["evidence"]["sections"] = found_sections
@@ -25,44 +36,69 @@ def find_go_build_id(binary) -> Dict[str, Any]:
     
     # Method 2: PCLNTAB magic (0xFFFFFFFB or 0xFFFFFFFA)
     for section in binary.sections:
-        if section.name == ".gopclntab":
-            try:
-                content = bytes(section.content)
-            except (ValueError, TypeError, UnicodeError):
-                continue
-            if content.startswith(b'\xfb\xff\xff\xff') or content.startswith(b'\xfa\xff\xff\xff'):
-                result["methods"].append("pclntab_magic")
-                score += 0.3
-                break
+        try:
+            section_name = section.name
+            # Handle potential Unicode issues in section names
+            if isinstance(section_name, bytes):
+                section_name = section_name.decode('utf-8', errors='replace')
+            if section_name == ".gopclntab":
+                try:
+                    content = bytes(section.content)
+                except (ValueError, TypeError, UnicodeError):
+                    continue
+                if content.startswith(b'\xfb\xff\xff\xff') or content.startswith(b'\xfa\xff\xff\xff'):
+                    result["methods"].append("pclntab_magic")
+                    score += 0.3
+                    break
+        except (UnicodeError, AttributeError):
+            # Skip sections with invalid names
+            continue
     
     # Method 3: Go build info section for version detection
     for section in binary.sections:
-        if section.name == ".go.buildinfo":
-            try:
-                content = bytes(section.content)
-            except (ValueError, TypeError, UnicodeError):
-                continue
-            try:
-                # Use a more robust approach to handle invalid UTF-8 sequences
-                version_info = content.decode('utf-8', errors='replace').split('\n')
-                for line in version_info:
-                    if line.startswith("go\t"):
-                        result["go_version"] = line.split('\t')[1]
-                        result["methods"].append("go_buildinfo")
-                        score += 0.2
-                        break
-            except Exception as e:
-                # Safely handle exception with potential invalid Unicode characters
+        try:
+            section_name = section.name
+            # Handle potential Unicode issues in section names
+            if isinstance(section_name, bytes):
+                section_name = section_name.decode('utf-8', errors='replace')
+            if section_name == ".go.buildinfo":
                 try:
-                    error_msg = str(e)
-                except UnicodeError:
-                    error_msg = repr(e)
-                logger.debug(f"Failed to parse go.buildinfo: {error_msg}")
+                    content = bytes(section.content)
+                except (ValueError, TypeError, UnicodeError):
+                    continue
+                try:
+                    # Use a more robust approach to handle invalid UTF-8 sequences
+                    version_info = content.decode('utf-8', errors='replace').split('\n')
+                    for line in version_info:
+                        if line.startswith("go\t"):
+                            result["go_version"] = line.split('\t')[1]
+                            result["methods"].append("go_buildinfo")
+                            score += 0.2
+                            break
+                except Exception as e:
+                    # Safely handle exception with potential invalid Unicode characters
+                    try:
+                        error_msg = str(e)
+                    except UnicodeError:
+                        error_msg = repr(e)
+                    logger.debug(f"Failed to parse go.buildinfo: {error_msg}")
+        except (UnicodeError, AttributeError):
+            # Skip sections with invalid names
+            continue
     
     # Method 4: Strings (medium weight)
     go_strings = [b"runtime.", b"go.buildid", b"GOROOT", b"GOPATH"]
     found_strings = []
     for section in binary.sections:
+        try:
+            # Handle potential Unicode issues in section names
+            section_name = section.name
+            if isinstance(section_name, bytes):
+                section_name = section_name.decode('utf-8', errors='replace')
+            # Skip sections with invalid names
+        except (UnicodeError, AttributeError):
+            continue
+            
         try:
             content = bytes(section.content)
         except (ValueError, TypeError, UnicodeError):
@@ -88,7 +124,20 @@ def find_go_build_id(binary) -> Dict[str, Any]:
     # Method 5: Symbols (low weight)
     if hasattr(binary, 'symbols'):
         go_symbols = ["main.main", "runtime.", "go.buildid"]
-        found_symbols = [sym.name for sym in binary.symbols for pat in go_symbols if pat in sym.name]
+        found_symbols = []
+        for sym in binary.symbols:
+            try:
+                sym_name = sym.name
+                # Handle potential Unicode issues in symbol names
+                if isinstance(sym_name, bytes):
+                    sym_name = sym_name.decode('utf-8', errors='replace')
+                for pat in go_symbols:
+                    if pat in sym_name:
+                        found_symbols.append(sym_name)
+                        break
+            except (UnicodeError, AttributeError):
+                # Skip symbols with invalid names
+                continue
         if found_symbols:
             result["methods"].append("go_symbols")
             result["evidence"]["symbols"] = list(set(found_symbols))
