@@ -77,8 +77,19 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
             
     def analyze_section(self, section, binary, format_type):
         """Analyze a single section for Go characteristics and packing opportunities."""
+        # Early validation
+        if section is None:
+            logger.warning("Received None section, returning default values")
+            return {"name": "unknown", "size": 0, "virtual_address": 0, "is_executable": False, "is_readable": False, "is_writable": False, "entropy": 0.0, "confidence": 0.0}, None
+            
         try:
-            content = bytes(section.content) if hasattr(section, 'content') else b''
+            # Safely extract section content with error handling
+            try:
+                content = bytes(section.content) if hasattr(section, 'content') else b''
+            except (ValueError, TypeError, UnicodeError) as content_error:
+                section_name = getattr(section, 'name', 'unknown')
+                logger.debug(f"Failed to extract content from section {section_name}: {content_error}")
+                content = b''
             size = len(content)
             entropy_result = calculate_entropy_with_confidence(content)
             
@@ -115,8 +126,18 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
             
             return section_info, packing_opportunity
         except Exception as e:
-            logger.error(f"Failed to analyze section {section.name}: {e}")
-            return {"name": section.name, "size": 0, "virtual_address": 0, "is_executable": False, "is_readable": False, "is_writable": False, "entropy": 0.0, "confidence": 0.0}, None
+            # Safely handle exception with potential invalid Unicode characters
+            try:
+                error_msg = str(e)
+            except UnicodeError:
+                error_msg = repr(e)
+            
+            # Safely get section name for logging
+            section_name = getattr(section, 'name', 'unknown') if section else 'unknown'
+            logger.error(f"Failed to analyze section {section_name}: {error_msg}")
+            
+            # Return safe default values
+            return {"name": section_name, "size": 0, "virtual_address": 0, "is_executable": False, "is_readable": False, "is_writable": False, "entropy": 0.0, "confidence": 0.0}, None
             
     def analyze(self, rewriter) -> Dict[str, Any]:
         """
@@ -220,8 +241,19 @@ class GoBinaryAnalysisPlugin(AnalysisPlugin):
                     })
                     
             except Exception as e:
-                logger.error(f"Analysis failed: {e}", exc_info=True)
-                results["error"] = f"Analysis failed: {str(e)}"
+                # Safely handle exception with potential invalid Unicode characters
+                try:
+                    error_msg = str(e)
+                except UnicodeError:
+                    error_msg = repr(e)
+                
+                # Safely log the error message to avoid Unicode issues
+                try:
+                    logger.error(f"Analysis failed: {error_msg}", exc_info=True)
+                    results["error"] = f"Analysis failed: {error_msg}"
+                except UnicodeError:
+                    logger.error("Analysis failed: Unicode error in error message", exc_info=True)
+                    results["error"] = "Analysis failed: Unicode error in error message"
         
         return results
 
