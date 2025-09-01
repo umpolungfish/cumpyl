@@ -93,10 +93,14 @@ class StringExtractionPlugin(AnalysisPlugin):
         start_offset = 0
         
         for i, byte in enumerate(data):
-            if 32 <= byte <= 126:  # 𐑐𐑮𐑦𐑯𐑑𐑩𐑚𐑩𐑤 ASCII 𐑮𐑱𐑯𐑡
+            if 32 <= byte <= 126:  # Printable ASCII range
                 if not current_string:
                     start_offset = i
-                current_string += chr(byte)
+                try:
+                    current_string += chr(byte)
+                except (ValueError, UnicodeError):
+                    # Shouldn't happen with ASCII range, but just in case
+                    pass
             else:
                 if len(current_string) >= self.min_string_length:
                     strings.append({
@@ -135,7 +139,7 @@ class StringExtractionPlugin(AnalysisPlugin):
                         start_offset = i
                     try:
                         current_string += chr(char_code)
-                    except ValueError:
+                    except (ValueError, UnicodeError):
                         # 𐑦𐑯𐑝𐑨𐑤𐑦𐑛 Unicode 𐑒𐑸𐑦𐑒𐑑𐑼
                         if len(current_string) >= self.min_string_length:
                             strings.append({
