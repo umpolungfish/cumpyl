@@ -9,7 +9,10 @@ def analyze_binary_sections(binary, format_type: str) -> Tuple[List[Dict[str, An
     packing_opportunities = []
     
     for section in getattr(binary, 'sections', []):
-        content = bytes(section.content) if hasattr(section, 'content') else b''
+        try:
+            content = bytes(section.content) if hasattr(section, 'content') else b''
+        except (ValueError, TypeError, UnicodeError):
+            continue
         size = len(content)
         entropy_result = calculate_entropy_with_confidence(content)
         

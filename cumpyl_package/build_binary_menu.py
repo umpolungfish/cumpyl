@@ -66,6 +66,9 @@ class BuildBinaryMenu:
         
         # Look for common binary files
         for root, dirs, files in os.walk(current_dir):
+            # Skip directories that start with a dot or are named ca_packer
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'ca_packer']
+            
             for file in files:
                 if file.lower().endswith(('.exe', '.dll', '.so', '.bin', '.elf')):
                     rel_path = os.path.relpath(os.path.join(root, file), current_dir)

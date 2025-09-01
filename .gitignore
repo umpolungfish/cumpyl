@@ -6,6 +6,8 @@ test_batch/
 __pycache__/
 *.py[cod]
 *$py.class
+*.exe
+*:Zone.Identifier
 
 # C extensions
 *.so

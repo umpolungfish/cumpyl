@@ -1,7 +1,6 @@
 # Cumpyl / ·𐑒𐑳𐑥𐑐𐑲𐑤
 
 ![Cumpyl Demo](images/sexy1.png)
-![Cumpyl Interface](images/sexy2.png)
 
 Cumpyl is a powerful Python-based binary analysis framework for analyzing, modifying, and rewriting binary files (PE, ELF, Mach-O). It features a plugin architecture, batch processing capabilities, and comprehensive reporting functions.
 
@@ -481,6 +480,8 @@ cumpyl binary.exe --encode-section .text --encoding base64 --dry-run
 ```
 
 ## Hex Viewer
+
+![Cumpyl Interface](images/sexy2.png)
 
 Cumpyl includes a dual-mode hex viewer for exploring binary files:
 

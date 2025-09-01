@@ -21,6 +21,7 @@ plugins:
     - "packer_detection"
     - "transmuter"
     - "packer"
+    - "ca_packer"
     - "go_packer"
   
   # Individual plugin settings
@@ -63,20 +64,27 @@ plugins:
     obfuscate_symbols: true
     preserve_cgo_symbols: true
 
+  ca_packer:
+    compression_level: 6
+    encrypt_sections: true
+    encryption_key: null
+    ca_steps: 100
+    debug_stub: false
+
 # Analysis Profiles
 profiles:
   malware_analysis:
-    plugins: ["encoding", "entropy_analysis", "string_extraction", "packer_detection", "transmuter"]
+    plugins: ["encoding", "entropy_analysis", "string_extraction", "packer_detection", "transmuter", "ca_packer"]
     safety_checks: true
     detailed_reporting: true
     
   forensics:
-    plugins: ["string_extraction", "entropy_analysis", "transmuter"]
+    plugins: ["string_extraction", "entropy_analysis", "transmuter", "ca_packer"]
     preserve_timestamps: true
     create_backups: true
     
   research:
-    plugins: ["encoding", "entropy_analysis", "string_extraction", "transmuter"]
+    plugins: ["encoding", "entropy_analysis", "string_extraction", "transmuter", "ca_packer"]
     experimental_features: true
     verbose_output: true
 

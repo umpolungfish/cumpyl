@@ -1,16 +1,29 @@
+"""CA-based binary packer plugin for the cumpyl framework"""
 import os
 import sys
 import logging
 from typing import Dict, Any, List
 from cumpyl_package.plugin_manager import AnalysisPlugin, TransformationPlugin
 import lief
-import zlib
-import random
-import struct
 
 # Use consolidated utilities
 from plugins.consolidated_utils import detect_format, is_executable_section, is_readable_section, is_writable_section, calculate_entropy_with_confidence
 from plugins.base_plugin import BasePlugin
+
+# Add the utils directory to the Python path
+_utils_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'utils')
+if _utils_path not in sys.path:
+    sys.path.insert(0, _utils_path)
+
+# Import the CA packer modules
+try:
+    import ca_packer
+    import ca_engine
+    import crypto_engine
+    CA_PACKER_AVAILABLE = True
+except ImportError as e:
+    logging.error(f"Failed to import CA packer modules: {e}")
+    CA_PACKER_AVAILABLE = False
 
 def calculate_entropy(data: bytes) -> float:
     """Simple entropy calculation wrapper for backward compatibility."""
@@ -31,33 +44,10 @@ def sample_bytes(data: bytes, max_samples: int = 65536) -> bytes:
     chunk = max_samples // 3
     return data[:chunk] + data[len(data)//2:len(data)//2 + chunk] + data[-chunk:]
 
-
 def create_integrity_hash(data: bytes) -> str:
     """Create an integrity hash for data verification."""
     from plugins.crypto_utils import safe_hash
     return safe_hash(data)
-
-def encrypt_bytes_aesgcm(key: bytes, data: bytes) -> dict:
-    """Return dict {ciphertext, nonce, tag} where AESGCM stores tag inside ciphertext in cryptography lib."""
-    try:
-        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-        import secrets
-        aesgcm = AESGCM(key)
-        nonce = secrets.token_bytes(12)  # recommended for GCM
-        ct = aesgcm.encrypt(nonce, data, associated_data=None)
-        return {"ciphertext": ct, "nonce": nonce}
-    except Exception as e:
-        logger.error(f"Encryption failed: {e}")
-        raise
-
-def decrypt_bytes_aesgcm(key: bytes, nonce: bytes, ciphertext: bytes) -> bytes:
-    try:
-        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-        aesgcm = AESGCM(key)
-        return aesgcm.decrypt(nonce, ciphertext, associated_data=None)
-    except Exception as e:
-        logger.error(f"Decryption failed: {e}")
-        raise
 
 def save_packed_binary(binary, output_path: str, fmt: str) -> bool:
     """Select builder by format and write file; validate post-write."""
@@ -86,15 +76,15 @@ def save_packed_binary(binary, output_path: str, fmt: str) -> bool:
 
 
 class PackerPlugin(AnalysisPlugin, BasePlugin):
-    """Universal binary packer analysis plugin for cumpyl framework"""
+    """CA-based binary packer analysis plugin for cumpyl framework"""
     
     def __init__(self, config):
         # Initialize both parent classes
         BasePlugin.__init__(self, config)
         AnalysisPlugin.__init__(self, config)
         self.name = "packer"
-        self.version = "1.1.0"
-        self.description = "Universal binary packer and obfuscator with compression and encryption"
+        self.version = "1.2.0"
+        self.description = "CA-based binary packer and obfuscator with compression and encryption"
         self.author = "Cumpyl Framework Team"
         self.dependencies = []
         
@@ -104,7 +94,7 @@ class PackerPlugin(AnalysisPlugin, BasePlugin):
             "plugin_name": self.name,
             "version": self.version,
             "description": self.description,
-            "capabilities": ["simple_pack", "section_encrypt", "payload_inject"],
+            "capabilities": ["ca_pack", "section_encrypt", "payload_inject"],
             "analysis": {
                 "binary_size": 0,
                 "sections_count": 0,
@@ -181,15 +171,15 @@ class PackerPlugin(AnalysisPlugin, BasePlugin):
 
 
 class PackerTransformationPlugin(TransformationPlugin, BasePlugin):
-    """Universal binary packer transformation plugin for cumpyl framework"""
+    """CA-based binary packer transformation plugin for cumpyl framework"""
     
     def __init__(self, config):
         # Initialize both parent classes
         BasePlugin.__init__(self, config)
         TransformationPlugin.__init__(self, config)
         self.name = "packer_transform"
-        self.version = "1.1.0"
-        self.description = "Universal binary packer transformation plugin"
+        self.version = "1.2.0"
+        self.description = "CA-based binary packer transformation plugin"
         self.author = "Cumpyl Framework Team"
         self.dependencies = ["packer"]
         
@@ -202,6 +192,8 @@ class PackerTransformationPlugin(TransformationPlugin, BasePlugin):
         self.skip_pointer_sections = self.get_config_value("skip_pointer_sections", True)
         self.encryption_enabled = bool(self.key_path)
         self.format = None
+        self.ca_steps = self.get_config_value("ca_steps", 100)
+        self.debug_stub = self.get_config_value("debug_stub", False)
         # metadata sidecar
         self.packed_metadata = []
         
@@ -214,11 +206,16 @@ class PackerTransformationPlugin(TransformationPlugin, BasePlugin):
         }
     
     def transform(self, rewriter, analysis_result: Dict[str, Any]) -> bool:
-        """Transform binary with packing techniques"""
+        """Transform binary with CA-based packing techniques"""
         try:
             # Validate inputs
             if not rewriter or not getattr(rewriter, "binary", None):
                 logger.error("No binary provided for transformation")
+                return False
+
+            # Check if CA packer modules are available
+            if not CA_PACKER_AVAILABLE:
+                logger.error("CA packer modules not available")
                 return False
 
             binary = rewriter.binary
@@ -249,110 +246,29 @@ class PackerTransformationPlugin(TransformationPlugin, BasePlugin):
                     logger.exception("Unexpected error during key derivation")
                     return False
 
-            # Iterate sections safely
-            for section in getattr(binary, "sections", []):
-                try:
-                    name = getattr(section, "name", "<unnamed>")
-                    size = len(bytes(getattr(section, "content", b"")))
-                    logger.debug("Considering section %s size=%d", name, size)
-
-                    # Skip pointer-heavy sections
-                    if self.skip_pointer_sections and name in (".noptrdata", ".data", ".gopclntab", ".go.buildid"):
-                        logger.info("Skipping pointer/GC-critical section %s", name)
-                        continue
-
-                    # Only pack non-exec, non-empty sections in this safe mode
-                    if is_executable_section(section, self.format):
-                        logger.debug("Skipping executable section %s", name)
-                        continue
-
-                    # Read content safely
-                    content = bytes(getattr(section, "content", b""))
-                    if not content:
-                        continue
-
-                    # Entropy sampling
-                    sample = sample_bytes(content)
-                    ent = calculate_entropy(sample)
-                    logger.debug("Sample entropy for %s = %.3f", name, ent)
-                    # Configurable threshold
-                    ent_threshold = self.get_config_value("entropy_threshold", 7.8)
-                    if ent > ent_threshold:
-                        logger.info("High entropy in %s (%.3f) - skipping packing to avoid corruption", name, ent)
-                        continue
-
-                    # Do not actually encrypt/modify here without explicit opt-in
-                    # Instead, record metadata in sidecar and optionally write to a non-exec section
-                    self.packed_metadata.append({
-                        "section": name,
-                        "size": size,
-                        "entropy": ent,
-                        "action": "would_pack"  # actionable, not performed
-                    })
-                except AttributeError as e:
-                    logger.error(f"Failed to process section {name}: {e}")
-                    continue
-                except Exception as e:
-                    logger.exception(f"Unexpected error processing section {name}")
-                    continue
-
-            # If we made it here and not dry-run, optionally create a metadata-only non-exec section
-            if not self.dry_run:
-                try:
-                    # create metadata payload (JSON) and add to a non-exec section
-                    import json
-                    payload = json.dumps({"packed_metadata": self.packed_metadata}).encode("utf-8")
-                    
-                    # Encrypt metadata section if encryption is enabled
-                    if self.encryption_enabled:
-                        try:
-                            # Add binary-specific context for key derivation
-                            import hashlib
-                            binary_context = hashlib.sha256(binary.path.encode()).digest() if hasattr(binary, 'path') else b""
-                            encryption_key, hmac_key, salts = derive_secure_key(self.key_path, binary_context=binary_context)
-                            encrypted_payload = encrypt_bytes_aesgcm(encryption_key, payload)["ciphertext"]
-                            payload = encrypted_payload
-                            logger.info("Encrypted metadata section")
-                        except Exception as e:
-                            logger.error(f"Failed to encrypt metadata section: {e}")
-                            return False
-                    
-                    # Add new section safely as readable non-exec
-                    try:
-                        # For PE, use add_section; for ELF, use appropriate builder calls
-                        # Use duck-typing and LIEF API for your format
-                        new_section_name = ".cgo_meta"
-                        if self.format == "PE":
-                            # Create a proper Section object
-                            section_obj = lief.PE.Section(new_section_name)
-                            section_obj.content = list(payload)
-                            sec = binary.add_section(section_obj)
-                            # ensure non-exec flags
-                            sec.characteristics &= ~lief.PE.Section.CHARACTERISTICS.MEM_EXECUTE.value
-                        else:
-                            # Create a proper Section object
-                            section_obj = lief.PE.Section(new_section_name)
-                            section_obj.content = list(payload)
-                            sec = binary.add_section(section_obj)
-                        logger.info("Added metadata section %s (len=%d)", new_section_name, len(payload))
-                    except Exception as e:
-                        logger.error(f"Failed to modify binary: {e}")
-                        return False
-                    except Exception as e:
-                        logger.error(f"Failed to add metadata section: {e}")
-                        return False
-
-                    # Save using builder helper
-                    out = self.get_config_value("output_path", "packed_output.bin")
-                    return save_packed_binary(binary, out, self.format)
-                except IOError as e:
-                    logger.error(f"Failed to save binary: {e}")
-                    return False
-                except Exception as e:
-                    logger.exception("Unexpected error during binary saving")
+            # Use the CA packer to pack the binary
+            try:
+                # Get the input binary path
+                input_path = binary.path if hasattr(binary, 'path') else None
+                if not input_path:
+                    logger.error("Cannot determine input binary path")
                     return False
 
-            return True
+                # Set CA steps
+                ca_engine.NUM_STEPS = self.ca_steps
+
+                # Generate output path
+                output_path = self.get_config_value("output_path", "packed_output.bin")
+
+                # Pack the binary using the CA packer
+                ca_packer.pack_binary(input_path, output_path)
+
+                logger.info("Successfully packed binary using CA packer")
+                return True
+            except Exception as e:
+                logger.exception("Failed to pack binary with CA packer")
+                return False
+
         except Exception as e:
             logger.exception("Unexpected transformation error")
             return False

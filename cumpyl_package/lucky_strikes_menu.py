@@ -9,12 +9,16 @@ import sys
 import importlib
 import json
 import subprocess
+import threading
+import time
 from typing import Dict, Any, List
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.prompt import Prompt, Confirm
+from rich.spinner import Spinner
+from rich.live import Live
 
 # Add the plugins directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'plugins'))
@@ -72,6 +76,9 @@ class LuckyStrikesMenu:
         
         # Look for common binary files
         for root, dirs, files in os.walk(current_dir):
+            # Skip directories that start with a dot or are named ca_packer
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'ca_packer']
+            
             for file in files:
                 if file.lower().endswith(('.exe', '.dll', '.so', '.bin', '.elf')):
                     rel_path = os.path.relpath(os.path.join(root, file), current_dir)
@@ -856,7 +863,7 @@ class LuckyStrikesMenu:
         output_file = Prompt.ask(f"Output file name (default: {default_output})", default=default_output)
         
         # Build command using the correct path
-        cmd = f"python -m greenbay.ca_packer.packer {self.target_file} {output_file} --ca-steps {ca_steps}"
+        cmd = f"python -m utils.ca_packer {self.target_file} {output_file} --ca-steps {ca_steps}"
         
         # Execute command
         self.execute_ca_command(cmd)
@@ -881,7 +888,7 @@ class LuckyStrikesMenu:
         output_file = Prompt.ask(f"Output file name (default: {default_output})", default=default_output)
         
         # Build command using the correct path
-        cmd = f"python -m greenbay.ca_packer.packer {self.target_file} {output_file} --ca-steps {ca_steps}"
+        cmd = f"python -m utils.ca_packer {self.target_file} {output_file} --ca-steps {ca_steps}"
         
         # Execute command
         self.execute_ca_command(cmd)
@@ -911,7 +918,7 @@ class LuckyStrikesMenu:
         output_file = Prompt.ask(f"Output file name (default: {default_output})", default=default_output)
         
         # Build command using the correct path
-        cmd = f"python -m greenbay.ca_packer.packer {self.target_file} {output_file} --ca-steps {ca_steps}"
+        cmd = f"python -m utils.ca_packer {self.target_file} {output_file} --ca-steps {ca_steps}"
         
         # For iterative packing, we'll need to run the packer multiple times
         if iterations > 1:
@@ -919,7 +926,7 @@ class LuckyStrikesMenu:
             current_input = self.target_file
             for i in range(iterations):
                 iter_output = f"ca_iter_packed_{i+1}_{os.path.basename(self.target_file)}"
-                iter_cmd = f"python -m greenbay.ca_packer.packer {current_input} {iter_output} --ca-steps {ca_steps}"
+                iter_cmd = f"python -m utils.ca_packer {current_input} {iter_output} --ca-steps {ca_steps}"
                 
                 self.console.print(f"[cyan]Running iteration {i+1}/{iterations}[/cyan]")
                 self.execute_ca_command(iter_cmd)
@@ -935,36 +942,93 @@ class LuckyStrikesMenu:
             self.execute_ca_command(cmd)
     
     def execute_ca_command(self, command: str):
-        """Execute a CA packer command"""
+        """Execute a CA packer command with spinner animation"""
         self.console.print(f"[bold green]Executing CA Packer:[/bold green] [cyan]{command}[/cyan]")
         self.console.print("─" * 80)
         
+        # Variables to store result and control spinner
+        result = None
+        error = None
+        completed = False
+        
+        def run_command():
+            nonlocal result, error, completed
+            try:
+                # Run the command with the correct working directory and PYTHONPATH
+                env = os.environ.copy()
+                project_root = os.path.join(os.path.dirname(__file__), '..')
+                env['PYTHONPATH'] = project_root + ':' + env.get('PYTHONPATH', '')
+                
+                result = subprocess.run(
+                    command.split(),
+                    capture_output=True,
+                    text=True,
+                    cwd=project_root,
+                    env=env
+                )
+            except Exception as e:
+                error = e
+            finally:
+                completed = True
+        
+        # Start the command in a separate thread
+        command_thread = threading.Thread(target=run_command)
+        command_thread.daemon = True
+        command_thread.start()
+        
+        # Show cyber-themed spinner while command is running
+        spinner_chars = ["▓", "▒", "░", "▒", "▓", "█", "▇", "▆", "▅", "▄", "▃", "▂", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+        spinner_index = 0
+        start_time = time.time()
+        
         try:
-            # Run the command with the correct working directory and PYTHONPATH
-            env = os.environ.copy()
-            project_root = os.path.join(os.path.dirname(__file__), '..')
-            env['PYTHONPATH'] = project_root + ':' + env.get('PYTHONPATH', '')
-            
-            result = subprocess.run(
-                command.split(),
-                capture_output=True,
-                text=True,
-                cwd=project_root,
-                env=env
-            )
-            
-            self.console.print("─" * 80)
+            with Live(refresh_per_second=8) as live:
+                while not completed:
+                    spinner_char = spinner_chars[spinner_index % len(spinner_chars)]
+                    elapsed = int(time.time() - start_time)
+                    
+                    # Cyber-themed progress messages
+                    messages = [
+                        "Initializing Cellular Automata engine...",
+                        "Loading binary data streams...",
+                        "Applying Rule 30 transformations...",
+                        "Generating obfuscation masks...",
+                        "Processing payload encryption...",
+                        "Integrating packed binary...",
+                        "Finalizing CA-based obfuscation..."
+                    ]
+                    
+                    message_index = (elapsed // 2) % len(messages)
+                    current_message = messages[message_index]
+                    
+                    live.update(f"[bold cyan]{spinner_char}[/bold cyan] [yellow]{current_message}[/yellow] [dim]({elapsed}s)[/dim]")
+                    spinner_index += 1
+                    time.sleep(0.125)
+                
+                # Show completion message with time
+                total_time = int(time.time() - start_time)
+                live.update(f"[bold green]▓[/bold green] [green]CA Packer execution completed in {total_time}s![/green]")
+        except KeyboardInterrupt:
+            self.console.print("\n[yellow]▲ Operation interrupted by user[/yellow]")
+            return
+        
+        # Wait for thread to complete
+        command_thread.join()
+        
+        self.console.print("─" * 80)
+        
+        # Handle results
+        if error:
+            self.console.print(f"[bold red]Error executing CA Packer: {error}[/bold red]")
+        elif result:
             if result.returncode == 0:
-                self.console.print("[bold green]CA Packer completed successfully![/bold green]")
+                self.console.print("[bold green]▓ CA Packer completed successfully![/bold green]")
                 if result.stdout:
                     self.console.print(f"[dim]{result.stdout}[/dim]")
             else:
-                self.console.print(f"[bold red]CA Packer failed with return code: {result.returncode}[/bold red]")
+                self.console.print(f"[bold red]▓ CA Packer failed with return code: {result.returncode}[/bold red]")
                 if result.stderr:
                     self.console.print(f"[red]{result.stderr}[/red]")
-                    
-        except Exception as e:
-            self.console.print(f"[bold red]Error executing CA Packer: {e}[/bold red]")
         
         self.console.print()
         Prompt.ask("Press Enter to continue", default="")
