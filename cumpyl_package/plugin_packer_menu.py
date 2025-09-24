@@ -9,32 +9,29 @@ import os
 import importlib
 import json
 from typing import Dict, Any, List
-
-# Add the plugins directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'plugins'))
+import importlib.resources
 
 def list_available_plugins() -> Dict[str, List[str]]:
     """List all available plugins in the plugins directory."""
-    plugins_dir = os.path.join(os.path.dirname(__file__), 'plugins')
     packing_plugins = []
     
     # Look for plugin files
-    for filename in os.listdir(plugins_dir):
-        if filename.endswith('_plugin.py') and filename not in ['base_plugin.py']:
+    for filename in importlib.resources.contents('plugins'):
+        if filename.endswith('_plugin.py') and filename not in ['base_plugin.py', '__init__.py']:
             plugin_name = filename.replace('_plugin.py', '')
             # Exclude test plugins and transmuter plugin (has its own menu)
             if plugin_name.startswith('test_') or plugin_name == 'transmuter':
                 continue
-            # Add all packing plugins - they should all be transformative
             packing_plugins.append(plugin_name)
     
-    # Ensure packer_transform is included
-    if 'packer_transform' not in packing_plugins:
-        packing_plugins.append('packer_transform')
+    transformation_plugins = list(packing_plugins)
+    # Ensure packer_transform is included for transformation
+    if 'packer_transform' not in transformation_plugins:
+        transformation_plugins.append('packer_transform')
     
     return {
-        'analysis': packing_plugins,  # All plugins can do analysis
-        'transformation': packing_plugins  # All plugins can do transformation
+        'analysis': packing_plugins,
+        'transformation': transformation_plugins
     }
 
 def load_plugin(plugin_name: str, plugin_type: str):
@@ -49,19 +46,7 @@ def load_plugin(plugin_name: str, plugin_type: str):
         else:
             # Try to load other plugins dynamically
             module_name = f"plugins.{plugin_name}_plugin"
-            if module_name not in sys.modules:
-                spec = importlib.util.spec_from_file_location(
-                    module_name, 
-                    os.path.join(os.path.dirname(__file__), 'plugins', f"{plugin_name}_plugin.py")
-                )
-                if spec and spec.loader:
-                    module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
-                    sys.modules[module_name] = module
-                else:
-                    raise ImportError(f"Could not load plugin module {module_name}")
-            
-            module = sys.modules[module_name]
+            module = importlib.import_module(module_name)
             
             # Try to get the appropriate factory function
             if plugin_type == 'analysis':

@@ -13,7 +13,7 @@ def test_plugin_packer_menu():
     """Test that the plugin packer menu loads correctly"""
     try:
         # Import the plugin packer menu module to check for syntax errors
-        import plugin_packer_menu
+        from cumpyl_package import plugin_packer_menu
         
         # Check that the module has the expected functions
         assert hasattr(plugin_packer_menu, 'main'), "Missing main function"
