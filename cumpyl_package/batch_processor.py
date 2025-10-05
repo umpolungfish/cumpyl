@@ -20,7 +20,7 @@ except ImportError:
 class BatchJob:
     """𐑮𐑧𐑐𐑮𐑦𐑟𐑧𐑯𐑑𐑟 𐑩 𐑕𐑦𐑙𐑜𐑩𐑤 𐑓𐑲𐑤 𐑦𐑯 𐑩 𐑚𐑨𐑗 𐑪𐑐𐑼𐑱𐑖𐑩𐑯"""
     
-    def __init__(self, input_file: str, output_file: str = None, operations: List[Dict[str, Any]] = None):
+    def __init__(self, input_file: str, output_file: str = None, operations: List[Dict[str, Any]] = None, output_dir: str = None):
         self.input_file = input_file
         self.output_file = output_file or self._generate_output_filename(input_file)
         self.operations = operations or []
@@ -29,6 +29,7 @@ class BatchJob:
         self.start_time = None
         self.end_time = None
         self.results = {}
+        self.output_dir = output_dir or os.path.dirname(input_file)
     
     def _generate_output_filename(self, input_file: str) -> str:
         """𐑜𐑧𐑯𐑼𐑱𐑑 𐑩 𐑛𐑦𐑓𐑷𐑤𐑑 𐑬𐑑𐑐𐑫𐑑 𐑓𐑲𐑤𐑯𐑱𐑥"""
@@ -54,12 +55,13 @@ class BatchJob:
 class BatchProcessor:
     """𐑞 𐑥𐑱𐑯 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑦𐑯𐑡𐑦𐑯"""
     
-    def __init__(self, config: ConfigManager):
+    def __init__(self, config: ConfigManager, output_dir: str = None):
         self.config = config
         self.console = Console()
         self.jobs: List[BatchJob] = []
         self.completed_jobs: List[BatchJob] = []
         self.failed_jobs: List[BatchJob] = []
+        self.output_dir = output_dir # Store the output directory
         
         # 𐑞𐑮𐑧𐑛 𐑐𐑵𐑤 𐑒𐑪𐑯𐑓𐑦𐑜
         self.max_workers = self.config.performance.max_worker_threads if self.config.performance.enable_parallel_processing else 1
@@ -83,7 +85,7 @@ class BatchProcessor:
                     # 𐑗𐑧𐑒 𐑦𐑓 𐑓𐑲𐑤 𐑕𐑲𐑟 𐑦𐑟 𐑩𐑒𐑕𐑧𐑐𐑑𐑩𐑚𐑩𐑤
                     file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
                     if file_size_mb <= self.config.framework.max_file_size_mb:
-                        job = BatchJob(os.path.abspath(filepath))
+                        job = BatchJob(os.path.abspath(filepath), output_dir=self.output_dir)
                         self.jobs.append(job)
                         added_count += 1
                     else:
@@ -151,6 +153,19 @@ class BatchProcessor:
                 elif op_type == 'plugin_analysis':
                     analysis_results = rewriter.run_plugin_analysis()
                     job.results['plugin_analysis'] = analysis_results
+
+                    # Check for CFG results and save them
+                    if 'cfg_extractor' in analysis_results and analysis_results['cfg_extractor'].get('cfg_dot'):
+                        binary_name = os.path.basename(job.input_file)
+                        cfg_output_filename = f"{os.path.splitext(binary_name)[0]}_cfg.dot"
+                        cfg_output_path = os.path.join(job.output_dir, cfg_output_filename)
+                        try:
+                            os.makedirs(job.output_dir, exist_ok=True)
+                            with open(cfg_output_path, 'w') as f:
+                                f.write(analysis_results['cfg_extractor']['cfg_dot'])
+                            print(f"[*] CFG for {binary_name} saved to: {cfg_output_path}")
+                        except Exception as e:
+                            print(f"[-] Failed to save CFG for {binary_name}: {e}")
                 
                 elif op_type == 'encode_section':
                     section_name = params['section_name']
@@ -311,7 +326,7 @@ class BatchProcessor:
         """𐑐𐑮𐑦𐑯𐑑 𐑩 𐑞 𐑮𐑦𐑟𐑳𐑤𐑑𐑟 𐑕𐑩𐑥𐑼𐑦"""
         self.console.print(Panel("Batch Processing Summary", style="bold cyan"))
         
-        # 𐑴𐑝𐑼𐑷𐑤 𐑕𐑑𐑩𐑑𐑦𐑕𐑑𐑦𐑒𐑕
+        # 𐑴𐑝𐑼𐑷𐑤 𐑕𐑑𐑨𐑑𐑦𐑕𐑑𐑦𐑒𐑕
         summary_table = Table(show_header=False, box=None)
         summary_table.add_column("Metric", style="bold cyan")
         summary_table.add_column("Value", style="white")
@@ -348,7 +363,7 @@ class BatchProcessor:
         self.jobs.clear()
     
     def get_job_statistics(self) -> Dict[str, Any]:
-        """𐑜𐑧𐑑 𐑛𐑰𐑑𐑱𐑤𐑛 𐑞 𐑕𐑑𐑩𐑑𐑦𐑕𐑑𐑦𐑒𐑕 𐑦𐑯 𐑷𐑤 𐑡𐑪𐑚𐑟"""
+        """𐑜𐑧𐑑 𐑛𐑰𐑑𐑱𐑤𐑛 𐑞 𐑕𐑑𐑨𐑑𐑦𐑕𐑑𐑦𐑒𐑕 𐑦𐑯 𐑷𐑤 𐑡𐑪𐑚𐑟"""
         all_jobs = self.completed_jobs + self.failed_jobs
         
         if not all_jobs:

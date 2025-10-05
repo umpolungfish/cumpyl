@@ -49,7 +49,9 @@ class BinaryRewriter:
         try:
             # 𐑛𐑦𐑟𐑱𐑚𐑩𐑤 LIEF 𐑝𐑻𐑚𐑴𐑕 𐑤𐑪𐑜𐑦𐑙 𐑑 𐑮𐑦𐑛𐑿𐑕 𐑯𐑱𐑟
             lief.logging.disable()
-            self.binary = lief.parse(self.input_file)
+            parsed_binary = lief.parse(self.input_file)
+            self.binary = parsed_binary
+            print(f"[DEBUG] lief.parse returned: {parsed_binary}")
             if self.binary is None:
                 print(f"[-] Failed to parse {self.input_file}")
                 return False
@@ -221,6 +223,7 @@ class BinaryRewriter:
     
     def run_plugin_analysis(self) -> Dict[str, Any]:
         """𐑮𐑳𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑓𐑱𐑟 𐑓𐑹 𐑷𐑤 𐑤𐑴𐑛𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯𐑟"""
+        print("DEBUG: run_plugin_analysis called")
         if self.binary is None:
             print("[-] Binary not loaded. Cannot run plugin analysis.")
             return {}
@@ -878,11 +881,11 @@ def main():
     # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑦𐑯𐑑𐑼𐑨𐑒𐑑𐑦𐑝 𐑥𐑧𐑯𐑿 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
     if args.menu:
         try:
-            from .menu_system import launch_menu
+            from .start_menu import launch_start_menu
         except ImportError:
-            from menu_system import launch_menu
+            from start_menu import launch_start_menu
         
-        launch_menu(config, args.input)
+        launch_start_menu(config)
         return
 
     # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
@@ -931,11 +934,11 @@ def main():
         console.print(Panel("Plugin Analysis Results", style="bold cyan"))
         
         for plugin_name, result in analysis_results.items():
-            if 'error' in result:
+            if result and result.get('error'):
                 console.print(f"[red]❌ {plugin_name}: {result['error']}[/red]")
             else:
                 console.print(f"[green]✓ {plugin_name}: Analysis completed[/green]")
-                if config.framework.debug_mode:
+                if config.framework.debug_mode and result:
                     console.print(f"  Result keys: {list(result.keys())}")
         
         # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑕𐑧𐑤𐑧𐑒𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑟 𐑓𐑹 𐑫𐑮 𐑫𐑯 𐑕𐑧𐑒𐑖𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑕𐑦𐑙𐑜𐑩𐑤 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕

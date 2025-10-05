@@ -72,10 +72,12 @@ class PluginInterface(ABC):
         return self.config.get_plugin_config(self.name)
     
     def validate_dependencies(self, available_plugins: List[str]) -> bool:
-        """𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑞𐑨𐑑 𐑷𐑤 𐑛𐑦𐑐𐑧𐑯𐑛𐑩𐑯𐑕𐑦𐑟 𐑸 𐑩𐑝𐑱𐑤𐑩𐑚𐑩𐑤"""
+        """Validate that all dependencies are available"""
         for dep in self.dependencies:
             if dep not in available_plugins:
-                return False
+                # Check if it is an installed python package
+                if importlib.util.find_spec(dep) is None:
+                    return False
         return True
 
 
@@ -96,7 +98,7 @@ class TransformationPlugin(PluginInterface):
 
 
 class PluginLoadError(Exception):
-    """𐑧𐑒𐑟𐑧𐑐𐑖𐑩𐑯 𐑮𐑱𐑟𐑛 𐑦𐑓 𐑩 𐑐𐑤𐑳𐑜𐑦𐑯 𐑓𐑱𐑤𐑟 𐑑 𐑤𐑴𐑛"""
+    """𐑧𐑒𐑕𐑧𐑐𐑖𐑩𐑯 𐑮𐑱𐑕𐑛 𐑦𐑓 𐑩 𐑐𐑤𐑳𐑜𐑦𐑯 𐑓𐑱𐑤𐑟 𐑑 𐑤𐑴𐑛"""
     pass
 
 
@@ -167,7 +169,7 @@ class PluginManager:
             plugin_class = None
             plugin_factory = None
             
-            # 𐑣𐑧𐑤𐑝 𐑩𐑯𐑦 𐑒𐑤𐑭𐑕𐑧𐑟 𐑢𐑦𐑞 𐑩𐑯𐑨𐑤𐑦𐑟𐑧 𐑯 𐑑𐑮𐑨𐑯𐑕𐑓𐑹𐑥 𐑥𐑧𐑑𐑣𐑪𐑛𐑟
+            # 𐑣𐑧𐑤𐑝 𐑩𐑯𐑦 𐑒𐑤𐑭𐑕𐑧𐑟 𐑢𐑦𐑞 𐑩𐑯𐑨𐑤𐑦𐑕𐑧 𐑯 𐑑𐑮𐑨𐑯𐑕𐑓𐑹𐑥 𐑥𐑧𐑑𐑣𐑪𐑛𐑕
             for name, obj in inspect.getmembers(module, inspect.isclass):
                 if (inspect.isclass(obj) and 
                     hasattr(obj, 'analyze') and 
@@ -180,7 +182,7 @@ class PluginManager:
                             plugin_class = obj
                             break
                     except Exception as e:
-                        # 𐑦𐑓 𐑦𐑯𐑕𐑑𐑨𐑯𐑖𐑦𐑱𐑖𐑩𐑯 𐑓𐑱𐑤𐑟, 𐑦𐑑'𐑕 𐑯𐑪𐑑 𐑩 𐑝𐑨𐑤𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯
+                        # 𐑦𐑓 𐑦𐑯𐑕𐑑𐑨𐑯𐑖𐑦𐑱𐑖𐑩𐑯 𐑓𐑱𐑤𐑕, 𐑦𐑑'𐑕 𐑯𐑪𐑑 𐑩 𐑝𐑨𐑤𐑦𐑛 𐑐𐑤𐑳𐑜𐑦𐑯
                         if self.config.framework.verbose_logging:
                             print(f"[-] Class {obj.__name__} failed instantiation test: {e}")
                         continue

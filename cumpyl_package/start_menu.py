@@ -24,14 +24,7 @@ except ImportError:
     except ImportError:
         ConfigManager = None
 
-# Import CumpylMenu for fallback options
-try:
-    from .menu_system import CumpylMenu
-except ImportError:
-    try:
-        from menu_system import CumpylMenu
-    except ImportError:
-        CumpylMenu = None
+
 
 class CumpylStartMenu:
     """Main Start Menu for Cumpyl Framework"""
@@ -65,6 +58,7 @@ class CumpylStartMenu:
             ("1", "Build-a-Binary", "Binary editor and obfuscator"),
             ("2", "Lucky Strikes", "Binary Packers and compression tools"),
             ("3", "Silly String", "Payload and string obfuscation tools"),
+            ("4", "Batch CFG Extraction", "Extract Control Flow Graphs from multiple binaries"),
             ("h", "Help", "Show detailed help and examples"),
             ("q", "Quit", "Exit the framework")
         ]
@@ -99,11 +93,10 @@ class CumpylStartMenu:
             from .build_binary_menu import BuildBinaryMenu
             build_menu = BuildBinaryMenu(self.config)
             build_menu.run()
-        except ImportError:
-            # Fallback to main menu if specialized menu not available
-            self.console.print("[yellow]Build-a-Binary menu not available, launching main menu[/yellow]")
-            menu = CumpylMenu(self.config)
-            menu.run()
+        except ImportError as e:
+            self.console.print(f"[red]❌ Failed to load Build-a-Binary menu: {e}[/red]")
+            self.console.print("[yellow]Please ensure the build binary menu is installed correctly.[/yellow]")
+            Prompt.ask("Press Enter to continue", default="")
         
     def launch_lucky_strikes(self):
         """Launch the Lucky Strikes (Packers) menu"""
@@ -114,23 +107,25 @@ class CumpylStartMenu:
             target_file = self.select_target_file()
             if target_file:
                 launch_lucky_strikes_menu(self.config, target_file)
-        except ImportError:
-            # Fallback to original packer menu in main menu
-            self.console.print("[yellow]Lucky Strikes menu not available, launching main menu[/yellow]")
-            menu = CumpylMenu(self.config)
-            # Directly call the packer menu
-            menu.pe_packer_menu()
+        except ImportError as e:
+            self.console.print(f"[red]❌ Failed to load Lucky Strikes menu: {e}[/red]")
+            self.console.print("[yellow]Please ensure the lucky strikes menu is installed correctly.[/yellow]")
+            Prompt.ask("Press Enter to continue", default="")
             
     def launch_silly_string(self):
         """Launch the Silly String (Payload Obfuscation) menu"""
+        from .silly_string_menu import launch_silly_string_menu
+        launch_silly_string_menu(self.config)
+
+    def launch_batch_cfg_extraction(self):
+        """Launch the Batch CFG Extraction menu"""
         try:
-            # Import the payload transmutation menu
-            from .payload_transmutation_menu import PayloadTransmutationMenu
-            pt_menu = PayloadTransmutationMenu(self.config)
-            pt_menu.run()
-        except ImportError:
-            self.console.print("[red]❌ Payload transmutation menu not available[/red]")
-            self.console.print("[yellow]Make sure the payload_transmutation_menu module is properly installed[/yellow]")
+            from .batch_cfg_menu import launch_batch_cfg_menu
+            launch_batch_cfg_menu(self.config)
+        except ImportError as e:
+            self.console.print(f"[red]❌ Failed to load Batch CFG Extraction menu: {e}[/red]")
+            self.console.print("[yellow]Please ensure the batch CFG menu is installed correctly.[/yellow]")
+            Prompt.ask("Press Enter to continue", default="")
             
     def select_target_file(self) -> Optional[str]:
         """Select a target binary file"""
@@ -195,6 +190,7 @@ class CumpylStartMenu:
     def show_help(self):
         """Display help information"""
         help_text = """
+
 CUMPYL FRAMEWORK - Advanced Binary Analysis & Rewriting Platform
 
 Core Modules:
@@ -252,6 +248,8 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                     self.launch_lucky_strikes()
                 elif choice == "3":
                     self.launch_silly_string()
+                elif choice == "4":
+                    self.launch_batch_cfg_extraction()
                 elif choice == "h":
                     self.show_help()
                     

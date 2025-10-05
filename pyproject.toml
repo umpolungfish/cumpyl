@@ -37,7 +37,8 @@ dependencies = [
     "cryptography",
     "pyyaml",
     "textual",
-    "jsonschema"
+    "jsonschema",
+    "angr"
 ]
 
 [project.optional-dependencies]
@@ -62,7 +63,7 @@ Issues = "https://github.com/umpolungfish/cumpyl/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["cumpyl_package*"]
+include = ["cumpyl_package*", "plugins*"]
 
 [tool.black]
 line-length = 88

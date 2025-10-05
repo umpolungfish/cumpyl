@@ -37,6 +37,7 @@ class BuildBinaryMenu:
         self.console = Console()
         self.config = config
         self.target_file = None
+        self.rewriter: Optional[BinaryRewriter] = None
         
     def show_banner(self):
         """Display the Build-a-Binary Banner"""
@@ -119,9 +120,16 @@ class BuildBinaryMenu:
         # Verify the file exists
         if not os.path.exists(self.target_file):
             self.console.print(f"[red] File not found: {self.target_file}[/red]")
+            self.rewriter = None
             return False
         
         self.console.print(f"[green] Target selected: {self.target_file}[/green]")
+        self.rewriter = BinaryRewriter(self.target_file, self.config)
+        if not self.rewriter.load_binary():
+            self.console.print(f"[red]Failed to load binary: {self.target_file}[/red]")
+            self.rewriter = None
+            return False
+        self.rewriter.load_plugins()
         return True
         
     def show_main_menu(self) -> str:
@@ -132,7 +140,8 @@ class BuildBinaryMenu:
             ("3", "Interactive Hex Viewer", "Explore binary with interactive hex dump"),
             ("4", "Encoding Operations", "Obfuscate specific sections with various encodings"),
             ("5", "Generate Reports", "Create detailed analysis reports in multiple formats"),
-            ("6", "Change Target", "Select a different binary file"),
+            ("6", "CFG Analysis", "Extract Control Flow Graph from the binary"),
+            ("7", "Change Target", "Select a different binary file"),
             ("b", "Back", "Return to main start menu"),
             ("h", "Help", "Show detailed help and examples"),
             ("q", "Quit", "Exit the framework")
@@ -466,6 +475,42 @@ class BuildBinaryMenu:
         if len(binary_data) > 512:
             self.console.print(f"\n[yellow]... and {len(binary_data) - 512} more bytes[/yellow]")
     
+    def run_cfg_analysis(self):
+        """Run the CFG analysis"""
+        self.console.print(Panel(" CFG Analysis", style="bold yellow"))
+        
+        if not self.rewriter:
+            self.console.print("[red]No target file loaded.[/red]")
+            return
+
+        try:
+            analysis_results = self.rewriter.run_plugin_analysis()
+            cfg_result = analysis_results.get("cfg_extractor")
+
+            if not cfg_result or cfg_result.get("error"):
+                error = cfg_result.get('error') if cfg_result else 'Unknown error'
+                self.console.print(f"[red]CFG analysis failed: {error}[/red]")
+                return
+
+            dot_graph = cfg_result.get("cfg_dot")
+            if not dot_graph:
+                self.console.print("[red]CFG analysis did not produce a graph.[/red]")
+                return
+
+            output_filename = f"{os.path.basename(self.target_file)}_cfg.dot"
+            with open(output_filename, "w") as f:
+                f.write(dot_graph)
+
+            self.console.print(f"[green]CFG graph saved to {output_filename}[/green]")
+            self.console.print("You can visualize this graph using Graphviz.")
+            self.console.print(f"For small graphs, use [cyan]dot[/cyan]:")
+            self.console.print(f"[cyan]dot -Tpng {output_filename} -o {os.path.basename(self.target_file)}_cfg.png[/cyan]")
+            self.console.print(f"For large graphs, use [cyan]sfdp[/cyan] to avoid long processing times:")
+            self.console.print(f"[cyan]sfdp -Tpng {output_filename} -o {os.path.basename(self.target_file)}_cfg.png[/cyan]")
+
+        except Exception as e:
+            self.console.print(f"[red]An error occurred during CFG analysis: {e}[/red]")
+
     def execute_command(self, command: str):
         """Execute a Cumpyl command"""
         self.console.print(f"\n[bold green]🚀 Executing:[/bold green] [cyan]{command}[/cyan]")
@@ -494,6 +539,7 @@ class BuildBinaryMenu:
     def show_help(self):
         """Display help information"""
         help_text = """
+
 **BUILD-A-BINARY MODULE** - Binary Analysis & Obfuscation
 
 **Features:**
@@ -559,6 +605,8 @@ For detailed documentation, check the CLAUDE.md file in the project directory.
                 elif choice == "5":
                     self.report_generation_menu()
                 elif choice == "6":
+                    self.run_cfg_analysis()
+                elif choice == "7":
                     self.select_target_file()
                 elif choice == "h":
                     self.show_help()
