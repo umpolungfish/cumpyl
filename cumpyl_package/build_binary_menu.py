@@ -561,8 +561,6 @@ class BuildBinaryMenu:
 • Interactive hex: `cumpyl binary.exe --hex-view-interactive`
 • Full workflow: `cumpyl binary.exe --hex-view --run-analysis --suggest-obfuscation`
 • Custom range: `cumpyl binary.exe --hex-view --hex-view-offset 0x1000 --hex-view-bytes 2048`
-
-For detailed documentation, check the CLAUDE.md file in the project directory.
         """
         
         help_panel = Panel(

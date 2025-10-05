@@ -217,8 +217,6 @@ Interface Features:
 • Interactive menus with clear options
 • Detailed help and examples for each module
 • Configurable settings and profiles
-
-For detailed documentation, check the CLAUDE.md file in the project directory.
         """
         
         help_panel = Panel(

@@ -745,8 +745,6 @@ class CumpylMenu:
 • ELF files (.so, .bin)
 • Mach-O files
 • Raw binary files
-
-For detailed documentation, check the CLAUDE.md file in the project directory.
         """
         
         help_panel = Panel(

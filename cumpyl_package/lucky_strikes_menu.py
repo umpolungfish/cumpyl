@@ -1057,8 +1057,6 @@ class LuckyStrikesMenu:
 • Analyze: Use the analysis menu to identify packing opportunities
 • Pack: Use the packing menu to apply transformations
 • View: Examine packed binaries with the hex viewer
-
-For detailed documentation, check the CLAUDE.md file in the project directory.
         """
         
         help_panel = Panel(

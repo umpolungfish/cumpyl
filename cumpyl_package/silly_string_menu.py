@@ -502,8 +502,6 @@ Payload Categories:
 • Path Traversal
 • File Inclusion
 • Buffer Overflow
-
-For detailed documentation, check the CLAUDE.md file in the project directory.
         """
         
         help_panel = Panel(
