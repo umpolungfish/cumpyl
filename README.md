@@ -32,13 +32,13 @@
 
 <br>
 
-## 𐑴𐑝𐑻𐑝𐑿  OVERVIEW
+## 𐑴𐑝𐑻𐑝𐑿 --> OVERVIEW
 
 **Cumpyl** is a powerful binary analysis framework designed to analyze, modify, and obfuscate executable files across multiple formats.
 
 The framework provides intelligent obfuscation recommendations, comprehensive analysis plugins, and advanced packing capabilities for PE, ELF, and Mach-O binaries.
 
-### 𐑞 𐑐𐑲𐑐𐑤𐑲𐑯 THE PIPELINE
+### 𐑞 𐑐𐑲𐑐𐑤𐑲𐑯 --> THE PIPELINE
 
 ---
 
@@ -59,14 +59,14 @@ The core of `Cumpyl` is built on powerful libraries like [LIEF](https://lief.re/
 
 <br>
 
-## 𐑦𐑯𐑕𐑑𐑭𐑤 INSTALLATION
+## 𐑦𐑯𐑕𐑑𐑭𐑤 --> INSTALLATION
 
 ### PREREQUISITES
 
 - Python 3.9 or higher
 - pip or uv package manager
 
-### 𐑚𐑦𐑤𐑛𐑦𐑙 BUILDING
+### 𐑚𐑦𐑤𐑛𐑦𐑙 --> BUILDING
 
 **MODERN INSTALLATION (RECOMMENDED WITH UV):**
 
@@ -91,7 +91,7 @@ cd cumpyl
 pip install -e .
 ```
 
-### 𐑚𐑱𐑕𐑦𐑗 𐑿𐑕𐑦𐑡 BASIC USAGE
+### 𐑚𐑱𐑕𐑦𐑗 𐑿𐑕𐑦𐑡 --> BASIC USAGE
 
 **1. LAUNCH INTERACTIVE MENU**
 
@@ -119,7 +119,7 @@ cumpyl sample.exe --run-analysis --all-plugins --report-format html
 
 <br>
 
-## 𐑓𐑰𐑗𐑺𐑟 FEATURES
+## 𐑓𐑰𐑗𐑺𐑟 --> FEATURES
 
 <table>
 <tr>
@@ -127,13 +127,13 @@ cumpyl sample.exe --run-analysis --all-plugins --report-format html
 
 ### CORE CAPABILITIES
 
-- âœ… **Multi-format support** for PE, ELF, and Mach-O binaries
-- ðŸ" **Plugin architecture** with extensible analysis and transformation
-- ðŸ§  **Intelligent obfuscation** using color-coded tier system
-- ðŸ"Œ **Batch processing** with multi-threaded file operations
-- ðŸ" **Interactive hex viewer** in terminal and browser modes
-- ðŸ'¾ **Comprehensive reporting** in HTML, JSON, YAML, and XML
-- âœ" **Advanced encoding** methods for section obfuscation
+- **Multi-format support** for PE, ELF, and Mach-O binaries
+- **Plugin architecture** with extensible analysis and transformation
+- **Intelligent obfuscation** using color-coded tier system
+- **Batch processing** with multi-threaded file operations
+- **Interactive hex viewer** in terminal and browser modes
+- **Comprehensive reporting** in HTML, JSON, YAML, and XML
+- **Advanced encoding** methods for section obfuscation
 
 </td>
 <td width="50%">
@@ -142,10 +142,10 @@ cumpyl sample.exe --run-analysis --all-plugins --report-format html
 
 Intelligent recommendations for safe binary modification:
 
-- ðŸŸ¢ **ADVANCED** - Large, high-impact sections (`.rdata`, `.rodata`)
-- ðŸŸ¡ **INTERMEDIATE** - Medium-size data sections (`.data`, `.bss`)
-- ðŸ"µ **BASIC** - Small, low-impact sections (`.pdata`, `.xdata`)
-- ðŸ"´ **AVOID** - Critical sections (`.text`, `.code`, `.idata`, `.reloc`)
+- **ADVANCED** - Large, high-impact sections (`.rdata`, `.rodata`)
+- **INTERMEDIATE** - Medium-size data sections (`.data`, `.bss`)
+- **BASIC** - Small, low-impact sections (`.pdata`, `.xdata`)
+- **AVOID** - Critical sections (`.text`, `.code`, `.idata`, `.reloc`)
 
 </td>
 </tr>
@@ -153,7 +153,7 @@ Intelligent recommendations for safe binary modification:
 
 <br>
 
-## 𐑥𐑭𐑛𐑿𐑤𐑼 𐑸𐑒𐑦𐑑𐑧𐑒𐑗𐑼 MODULAR ARCHITECTURE
+## 𐑥𐑭𐑛𐑿𐑤𐑼 𐑸𐑒𐑦𐑑𐑧𐑒𐑗𐑼 --> MODULAR ARCHITECTURE
 
 `Cumpyl` features a clean, extensible architecture with plugin-based analysis:
 
@@ -167,7 +167,7 @@ Intelligent recommendations for safe binary modification:
 | **Plugin System** | `plugins/` | Extensible analysis and transformation |
 | **Interactive UI** | `textual` | Rich terminal user interface |
 
-### 𐑐𐑤𐑳𐑜𐑦𐑯 𐑥𐑭𐑛𐑿𐑤𐑟 PLUGIN MODULES
+### 𐑐𐑤𐑳𐑜𐑦𐑯 𐑥𐑭𐑛𐑿𐑤𐑟 --> PLUGIN MODULES
 
 Specialized plugins for comprehensive analysis:
 
@@ -180,7 +180,7 @@ Specialized plugins for comprehensive analysis:
 - `cgo_analysis.py` - CGO-enabled binary analysis
 - `ca_packer.py` - Cellular Automata-based packing
 
-### 𐑸𐑒𐑦𐑑𐑧𐑒𐑗𐑼 𐑚𐑧𐑯𐑧𐑓𐑦𐑑𐑕 ARCHITECTURE BENEFITS
+### 𐑸𐑒𐑦𐑑𐑧𐑒𐑗𐑼 𐑚𐑧𐑯𐑧𐑓𐑦𐑑𐑕 --> ARCHITECTURE BENEFITS
 
 <table>
 <tr>
@@ -284,10 +284,10 @@ The tier system automatically analyzes binaries and provides color-coded recomme
 cumpyl sample.exe --suggest-obfuscation
 
 # Output example:
-# ðŸŸ¢ .rdata (Advanced Tier) - 45KB - Best for heavy obfuscation
-# ðŸŸ¡ .data (Intermediate Tier) - 12KB - Moderate obfuscation safe
-# ðŸ"µ .pdata (Basic Tier) - 2KB - Light obfuscation only
-# ðŸ"´ .text (AVOID) - 128KB - Critical section, do not modify
+# .rdata (Advanced Tier) - 45KB - Best for heavy obfuscation
+# .data (Intermediate Tier) - 12KB - Moderate obfuscation safe
+# .pdata (Basic Tier) - 2KB - Light obfuscation only
+# .text (AVOID) - 128KB - Critical section, do not modify
 ```
 
 The recommendation engine considers:
