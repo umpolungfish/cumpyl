@@ -112,12 +112,9 @@ Each plugin can be configured with options such as:
 
 The menu system automatically detects available plugins in the `plugins/` directory and provides a guided interface for their use.
 
-
-
 #### Plugin Menu Improvements
 
 Recent improvements to the plugin packer menu include:
-
 - Fixed binary saving functionality in transformation plugins
 - Enhanced compatibility with Go and CGO packer plugins
 - Improved error handling and user feedback
