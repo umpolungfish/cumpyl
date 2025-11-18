@@ -18,13 +18,13 @@
 </div>
 
 <p align="center">
-  <a href="#overview">Overview</a> â€¢
-  <a href="#features">Features</a> â€¢
-  <a href="#installation">Installation</a> â€¢
-  <a href="#quick-start">Quick Start</a> â€¢
-  <a href="#architecture">Architecture</a> â€¢
-  <a href="#obfuscation-tiers">Obfuscation</a> â€¢
-  <a href="#plugins">Plugins</a> â€¢
+  <a href="#overview">Overview</a>
+  <a href="#features">Features</a>
+  <a href="#installation">Installation</a>
+  <a href="#quick-start">Quick Start</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#obfuscation-tiers">Obfuscation</a>
+  <a href="#plugins">Plugins</a>
   <a href="#contributing">Contributing</a>
 </p>
 
@@ -359,22 +359,22 @@ Results integrated into comprehensive reports with multiple format options.
 
 ```
 Cumpyl Main Menu
-â"œâ"€â"€ 1. Quick Analysis
-â"œâ"€â"€ 2. Deep Analysis
-â"œâ"€â"€ 3. Interactive Hex Viewer
-â"œâ"€â"€ 4. Batch Processing
-â"œâ"€â"€ 5. Encoding Operations
-â"œâ"€â"€ 6. Binary Packers
-â"‚   â"œâ"€â"€ Plugin Packer Menu
-â"‚   â"‚   â"œâ"€â"€ 1. Analyze binary
-â"‚   â"‚   â"œâ"€â"€ 2. Transform binary
-â"‚   â"‚   â"œâ"€â"€ 3. Change binary file
-â"‚   â"‚   â""â"€â"€ 4. List available plugins
-â"‚   â""â"€â"€ Real Packer Integration
-â"œâ"€â"€ 7. Report Generation
-â"œâ"€â"€ 8. Configuration
-â"œâ"€â"€ 9. Change Target
-â""â"€â"€ 0. Exit
+┌── 1. Quick Analysis
+├── 2. Deep Analysis
+├── 3. Interactive Hex Viewer
+├── 4. Batch Processing
+├── 5. Encoding Operations
+├── 6. Binary Packers
+│   ├── Plugin Packer Menu
+│   │   ├── 1. Analyze binary
+│   │   ├── 2. Transform binary
+│   │   ├── 3. Change binary file
+│   │   └── 4. List available plugins
+│   └── Real Packer Integration
+├── 7. Report Generation
+├── 8. Configuration
+├── 9. Change Target
+└── 0. Exit
 ```
 
 ### MENU FEATURES
@@ -512,11 +512,11 @@ cumpyl binary.exe --hex-view --output hex_viewer.html
 
 Contributions are welcome! Feel free to:
 
-- ðŸ› Report bugs and issues
-- ðŸ'¡ Suggest new features and plugins
-- ðŸ"§ Submit pull requests
-- ðŸ"– Improve documentation
-- ðŸ§ª Add test cases and verification tools
+- Report bugs and issues
+- Suggest new features and plugins
+- Submit pull requests
+- Improve documentation
+- Add test cases and verification tools
 
 ### CONTRIBUTION PROCESS
 
