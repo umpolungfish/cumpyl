@@ -807,6 +807,8 @@ def main():
     # 𐑐𐑤𐑳𐑜𐑦𐑯 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
     parser.add_argument("--list-plugins", action="store_true", help="List all loaded plugins and their information")
     parser.add_argument("--run-analysis", action="store_true", help="Run comprehensive analysis using all loaded plugins")
+    parser.add_argument("--run-transformations", action="store_true", help="Run transformation plugins using analysis results")
+    parser.add_argument("--pe-string-obfuscate", action="store_true", help="Run PE string obfuscation analysis and transformation")
     parser.add_argument("--disable-plugins", action="store_true", help="Disable plugin system for this run")
     
     # 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
@@ -928,11 +930,11 @@ def main():
     # 𐑮𐑳𐑯 𐑒𐑪𐑥𐑐𐑮𐑦𐑣𐑧𐑯𐑕𐑦𐑝 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
     if args.run_analysis:
         analysis_results = rewriter.run_plugin_analysis()
-        
+
         # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑕
         console = Console()
         console.print(Panel("Plugin Analysis Results", style="bold cyan"))
-        
+
         for plugin_name, result in analysis_results.items():
             if result and result.get('error'):
                 console.print(f"[red]❌ {plugin_name}: {result['error']}[/red]")
@@ -940,6 +942,68 @@ def main():
                 console.print(f"[green]✓ {plugin_name}: Analysis completed[/green]")
                 if config.framework.debug_mode and result:
                     console.print(f"  Result keys: {list(result.keys())}")
+
+    # 𐑮𐑳𐑯 𐑐𐑧 𐑕𐑑𐑮𐑦𐑙 𐑴𐑚𐑓𐑩𐑕𐑒𐑱𐑖𐑩𐑯 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    if args.pe_string_obfuscate:
+        print("[*] Running PE string obfuscation analysis...")
+        analysis_results = rewriter.run_plugin_analysis()
+
+        # Check if PE string obfuscation analysis plugin results are available
+        pe_string_analysis_result = None
+        for plugin_name, result in analysis_results.items():
+            if 'pe_string_obfuscation' in plugin_name.lower():
+                pe_string_analysis_result = result
+                break
+
+        if pe_string_analysis_result:
+            console = Console()
+            console.print(Panel("PE String Obfuscation Analysis Results", style="bold cyan"))
+
+            # Display the results
+            if pe_string_analysis_result.get('analysis'):
+                analysis = pe_string_analysis_result['analysis']
+                total_strings = analysis.get('total_strings_found', 0)
+                console.print(f"[green]✓ Found {total_strings} strings for potential obfuscation[/green]")
+
+                # Show high-risk strings
+                high_risk_strings = analysis.get('high_risk_strings', [])
+                if high_risk_strings:
+                    console.print(f"\n[bold red]🔒 High-risk strings identified ({len(high_risk_strings)}):[/bold red]")
+                    for hr_string in high_risk_strings[:10]:  # Show first 10
+                        string_val = hr_string['string']['value'][:50]
+                        category = hr_string['category']
+                        console.print(f"  [yellow]{string_val}...[/yellow] ({category})")
+
+                # Show obfuscation opportunities
+                opportunities = analysis.get('obfuscation_opportunities', [])
+                if opportunities:
+                    console.print(f"\n[bold blue]🎯 Obfuscation opportunities ({len(opportunities)}):[/bold blue]")
+                    for opp in opportunities[:10]:  # Show first 10
+                        string_val = opp['string']['value'][:30]
+                        score = opp['obfuscation_score']
+                        console.print(f"  [cyan]{string_val}...[/cyan] (score: {score:.2f})")
+
+            # Now run the transformation
+            print("[*] Running PE string obfuscation transformation...")
+            success = rewriter.run_plugin_transformations(analysis_results)
+            if success:
+                console.print("[green]✓ PE string obfuscation transformation completed successfully[/green]")
+            else:
+                console.print("[red]❌ PE string obfuscation transformation failed[/red]")
+        else:
+            print("[!] PE String Obfuscation plugin not found in analysis results")
+            print("    Available plugins:", list(analysis_results.keys()) if analysis_results else "None")
+
+    # 𐑮𐑳𐑯 𐑑𐑮𐑨𐑯𐑕𐑓𐑹𐑥𐑨𐑖𐑩𐑯 𐑐𐑤𐑳𐑜𐑦𐑯𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    if args.run_transformations and not args.pe_string_obfuscate:
+        analysis_results = rewriter.run_plugin_analysis()
+        success = rewriter.run_plugin_transformations(analysis_results)
+        if success:
+            console = Console()
+            console.print("[green]✓ Plugin transformations completed successfully[/green]")
+        else:
+            console = Console()
+            console.print("[red]❌ Plugin transformations failed[/red]")
         
         # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑕𐑧𐑤𐑧𐑒𐑑 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑟 𐑓𐑹 𐑫𐑮 𐑫𐑯 𐑕𐑧𐑒𐑖𐑩𐑯 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑕𐑦𐑙𐑜𐑩𐑤 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕
         if args.profile == "forensics" and analysis_results:

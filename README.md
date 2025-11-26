@@ -134,6 +134,7 @@ cumpyl sample.exe --run-analysis --all-plugins --report-format html
 - **Interactive hex viewer** in terminal and browser modes
 - **Comprehensive reporting** in HTML, JSON, YAML, and XML
 - **Advanced encoding** methods for section obfuscation
+- **PE-specific string obfuscation** with multiple obfuscation techniques
 
 </td>
 <td width="50%">
@@ -323,6 +324,7 @@ Format-specific analysis and modification:
 - **Go Binary Analysis** - Detect Go runtime and build info
 - **CGO Analysis** - Analyze CGO-enabled binaries
 - **PEB Traversal** - Windows-specific API resolution
+- **PE String Obfuscation** - Advanced PE-specific string detection and obfuscation
 
 ### PLUGIN MANAGEMENT
 Easy discovery and configuration:
@@ -346,6 +348,38 @@ cumpyl binary.exe --run-analysis --plugins entropy_analysis,string_extraction
 
 ### PLUGIN OUTPUT
 Results integrated into comprehensive reports with multiple format options.
+
+### PE STRING OBFUSCATION PLUGIN
+
+The PE String Obfuscation plugin provides comprehensive string detection and obfuscation capabilities specifically tailored for PE executables:
+
+#### Analysis Capabilities
+- **String Detection**: Finds ASCII, Unicode, and pattern-matched strings in PE sections
+- **Risk Assessment**: Identifies high-risk strings (credentials, network indicators, executables, etc.)
+- **Entropy Analysis**: Calculates entropy for string obfuscation opportunities
+- **Pattern Recognition**: Detects URLs, file paths, API calls, and other indicators
+
+#### Obfuscation Methods
+- **XOR Obfuscation**: Simple XOR with random keys
+- **Base64 Encoding**: Base64 encoding for string obfuscation
+- **ROT13**: Classic ROT13 cipher
+- **String Reversal**: Reverse string order obfuscation
+- **Substitution Cipher**: Custom character substitution
+- **Caesar Cipher**: Character shifting cipher
+- **Vigenère Cipher**: Polyalphabetic substitution cipher
+- **Compression**: Compress strings before obfuscation
+
+#### Usage Examples
+```bash
+# Analyze strings in PE binary
+cumpyl binary.exe --pe-string-obfuscate
+
+# Run only string analysis without transformation
+cumpyl binary.exe --run-analysis --plugins pe_string_obfuscation
+
+# Combined analysis and transformation
+cumpyl binary.exe --pe-string-obfuscate --output obfuscated_binary.exe
+```
 
 <br>
 

@@ -55,6 +55,13 @@ except ImportError:
     # If we can't import the plugins, don't register them
     get_go_packer_plugin = None
 
+try:
+    from plugins.pe_string_obfuscation import get_analysis_plugin as get_pe_string_analysis_plugin, get_transformation_plugin as get_pe_string_transform_plugin
+except ImportError:
+    # If we can't import the plugins, don't register them
+    get_pe_string_analysis_plugin = None
+    get_pe_string_transform_plugin = None
+
 if get_packer_plugin:
     PluginRegistry.register('analysis', 'packer', get_packer_plugin)
 if get_packer_transform_plugin:
@@ -64,6 +71,11 @@ if get_ca_packer_plugin:
     PluginRegistry.register('analysis', 'ca_packer', get_ca_packer_plugin)
 if get_ca_packer_transform_plugin:
     PluginRegistry.register('transformation', 'ca_packer_transform', get_ca_packer_transform_plugin)
-    
+
 if get_go_packer_plugin:
     PluginRegistry.register('analysis', 'go_packer', get_go_packer_plugin)
+
+if get_pe_string_analysis_plugin:
+    PluginRegistry.register('analysis', 'pe_string_obfuscation', get_pe_string_analysis_plugin)
+if get_pe_string_transform_plugin:
+    PluginRegistry.register('transformation', 'pe_string_obfuscation_transform', get_pe_string_transform_plugin)

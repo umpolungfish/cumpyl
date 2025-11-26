@@ -141,7 +141,8 @@ class BuildBinaryMenu:
             ("4", "Encoding Operations", "Obfuscate specific sections with various encodings"),
             ("5", "Generate Reports", "Create detailed analysis reports in multiple formats"),
             ("6", "CFG Analysis", "Extract Control Flow Graph from the binary"),
-            ("7", "Change Target", "Select a different binary file"),
+            ("7", "PE String Obfuscation", "Advanced PE-specific string analysis and obfuscation"),
+            ("8", "Change Target", "Select a different binary file"),
             ("b", "Back", "Return to main start menu"),
             ("h", "Help", "Show detailed help and examples"),
             ("q", "Quit", "Exit the framework")
@@ -478,7 +479,7 @@ class BuildBinaryMenu:
     def run_cfg_analysis(self):
         """Run the CFG analysis"""
         self.console.print(Panel(" CFG Analysis", style="bold yellow"))
-        
+
         if not self.rewriter:
             self.console.print("[red]No target file loaded.[/red]")
             return
@@ -510,6 +511,40 @@ class BuildBinaryMenu:
 
         except Exception as e:
             self.console.print(f"[red]An error occurred during CFG analysis: {e}[/red]")
+
+    def pe_string_obfuscation_menu(self):
+        """PE String Obfuscation menu"""
+        self.console.print(Panel(" PE String Obfuscation", style="bold magenta"))
+
+        options = [
+            ("1", "PE String Analysis Only", f"cumpyl {self.target_file} --run-analysis"),
+            ("2", "PE String Analysis & Obfuscate", f"cumpyl {self.target_file} --pe-string-obfuscate"),
+            ("3", "PE String Analysis Report", f"cumpyl {self.target_file} --run-analysis --report-format json --report-output pe_analysis.json"),
+            ("4", "PE String Obfuscation Report", f"cumpyl {self.target_file} --pe-string-obfuscate --report-format html --report-output pe_obfuscation_report.html"),
+            ("b", "Back to Main Menu", "")
+        ]
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Option", style="cyan", width=8)
+        table.add_column("Description", style="white", width=30)
+        table.add_column("Command Preview", style="dim")
+
+        for opt, desc, cmd in options:
+            table.add_row(opt, desc, cmd)
+
+        self.console.print(table)
+
+        choice = Prompt.ask(
+            "\n[yellow]Select PE string obfuscation option[/yellow]",
+            choices=[opt[0] for opt in options],
+            default="2"
+        )
+
+        if choice == "b":
+            return
+        else:
+            cmd = options[int(choice) - 1][2]
+            self.execute_command(cmd)
 
     def execute_command(self, command: str):
         """Execute a Cumpyl command"""
@@ -548,6 +583,7 @@ class BuildBinaryMenu:
 • **Interactive Hex Viewer**: Explore binary with rich annotations
 • **Encoding Operations**: Obfuscate specific sections with various encodings
 • **Report Generation**: Create detailed analysis reports in multiple formats
+• **PE String Obfuscation**: Advanced PE-specific string analysis and obfuscation
 
 **Key Features:**
 • Section analysis with safety assessment
@@ -555,12 +591,15 @@ class BuildBinaryMenu:
 • Multiple report formats (HTML, JSON, YAML, XML)
 • Interactive hex viewer with color-coded annotations
 • Custom range specification with hex notation support
+• Advanced PE string detection and multiple obfuscation methods
 
 **Command Examples:**
 • Quick analysis: `cumpyl binary.exe --analyze-sections --suggest-obfuscation`
 • Interactive hex: `cumpyl binary.exe --hex-view-interactive`
 • Full workflow: `cumpyl binary.exe --hex-view --run-analysis --suggest-obfuscation`
 • Custom range: `cumpyl binary.exe --hex-view --hex-view-offset 0x1000 --hex-view-bytes 2048`
+• PE String analysis: `cumpyl binary.exe --pe-string-obfuscate`
+• PE String report: `cumpyl binary.exe --pe-string-obfuscate --report-format html --report-output report.html`
         """
         
         help_panel = Panel(
@@ -605,6 +644,8 @@ class BuildBinaryMenu:
                 elif choice == "6":
                     self.run_cfg_analysis()
                 elif choice == "7":
+                    self.pe_string_obfuscation_menu()
+                elif choice == "8":
                     self.select_target_file()
                 elif choice == "h":
                     self.show_help()

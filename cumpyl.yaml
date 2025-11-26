@@ -16,8 +16,9 @@ plugins:
   plugin_directory: "plugins"
   load_order:
     - "encoding"
-    - "entropy_analysis" 
+    - "entropy_analysis"
     - "string_extraction"
+    - "pe_string_obfuscation"
     - "packer_detection"
     - "transmuter"
     - "packer"
@@ -45,7 +46,26 @@ plugins:
     max_string_length: 200
     include_unicode: true
     extract_patterns: true
-  
+
+  pe_string_obfuscation:
+    min_string_length: 4
+    max_string_length: 200
+    obfuscation_methods: ["xor", "base64", "rot13", "reverse", "substitute_cipher", "caesar_cipher", "vigenere_cipher", "compression"]
+    target_sections: [".rdata", ".data", ".text"]
+    string_patterns: [
+      '[A-Za-z0-9/\\.:_%-]{6,}',
+      '[A-Z_][A-Z0-9_]{3,}',
+      '[a-z_][a-z0-9_]{3,}',
+      '\\w+\\.exe',
+      '\\w+\\.dll',
+      '\\w+\\.sys',
+      '(http|https|ftp)://[\\w./%-]+'
+    ]
+    exclude_patterns: [
+      '^(Nt|Zw|NtDll|Kernel32|User32|Gdi32|Advapi32|Shell32|Ole32|OleAut32|Comctl32|Comdlg32|Dnsapi|Ws2_32|Iphlpapi|Urlmon|Wininet|Winhttp|Crypt32|Schannel|Secur32|Netapi32|Wtsapi32|Psapi|Dbghelp|Mscoree|Msvcr|ApiSet|ApiSetSchema)\\w*$',  # System API names
+      '\\b(kernel32\\.dll|user32\\.dll|gdi32\\.dll|ntdll\\.dll|advapi32\\.dll|shell32\\.dll)\\b'  # System DLLs
+    ]
+
   transmuter:
     default_method: "null_padding"
     preserve_spacing: true
@@ -64,17 +84,17 @@ plugins:
 # Analysis Profiles
 profiles:
   malware_analysis:
-    plugins: ["encoding", "entropy_analysis", "string_extraction", "packer_detection", "transmuter", "ca_packer"]
+    plugins: ["encoding", "entropy_analysis", "string_extraction", "pe_string_obfuscation", "packer_detection", "transmuter", "ca_packer"]
     safety_checks: true
     detailed_reporting: true
-    
+
   forensics:
-    plugins: ["string_extraction", "entropy_analysis", "transmuter", "ca_packer"]
+    plugins: ["string_extraction", "pe_string_obfuscation", "entropy_analysis", "transmuter", "ca_packer"]
     preserve_timestamps: true
     create_backups: true
-    
+
   research:
-    plugins: ["encoding", "entropy_analysis", "string_extraction", "transmuter", "ca_packer"]
+    plugins: ["encoding", "entropy_analysis", "string_extraction", "pe_string_obfuscation", "transmuter", "ca_packer"]
     experimental_features: true
     verbose_output: true
 
@@ -191,11 +211,31 @@ obfuscation:
     enabled: true
     color_coding: true
     copy_ready_commands: true
-    
+
   recommendations:
     prefer_safe_sections: true
     warn_dangerous_operations: true
     suggest_alternatives: true
+
+  available_methods:
+    - "xor"
+    - "base64"
+    - "rot13"
+    - "reverse"
+    - "substitute_cipher"
+    - "caesar_cipher"
+    - "vigenere_cipher"
+    - "compression"
+    - "null_padding"
+    - "unicode"
+    - "hex"
+    - "octal"
+    - "mixed"
+    - "env_var"
+    - "url_encode"
+    - "compressed_b64"
+    - "double_url"
+    - "compound"
 
 # Logging Configuration
 logging:

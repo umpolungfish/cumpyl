@@ -2,8 +2,14 @@ lief
 capstone
 keystone-engine
 rich
+tenacity
 tqdm
+bitsandbytes
+cryptography
 pyyaml
+textual
+jsonschema
+angr
 
 [dev]
 numpy
