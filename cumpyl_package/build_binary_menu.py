@@ -513,38 +513,492 @@ class BuildBinaryMenu:
             self.console.print(f"[red]An error occurred during CFG analysis: {e}[/red]")
 
     def pe_string_obfuscation_menu(self):
-        """PE String Obfuscation menu"""
-        self.console.print(Panel(" PE String Obfuscation", style="bold magenta"))
+        """Enhanced PE String Obfuscation menu with interactive features"""
+        self.console.print(Panel(" PE String Obfuscation - Enhanced Interactive Mode", style="bold magenta"))
+
+        # Run initial analysis if not already done
+        if not self.rewriter:
+            self.console.print("[red]No binary loaded. Please select a target first.[/red]")
+            return
 
         options = [
-            ("1", "PE String Analysis Only", f"cumpyl {self.target_file} --run-analysis"),
-            ("2", "PE String Analysis & Obfuscate", f"cumpyl {self.target_file} --pe-string-obfuscate"),
-            ("3", "PE String Analysis Report", f"cumpyl {self.target_file} --run-analysis --report-format json --report-output pe_analysis.json"),
-            ("4", "PE String Obfuscation Report", f"cumpyl {self.target_file} --pe-string-obfuscate --report-format html --report-output pe_obfuscation_report.html"),
+            ("1", "Quick Analysis", "Analyze strings without modification"),
+            ("2", "Interactive String Browser", "Browse and select strings interactively"),
+            ("3", "Preview Obfuscation", "Preview changes before applying"),
+            ("4", "Export Strings to CSV", "Export found strings for review"),
+            ("5", "Generate Analysis Report", "Create detailed analysis report"),
+            ("6", "Apply Obfuscation (⚠️ Advanced)", "Obfuscate selected strings (WARNING: May break binary)"),
             ("b", "Back to Main Menu", "")
         ]
 
         table = Table(show_header=True, header_style="bold")
         table.add_column("Option", style="cyan", width=8)
-        table.add_column("Description", style="white", width=30)
-        table.add_column("Command Preview", style="dim")
+        table.add_column("Action", style="white", width=30)
+        table.add_column("Description", style="dim")
 
-        for opt, desc, cmd in options:
-            table.add_row(opt, desc, cmd)
+        for opt, action, desc in options:
+            table.add_row(opt, action, desc)
 
         self.console.print(table)
 
         choice = Prompt.ask(
-            "\n[yellow]Select PE string obfuscation option[/yellow]",
+            "\n[yellow]Select option[/yellow]",
             choices=[opt[0] for opt in options],
-            default="2"
+            default="1"
         )
 
         if choice == "b":
             return
-        else:
-            cmd = options[int(choice) - 1][2]
-            self.execute_command(cmd)
+        elif choice == "1":
+            self.pe_string_analysis()
+        elif choice == "2":
+            self.pe_string_browser()
+        elif choice == "3":
+            self.pe_preview_obfuscation()
+        elif choice == "4":
+            self.pe_export_strings_csv()
+        elif choice == "5":
+            self.pe_generate_report()
+        elif choice == "6":
+            self.pe_apply_obfuscation_with_warnings()
+
+    def pe_string_analysis(self):
+        """Run PE string analysis and display results"""
+        self.console.print(Panel(" Analyzing PE Strings...", style="bold cyan"))
+
+        try:
+            # Run analysis using the plugin
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            if 'pe_string_obfuscation' in analysis_results:
+                pe_results = analysis_results['pe_string_obfuscation']
+                self._display_string_analysis_summary(pe_results)
+            else:
+                self.console.print("[yellow]PE String Obfuscation plugin not found or didn't run[/yellow]")
+
+        except Exception as e:
+            self.console.print(f"[red]Analysis failed: {e}[/red]")
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def _display_string_analysis_summary(self, pe_results):
+        """Display summary of string analysis"""
+        analysis = pe_results.get('analysis', {})
+
+        # Summary statistics
+        summary_table = Table(title="String Analysis Summary", show_header=True, header_style="bold green")
+        summary_table.add_column("Metric", style="cyan", width=30)
+        summary_table.add_column("Count/Value", style="white", width=15)
+
+        summary_table.add_row("Total Strings Found", str(analysis.get('total_strings_found', 0)))
+        summary_table.add_row("High-Risk Strings", str(len(analysis.get('high_risk_strings', []))))
+        summary_table.add_row("Obfuscation Opportunities", str(len(analysis.get('obfuscation_opportunities', []))))
+
+        # Strings by section
+        strings_by_section = analysis.get('strings_by_section', {})
+        for section, data in strings_by_section.items():
+            summary_table.add_row(f"  ↳ {section}", str(data.get('count', 0)))
+
+        self.console.print(summary_table)
+
+        # High-risk strings preview
+        high_risk = analysis.get('high_risk_strings', [])
+        if high_risk:
+            self.console.print("\n[bold red]High-Risk Strings Detected:[/bold red]")
+            risk_table = Table(show_header=True, header_style="bold red")
+            risk_table.add_column("Category", style="yellow", width=20)
+            risk_table.add_column("String Preview", style="white", width=40)
+            risk_table.add_column("Section", style="cyan", width=10)
+
+            for item in high_risk[:10]:  # Show first 10
+                string_info = item.get('string', {})
+                category = item.get('category', 'Unknown')
+                value = string_info.get('value', '')
+                section = string_info.get('section', 'N/A')
+
+                preview = value[:40] + "..." if len(value) > 40 else value
+                risk_table.add_row(category, preview, section)
+
+            self.console.print(risk_table)
+
+            if len(high_risk) > 10:
+                self.console.print(f"\n[dim]... and {len(high_risk) - 10} more high-risk strings[/dim]")
+
+    def pe_string_browser(self):
+        """Interactive string browser with filtering"""
+        self.console.print(Panel(" Interactive String Browser", style="bold blue"))
+
+        try:
+            # Run analysis
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            if 'pe_string_obfuscation' not in analysis_results:
+                self.console.print("[red]PE String analysis not available[/red]")
+                Prompt.ask("\nPress Enter to continue", default="")
+                return
+
+            pe_results = analysis_results['pe_string_obfuscation']
+            all_strings = pe_results.get('strings', [])
+
+            if not all_strings:
+                self.console.print("[yellow]No strings found in binary[/yellow]")
+                Prompt.ask("\nPress Enter to continue", default="")
+                return
+
+            # Pagination variables
+            page_size = 20
+            current_page = 0
+            total_pages = (len(all_strings) + page_size - 1) // page_size
+            filter_section = None
+            filter_type = None
+
+            while True:
+                # Apply filters
+                filtered_strings = all_strings
+                if filter_section:
+                    filtered_strings = [s for s in filtered_strings if s.get('section') == filter_section]
+                if filter_type:
+                    filtered_strings = [s for s in filtered_strings if s.get('type') == filter_type]
+
+                # Paginate
+                start_idx = current_page * page_size
+                end_idx = min(start_idx + page_size, len(filtered_strings))
+                page_strings = filtered_strings[start_idx:end_idx]
+
+                # Display current page
+                self.console.clear()
+                self.console.print(Panel(f" String Browser - Page {current_page + 1}/{max(1, (len(filtered_strings) + page_size - 1) // page_size)}", style="bold blue"))
+
+                if filter_section or filter_type:
+                    filter_info = f"[yellow]Filters: Section={filter_section or 'All'}, Type={filter_type or 'All'}[/yellow]"
+                    self.console.print(filter_info)
+
+                browser_table = Table(show_header=True, header_style="bold")
+                browser_table.add_column("Index", style="cyan", width=6)
+                browser_table.add_column("Offset", style="green", width=12)
+                browser_table.add_column("Section", style="yellow", width=10)
+                browser_table.add_column("Type", style="magenta", width=8)
+                browser_table.add_column("String Preview", style="white")
+
+                for idx, string_info in enumerate(page_strings, start=start_idx):
+                    offset = string_info.get('offset', 0)
+                    section = string_info.get('section', 'N/A')
+                    str_type = string_info.get('type', 'unknown')
+                    value = string_info.get('value', '')
+
+                    preview = value[:50] + "..." if len(value) > 50 else value
+                    browser_table.add_row(
+                        str(idx),
+                        f"0x{offset:08x}",
+                        section,
+                        str_type,
+                        preview
+                    )
+
+                self.console.print(browser_table)
+                self.console.print(f"\n[dim]Showing {start_idx + 1}-{end_idx} of {len(filtered_strings)} strings[/dim]")
+
+                # Navigation options
+                self.console.print("\n[bold]Navigation:[/bold] [n]ext [p]revious [f]ilter [v]iew [s]earch [b]ack")
+                nav_choice = Prompt.ask("Action", default="n")
+
+                if nav_choice == 'n' and current_page < total_pages - 1:
+                    current_page += 1
+                elif nav_choice == 'p' and current_page > 0:
+                    current_page -= 1
+                elif nav_choice == 'f':
+                    filter_section = Prompt.ask("Filter by section (or 'all')", default="all")
+                    if filter_section.lower() == 'all':
+                        filter_section = None
+                    filter_type = Prompt.ask("Filter by type (ascii/unicode/pattern or 'all')", default="all")
+                    if filter_type.lower() == 'all':
+                        filter_type = None
+                    current_page = 0
+                elif nav_choice == 'v':
+                    view_idx = Prompt.ask("Enter string index to view in detail")
+                    try:
+                        idx = int(view_idx)
+                        if 0 <= idx < len(all_strings):
+                            self._display_string_detail(all_strings[idx])
+                    except ValueError:
+                        self.console.print("[red]Invalid index[/red]")
+                        Prompt.ask("Press Enter to continue", default="")
+                elif nav_choice == 's':
+                    search_term = Prompt.ask("Search for")
+                    search_results = [s for s in all_strings if search_term.lower() in s.get('value', '').lower()]
+                    self.console.print(f"\n[green]Found {len(search_results)} matches[/green]")
+                    if search_results:
+                        for i, s in enumerate(search_results[:10]):
+                            self.console.print(f"  [{i}] {s.get('value', '')[:60]}")
+                    Prompt.ask("\nPress Enter to continue", default="")
+                elif nav_choice == 'b':
+                    break
+
+        except Exception as e:
+            self.console.print(f"[red]Browser error: {e}[/red]")
+            import traceback
+            traceback.print_exc()
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def _display_string_detail(self, string_info):
+        """Display detailed information about a specific string"""
+        self.console.clear()
+        self.console.print(Panel(" String Detail View", style="bold cyan"))
+
+        detail_table = Table(show_header=False, box=None)
+        detail_table.add_column("Property", style="bold cyan", width=15)
+        detail_table.add_column("Value", style="white")
+
+        detail_table.add_row("Offset", f"0x{string_info.get('offset', 0):08x}")
+        detail_table.add_row("Section", string_info.get('section', 'N/A'))
+        detail_table.add_row("Type", string_info.get('type', 'unknown'))
+        detail_table.add_row("Length", f"{string_info.get('length', 0)} bytes")
+        detail_table.add_row("Value", string_info.get('value', ''))
+
+        self.console.print(detail_table)
+        Prompt.ask("\nPress Enter to return", default="")
+
+    def pe_preview_obfuscation(self):
+        """Preview obfuscation changes without applying"""
+        self.console.print(Panel(" Obfuscation Preview", style="bold yellow"))
+        self.console.print("[yellow]This feature previews how strings would be obfuscated[/yellow]\n")
+
+        try:
+            # Run analysis
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            if 'pe_string_obfuscation' not in analysis_results:
+                self.console.print("[red]PE String analysis not available[/red]")
+                Prompt.ask("\nPress Enter to continue", default="")
+                return
+
+            pe_results = analysis_results['pe_string_obfuscation']
+            recommended = pe_results.get('analysis', {}).get('recommended_methods', {})
+
+            # Show preview for each method
+            preview_table = Table(title="Obfuscation Preview", show_header=True, header_style="bold")
+            preview_table.add_column("Method", style="cyan", width=15)
+            preview_table.add_column("String Count", style="yellow", width=12)
+            preview_table.add_column("Example Before", style="white", width=25)
+            preview_table.add_column("Example After", style="green", width=25)
+
+            for method, strings in recommended.items():
+                if strings and len(strings) > 0:
+                    example_string = strings[0].get('value', '')
+
+                    # Simulate obfuscation
+                    if method == 'xor':
+                        obf_preview = self._simulate_xor(example_string)
+                    elif method == 'base64':
+                        import base64
+                        obf_preview = base64.b64encode(example_string.encode()).decode()[:25]
+                    elif method == 'reverse':
+                        obf_preview = example_string[::-1]
+                    else:
+                        obf_preview = "[obfuscated]"
+
+                    preview_table.add_row(
+                        method,
+                        str(len(strings)),
+                        example_string[:25] + "..." if len(example_string) > 25 else example_string,
+                        obf_preview[:25] + "..." if len(obf_preview) > 25 else obf_preview
+                    )
+
+            self.console.print(preview_table)
+
+            # Warning box
+            warning_panel = Panel(
+                "[bold red]⚠️  IMPORTANT WARNINGS ⚠️[/bold red]\n\n"
+                "1. Current implementation does NOT inject deobfuscation stubs\n"
+                "2. Obfuscated binaries will NOT function correctly\n"
+                "3. String obfuscation modifies data but NOT code references\n"
+                "4. This is for ANALYSIS and TESTING purposes only\n\n"
+                "[yellow]Functional obfuscation requires stub injection (not yet implemented)[/yellow]",
+                title="Obfuscation Limitations",
+                border_style="red",
+                padding=(1, 2)
+            )
+            self.console.print("\n")
+            self.console.print(warning_panel)
+
+        except Exception as e:
+            self.console.print(f"[red]Preview error: {e}[/red]")
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def _simulate_xor(self, string):
+        """Simulate XOR obfuscation for preview"""
+        key = 0x42
+        return ''.join(f'{ord(c) ^ key:02x}' for c in string[:10])
+
+    def pe_export_strings_csv(self):
+        """Export strings to CSV file"""
+        self.console.print(Panel(" Export Strings to CSV", style="bold green"))
+
+        try:
+            import csv
+            from datetime import datetime
+
+            # Run analysis
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            if 'pe_string_obfuscation' not in analysis_results:
+                self.console.print("[red]PE String analysis not available[/red]")
+                Prompt.ask("\nPress Enter to continue", default="")
+                return
+
+            pe_results = analysis_results['pe_string_obfuscation']
+            all_strings = pe_results.get('strings', [])
+
+            if not all_strings:
+                self.console.print("[yellow]No strings to export[/yellow]")
+                Prompt.ask("\nPress Enter to continue", default="")
+                return
+
+            # Generate filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_file = f"{os.path.basename(self.target_file)}_strings_{timestamp}.csv"
+
+            # Write CSV
+            with open(output_file, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Index', 'Offset', 'Section', 'Type', 'Length', 'String'])
+
+                for idx, s in enumerate(all_strings):
+                    writer.writerow([
+                        idx,
+                        f"0x{s.get('offset', 0):08x}",
+                        s.get('section', 'N/A'),
+                        s.get('type', 'unknown'),
+                        s.get('length', 0),
+                        s.get('value', '')
+                    ])
+
+            self.console.print(f"[green]✓ Exported {len(all_strings)} strings to: {output_file}[/green]")
+
+        except Exception as e:
+            self.console.print(f"[red]Export failed: {e}[/red]")
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def pe_generate_report(self):
+        """Generate detailed analysis report"""
+        self.console.print(Panel(" Generate Analysis Report", style="bold cyan"))
+
+        format_choice = Prompt.ask(
+            "Select report format",
+            choices=["html", "json", "yaml"],
+            default="html"
+        )
+
+        output_file = Prompt.ask(
+            "Output filename",
+            default=f"pe_string_analysis.{format_choice}"
+        )
+
+        cmd = f"cumpyl {self.target_file} --run-analysis --report-format {format_choice} --report-output {output_file}"
+        self.execute_command(cmd)
+
+    def pe_apply_obfuscation_with_warnings(self):
+        """Apply obfuscation with comprehensive warnings and backup"""
+        self.console.clear()
+
+        # Display critical warnings
+        warning_panel = Panel(
+            "[bold red]⚠️  CRITICAL WARNINGS - READ CAREFULLY ⚠️[/bold red]\n\n"
+            "[bold]Current Limitations (v2.0.0):[/bold]\n"
+            "  ❌ No deobfuscation stub injection implemented\n"
+            "  ❌ No code reference patching\n"
+            "  ❌ No runtime deobfuscation support\n\n"
+            "[bold red]CONSEQUENCE:[/bold red]\n"
+            "  🔴 The modified binary will NOT function correctly\n"
+            "  🔴 Strings will be obfuscated but code still expects plaintext\n"
+            "  🔴 Program will crash or produce garbage output\n\n"
+            "[bold yellow]This feature is for:[/bold yellow]\n"
+            "  • Analysis and research purposes only\n"
+            "  • Understanding obfuscation techniques\n"
+            "  • Testing plugin functionality\n\n"
+            "[bold]NOT for producing functional obfuscated binaries![/bold]",
+            title="⚠️  Obfuscation Limitations",
+            border_style="red",
+            padding=(1, 2)
+        )
+
+        self.console.print(warning_panel)
+        self.console.print()
+
+        # First confirmation
+        if not Confirm.ask("\n[bold red]Do you understand these limitations?[/bold red]", default=False):
+            self.console.print("[yellow]Obfuscation cancelled[/yellow]")
+            Prompt.ask("\nPress Enter to continue", default="")
+            return
+
+        # Second confirmation with backup
+        if not Confirm.ask("\n[bold yellow]Create backup and proceed anyway (for testing/research)?[/bold yellow]", default=False):
+            self.console.print("[yellow]Obfuscation cancelled[/yellow]")
+            Prompt.ask("\nPress Enter to continue", default="")
+            return
+
+        # Create backup
+        try:
+            backup_path = self._create_backup(self.target_file)
+            self.console.print(f"\n[green]✓ Backup created: {backup_path}[/green]")
+        except Exception as e:
+            self.console.print(f"\n[red]✗ Backup failed: {e}[/red]")
+            self.console.print("[red]Obfuscation cancelled for safety[/red]")
+            Prompt.ask("\nPress Enter to continue", default="")
+            return
+
+        # Execute obfuscation
+        self.console.print("\n[bold]Proceeding with obfuscation...[/bold]")
+        cmd = f"cumpyl {self.target_file} --pe-string-obfuscate"
+        self.execute_command(cmd)
+
+        # Post-obfuscation info
+        self.console.print("\n[bold yellow]⚠️  Binary has been modified[/bold yellow]")
+        self.console.print(f"[green]Backup location: {backup_path}[/green]")
+        self.console.print("\n[yellow]To restore original:[/yellow]")
+        self.console.print(f"[cyan]  cp {backup_path} {self.target_file}[/cyan]")
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def _create_backup(self, binary_path):
+        """Create timestamped backup with metadata"""
+        import shutil
+        import json
+        import hashlib
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_dir = os.path.join(os.path.dirname(binary_path) or ".", ".cumpyl_backups")
+        os.makedirs(backup_dir, exist_ok=True)
+
+        backup_filename = f"{os.path.basename(binary_path)}.{timestamp}.bak"
+        backup_path = os.path.join(backup_dir, backup_filename)
+
+        # Copy file
+        shutil.copy2(binary_path, backup_path)
+
+        # Calculate hash
+        with open(binary_path, 'rb') as f:
+            file_hash = hashlib.sha256(f.read()).hexdigest()
+
+        # Create metadata
+        metadata = {
+            'original_file': os.path.abspath(binary_path),
+            'backup_file': os.path.abspath(backup_path),
+            'timestamp': timestamp,
+            'sha256': file_hash,
+            'file_size': os.path.getsize(binary_path)
+        }
+
+        # Save metadata
+        metadata_path = backup_path + ".meta.json"
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+
+        return backup_path
 
     def execute_command(self, command: str):
         """Execute a Cumpyl command"""

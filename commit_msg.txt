@@ -1,9 +1,0 @@
-Add comprehensive PE string obfuscation functionality to Cumpyl framework
-
-- Implement PE-specific string obfuscation plugin with multiple obfuscation methods (XOR, Base64, ROT13, Reverse, Caesar cipher, Vigenère cipher, compression)
-- Add advanced string detection and risk assessment capabilities for PE executables
-- Integrate plugin with framework configuration and command-line interface
-- Add --pe-string-obfuscate command line option for string analysis and obfuscation
-- Update plugin registry and documentation to include new functionality
-- Add comprehensive test suite to verify plugin functionality
-- Enhance README documentation with new feature details and usage examples
