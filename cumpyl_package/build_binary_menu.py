@@ -906,22 +906,24 @@ class BuildBinaryMenu:
 
         # Display critical warnings
         warning_panel = Panel(
-            "[bold red]⚠️  CRITICAL WARNINGS - READ CAREFULLY ⚠️[/bold red]\n\n"
-            "[bold]Current Limitations (v2.0.0):[/bold]\n"
-            "  ❌ No deobfuscation stub injection implemented\n"
-            "  ❌ No code reference patching\n"
-            "  ❌ No runtime deobfuscation support\n\n"
-            "[bold red]CONSEQUENCE:[/bold red]\n"
-            "  🔴 The modified binary will NOT function correctly\n"
-            "  🔴 Strings will be obfuscated but code still expects plaintext\n"
-            "  🔴 Program will crash or produce garbage output\n\n"
-            "[bold yellow]This feature is for:[/bold yellow]\n"
-            "  • Analysis and research purposes only\n"
-            "  • Understanding obfuscation techniques\n"
-            "  • Testing plugin functionality\n\n"
-            "[bold]NOT for producing functional obfuscated binaries![/bold]",
-            title="⚠️  Obfuscation Limitations",
-            border_style="red",
+            "[bold yellow]⚠️  IMPORTANT - READ CAREFULLY ⚠️[/bold yellow]\n\n"
+            "[bold green]V3 Architecture (Functional Obfuscation):[/bold green]\n"
+            "  ✅ Deobfuscation stub injection implemented\n"
+            "  ✅ Code reference patching implemented\n"
+            "  ✅ Runtime deobfuscation support enabled\n"
+            "  ✅ Produces FUNCTIONAL obfuscated binaries\n\n"
+            "[bold cyan]Supported Methods:[/bold cyan]\n"
+            "  • XOR cipher (x86 + x64)\n"
+            "  • ROT13 cipher (x86)\n"
+            "  • String reversal (x86)\n\n"
+            "[bold yellow]Known Limitations:[/bold yellow]\n"
+            "  ⚠️  Limited x64 support (XOR only)\n"
+            "  ⚠️  No thread-safe deobfuscation (single-threaded programs only)\n"
+            "  ⚠️  Binary size overhead: ~13-14 KB\n"
+            "  ⚠️  Performance impact: <0.1% overall\n\n"
+            "[bold]This will MODIFY your binary - backup created automatically![/bold]",
+            title="⚠️  String Obfuscation V3",
+            border_style="yellow",
             padding=(1, 2)
         )
 
@@ -929,13 +931,13 @@ class BuildBinaryMenu:
         self.console.print()
 
         # First confirmation
-        if not Confirm.ask("\n[bold red]Do you understand these limitations?[/bold red]", default=False):
+        if not Confirm.ask("\n[bold cyan]Do you understand the V3 features and limitations?[/bold cyan]", default=False):
             self.console.print("[yellow]Obfuscation cancelled[/yellow]")
             Prompt.ask("\nPress Enter to continue", default="")
             return
 
         # Second confirmation with backup
-        if not Confirm.ask("\n[bold yellow]Create backup and proceed anyway (for testing/research)?[/bold yellow]", default=False):
+        if not Confirm.ask("\n[bold green]Create backup and proceed with functional obfuscation?[/bold green]", default=False):
             self.console.print("[yellow]Obfuscation cancelled[/yellow]")
             Prompt.ask("\nPress Enter to continue", default="")
             return

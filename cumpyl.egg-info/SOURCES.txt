@@ -1,10 +1,13 @@
 .gitignore
 LICENSE
 README.md
+commit_message.txt
 cumpyl.yaml
+integration_summary.txt
 mkdocs.yml
 pyproject.toml
 requirements.in
+test_results.txt
 uv.lock
 .github/FUNDING.yml
 cumpyl.egg-info/PKG-INFO
@@ -17,6 +20,7 @@ cumpyl_package/__init__.py
 cumpyl_package/batch_cfg_menu.py
 cumpyl_package/batch_processor.py
 cumpyl_package/build_binary_menu.py
+cumpyl_package/code_analyzer.py
 cumpyl_package/config.py
 cumpyl_package/cumpyl.py
 cumpyl_package/hex_viewer.py
@@ -28,6 +32,7 @@ cumpyl_package/plugin_packer_menu.py
 cumpyl_package/reporting.py
 cumpyl_package/silly_string_menu.py
 cumpyl_package/start_menu.py
+cumpyl_package/stub_injector.py
 cumpyl_package/transmuter.py
 cumpyl_package/__pycache__/__init__.cpython-39.pyc
 cumpyl_package/__pycache__/batch_processor.cpython-39.pyc
@@ -35,6 +40,7 @@ cumpyl_package/__pycache__/config.cpython-39.pyc
 cumpyl_package/__pycache__/cumpyl.cpython-39.pyc
 cumpyl_package/__pycache__/plugin_manager.cpython-39.pyc
 cumpyl_package/__pycache__/reporting.cpython-39.pyc
+docs/ARCHITECTURAL_CHANGES_SUMMARY.md
 docs/CUMPYL_API_REFERENCE.md
 docs/CUMPYL_DEVELOPER_GUIDE.md
 docs/CUMPYL_RELEASE_NOTES.md
@@ -46,6 +52,11 @@ docs/FIXES_SUMMARY.md
 docs/QWEN.md
 docs/README.md
 docs/README.md.bak
+docs/STRING_OBFUSCATOR_IMPROVEMENTS.md
+docs/STRING_OBFUSCATOR_README.md
+docs/STRING_OBFUSCATOR_REVIEW.md
+docs/STRING_OBFUSCATOR_V3_ARCHITECTURE.md
+docs/STRING_OBFUSCATOR_V3_QUICKSTART.md
 docs/getting-started.md
 docs/index.md
 docs/iterative.md
@@ -73,6 +84,7 @@ plugins/go_packer_plugin.py
 plugins/logging_config.py
 plugins/packer_plugin.py
 plugins/pe_string_obfuscation.py
+plugins/pe_string_obfuscation_v3.py
 plugins/performance.py
 plugins/plugin_registry.py
 plugins/string_extraction.py
@@ -114,3 +126,7 @@ tests/test_plugin_manager.py
 tests/test_plugin_packer_menu.py
 tests/test_runner.py
 tests/test_updated_packer.py
+utils/ca_engine.py
+utils/ca_packer.py
+utils/crypto_engine.py
+utils/packer_fixed_final.py
