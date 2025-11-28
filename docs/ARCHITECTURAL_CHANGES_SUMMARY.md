@@ -593,11 +593,157 @@ plugin.transform(rewriter, analysis)  # Functional binary!
 **Developed by:** Cumpyl Framework Team
 **Architecture Design:** Based on industry-standard binary obfuscation techniques
 **Inspiration:** UPX, Themida, VMProtect (commercial packers)
+**Windowbrick Integration:** Advanced multi-layered string obfuscation techniques based on windowbrick methodology
 
 **Key Technologies:**
 - **LIEF** - PE binary manipulation
 - **Capstone** - x86/x64 disassembly
 - **Python** - Framework implementation
+
+## Windowbrick Plugin Architecture
+
+### Overview
+
+The Windowbrick plugin provides comprehensive multi-layered string obfuscation using XOR, rotation, and substitution techniques with dynamic key generation and optional anti-analysis features.
+
+### Key Components
+
+#### WindowbrickAnalysisPlugin
+
+**Purpose:** Analyze binaries for string obfuscation opportunities
+
+**Architecture:**
+```
+┌─────────────┐
+│   Binary    │
+└──────┬──────┘
+       │
+       ├─► String Extraction (ASCII/Unicode detection)
+       ├─► String Context Analysis (risk scoring)
+       ├─► Obfuscation Opportunity Identification
+       └─► Dynamic Key Generation (timestamp, PID, random entropy)
+```
+
+**Key Features:**
+- String detection across all sections
+- Risk assessment and scoring
+- Dynamic key generation using system entropy
+- Configuration for obfuscation methods
+
+#### WindowbrickTransformationPlugin
+
+**Purpose:** Apply multi-layered obfuscation to selected strings
+
+**Architecture:**
+```
+┌──────────────────┐
+│ Analysis Results │
+└─────────┬────────┘
+          │
+          ├─► Dynamic Key Generation
+          ├─► String Selection
+          ├─► Multi-layered Obfuscation (XOR + Rotation + Substitution)
+          ├─► Binary Modification Tracking
+          └─► Result Validation
+```
+
+#### Core Obfuscation Engine
+
+**Multi-layered Process:**
+1. **XOR Layer:** XOR cipher with dynamic key
+2. **Rotation Layer:** Bit rotation (configurable 0-7 bits)
+3. **Substitution Layer:** Byte substitution with proper permutation table
+
+**Reversibility:**
+- Each layer is fully reversible
+- Proper permutation table ensures substitution is reversible
+- Negative rotation handled correctly as right rotation
+
+### Security Features
+
+1. **Dynamic Key Generation:**
+   - Uses system entropy (timestamp, PID, random)
+   - Prevents static analysis of keys
+
+2. **Anti-Analysis Techniques:**
+   - Timing-based detection simulation
+   - Potential for integration with real anti-debugging
+
+3. **Reversible Operations:**
+   - All transformations can be reversed
+   - Maintains data integrity
+
+### Integration Points
+
+#### Build-a-Binary Menu Integration
+- **Option 8:** "Windowbrick Obfuscation"
+- Interactive menu system with 5 sub-options:
+  - Analysis
+  - String Browser
+  - Obfuscation Preview
+  - Custom Settings
+  - Apply Transformations
+
+#### Plugin Registry Integration
+- `windowbrick_analysis`: Analysis-only plugin
+- `windowbrick_transform`: Transformation plugin
+- Both registered in centralized plugin registry
+
+#### Configuration Management
+- Supports custom rotation amounts (0-7 bits)
+- Configurable obfuscation modes (XOR, rotation, substitution, full)
+- Anti-analysis feature toggle
+- Custom substitution table support
+
+### Performance Metrics
+
+| Component | Performance | Notes |
+|-----------|-------------|-------|
+| String Detection | ~1-3 seconds | Depends on binary size |
+| Analysis Phase | ~2-5 seconds | Includes scoring and recommendations |
+| Transformation | ~2-4 seconds | Multi-layered obfuscation |
+| Menu Navigation | Instant | Interactive interface |
+
+### Technical Specifications
+
+#### Obfuscation Methods
+| Method | Reversible | Performance | Security |
+|--------|------------|-------------|----------|
+| XOR | ✅ | Fast | Medium |
+| Bit Rotation | ✅ | Fast | Medium |
+| Substitution | ✅ | Fast | Medium |
+| Multi-layered | ✅ | Medium | High |
+
+#### Configuration Options
+- `rotation_amount`: Number of bits to rotate (0-7)
+- `obfuscation_mode`: XOR, rotation, substitution, or full
+- `enable_anti_analysis`: Enable timing-based detection
+- `custom_substitution_table`: Custom 256-byte permutation table
+
+#### Integration Capabilities
+- Compatible with batch processing
+- Integrates with existing analysis pipelines
+- Supports detailed reporting
+- Cross-plugin dependency support
+- **CLI Integration**: Available through `--run-analysis` flag (runs all plugins)
+- **Menu Integration**: Fully integrated in Build-a-Binary menu (Option 8)
+- **Configuration**: Supports plugin-specific settings via configuration files
+
+### Architectural Benefits
+
+1. **Modularity:** Separate analysis and transformation plugins
+2. **Reversibility:** All operations can be reversed safely
+3. **Configurability:** Multiple parameters for customization
+4. **Safeguards:** Proper entropy handling and permutation tables
+5. **Integration:** Full menu and registry integration
+
+### Future Extensions
+
+- Additional obfuscation methods (compression, advanced ciphers)
+- Machine learning-based string selection
+- Anti-debugging integration
+- Cross-platform compatibility
+- Integration with PE String Obfuscation V3 pipeline
 
 ---
 

@@ -134,6 +134,7 @@ cumpyl sample.exe --run-analysis --all-plugins --report-format html
 - **Interactive hex viewer** in terminal and browser modes
 - **Comprehensive reporting** in HTML, JSON, YAML, and XML
 - **Advanced encoding** methods for section obfuscation
+- **Assembly/Disassembly** with keystone/capstone support for x86, ARM, ARM64, MIPS
 - **PE-specific string obfuscation** with multiple obfuscation techniques
 
 </td>
@@ -428,15 +429,14 @@ The Windowbrick Obfuscation plugin integrates advanced multi-layered string obfu
 
 #### Usage Examples
 ```bash
-# Run windowbrick analysis
-cumpyl binary.exe --run-analysis --plugins windowbrick_analysis
+# Run windowbrick analysis (runs ALL plugins, including windowbrick analysis)
+cumpyl binary.exe --run-analysis
 
 # Interactive menu (Build-a-Binary → Option 8)
 cumpyl --start-menu
 
-# With custom configuration
-cumpyl binary.exe --run-analysis --plugins windowbrick_analysis \
-       --config rotation_amount=5 --config obfuscation_mode=full
+# Note: The current CLI does not support running specific plugins by name.
+# To run specific plugins, use the interactive menu system or Python API directly.
 ```
 
 #### Integration Points
@@ -581,6 +581,63 @@ cumpyl binary.exe --hex-view --output hex_viewer.html
 - Bookmarking capabilities
 - Export to various formats
 - Side-by-side comparison mode
+
+</details>
+
+<br>
+
+## ASSEMBLY/DISASSEMBLY FEATURES
+
+Cumpyl provides powerful assembly and disassembly capabilities using keystone-engine and capstone:
+
+<details>
+<summary><b>Click to expand assembly/disassembly features</b></summary>
+
+**ASSEMBLY OPTIONS:**
+
+- `--assemble`: Provide assembly code as string argument
+- `--assemble-file`: Read assembly code from file
+- `--assemble-arch`: Specify architecture (x86, ARM, ARM64, MIPS)
+- `--assemble-mode`: Specify mode (16, 32, 64, arm, thumb)
+- `--assemble-output`: Save assembled machine code to binary file
+
+**DISASSEMBLY OPTIONS:**
+- `--disassemble-bytes`: Disassemble hex string of raw bytes
+- `--disassemble-section-raw`: Disassemble section from binary with arch options
+- `--disassemble-arch`: Specify architecture for disassembly
+- `--disassemble-mode`: Specify mode for disassembly
+- `--disassemble-address`: Set base address for disassembly
+
+**EXAMPLES:**
+
+```bash
+# Assembly: Convert assembly code to machine code
+cumpyl --assemble "mov rax, 0x42; mov rbx, 0x1337; nop" --assemble-arch x86 --assemble-mode 64
+
+# Assembly from file: Read assembly from file and output to binary
+cumpyl --assemble-file shellcode.s --assemble-arch x86 --assemble-mode 64 --assemble-output shellcode.bin
+
+# Disassemble raw bytes: Convert hex bytes back to assembly
+cumpyl --disassemble-bytes "48c7c042000000" --disassemble-arch x86 --disassemble-mode 64
+
+# Architecture-specific disassembly of binary sections
+cumpyl binary.exe --disassemble-section-raw .text --disassemble-arch x86 --disassemble-mode 32
+
+# ARM assembly example
+cumpyl --assemble "mov r0, #0x42" --assemble-arch arm --assemble-mode arm
+
+# Multi-architecture support
+cumpyl --assemble "nop; nop" --assemble-arch arm64 --assemble-mode 64
+```
+
+**FEATURES:**
+
+- Cross-architecture support (x86, ARM, ARM64, MIPS)
+- Multiple mode support (16-bit, 32-bit, 64-bit, ARM/Thumb)
+- File-based and inline assembly input
+- Raw bytes disassembly capability
+- Configurable base addresses for disassembly
+- Machine code generation for exploits and patches
 
 </details>
 

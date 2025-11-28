@@ -42,8 +42,12 @@ This will launch a guided interface that provides access to all of Cumpyl's feat
 3. **Interactive Hex Viewer**: Explore binary with interactive hex dump
 4. **Batch Processing**: Process multiple files with automated workflows
 5. **Encoding Operations**: Obfuscate specific sections with various encodings
-6. **Report Generation**: Create detailed analysis reports in multiple formats
-7. **Configuration**: View and modify framework settings
+6. **Binary Packers**: Analyze and pack binaries with compression and encryption
+7. **Report Generation**: Create detailed analysis reports in multiple formats
+8. **Build-a-Binary**: Advanced binary analysis and modification tools, including:
+   - **PE String Obfuscation**: Advanced PE-specific string detection and obfuscation
+   - **Windowbrick Obfuscation**: Multi-layered string obfuscation using XOR, rotation, and substitution
+   - **Configuration**: View and modify framework settings
 
 ![Cumpyl Menu](../expand.png)
 

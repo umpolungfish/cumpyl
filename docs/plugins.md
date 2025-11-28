@@ -69,6 +69,72 @@ plugins:
     custom_setting: "value"
 ```
 
+## Windowbrick Plugin Example
+
+For a comprehensive example of plugin development, see the Windowbrick plugin (`plugins/windowbrick_plugin.py`). This plugin demonstrates advanced obfuscation techniques with multiple factory functions and proper configuration handling:
+
+```python
+# plugins/windowbrick_plugin.py
+from cumpyl_package.plugin_manager import AnalysisPlugin, TransformationPlugin
+from typing import Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
+
+class WindowbrickAnalysisPlugin(AnalysisPlugin):
+    def __init__(self, config):
+        super().__init__(config)
+        self.name = "windowbrick_analysis"
+        self.version = "1.0.0"
+        self.description = "String obfuscation analysis using windowbrick techniques (XOR, rotation, substitution)"
+        self.author = "Cumpyl Framework Team"
+        self.dependencies = []
+
+        # Initialize configuration
+        plugin_config = self.get_config()
+        self.rotation_amount = plugin_config.get('rotation_amount', 3)
+        self.enable_anti_analysis = plugin_config.get('enable_anti_analysis', False)
+        self.obfuscation_mode = plugin_config.get('obfuscation_mode', 'full')
+
+    def analyze(self, rewriter) -> Dict[str, Any]:
+        """Analyze binary for potential obfuscation opportunities"""
+        results = {
+            "plugin_name": self.name,
+            "version": self.version,
+            "description": self.description,
+            "analysis": {
+                "recommended_strings": [],
+                "obfuscation_opportunities": []
+            }
+        }
+        return results
+
+class WindowbrickTransformationPlugin(TransformationPlugin):
+    def __init__(self, config):
+        super().__init__(config)
+        self.name = "windowbrick_transform"
+        self.version = "1.0.0"
+        self.description = "String obfuscation transformation using windowbrick techniques"
+        self.author = "Cumpyl Framework Team"
+        self.dependencies = ["windowbrick_analysis"]
+
+    def analyze(self, rewriter) -> Dict[str, Any]:
+        return {"plugin_name": self.name}
+
+    def transform(self, rewriter, analysis_result: Dict[str, Any]) -> bool:
+        """Transform binary with string obfuscation"""
+        return True
+
+# Factory functions for plugin registry
+def get_analysis_plugin(config):
+    """Factory function to get analysis plugin instance"""
+    return WindowbrickAnalysisPlugin(config)
+
+def get_transformation_plugin(config):
+    """Factory function to get transformation plugin instance"""
+    return WindowbrickTransformationPlugin(config)
+```
+
 ## Best Practices
 
 1. **Keep plugins focused**: Each plugin should have a single, well-defined purpose
@@ -76,3 +142,8 @@ plugins:
 3. **Document your plugin**: Include clear documentation on what your plugin does
 4. **Test thoroughly**: Write tests for your plugin functionality
 5. **Follow naming conventions**: Use descriptive names for your plugins and functions
+6. **Proper inheritance**: Use AnalysisPlugin for analysis-only, TransformationPlugin for modifications
+7. **Factory functions**: Implement proper factory functions for plugin registration
+8. **Configuration handling**: Use plugin-specific configuration with fallbacks
+9. **Reversible operations**: For obfuscation plugins, ensure operations can be reversed
+10. **CLI awareness**: Note that the main CLI runs all plugins via `--run-analysis` rather than individual plugins

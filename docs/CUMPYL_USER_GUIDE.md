@@ -121,6 +121,20 @@ Recent improvements to the plugin packer menu include:
 - Better configuration options for different plugin types
 - Support for dry run mode to test transformations without modifying files
 
+#### Windowbrick Obfuscation Integration
+
+The new Windowbrick plugin provides advanced multi-layered string obfuscation capabilities and is now integrated into the Build-a-Binary menu.
+
+**Menu Location:**
+- Main Menu → Option 5 (Build-a-Binary) → Option 8 (Windowbrick Obfuscation)
+
+**Interactive Menu Features:**
+1. **Windowbrick Analysis**: Analyze strings for obfuscation opportunities
+2. **String Browser**: Interactive exploration of strings for obfuscation
+3. **Preview Obfuscation**: Simulated obfuscation preview before application
+4. **Custom Settings**: Configure rotation amount, mode, and anti-analysis features
+5. **Apply Obfuscation**: Apply multi-layered obfuscation to selected strings
+
 ## Command Line Interface
 
 Cumpyl provides a comprehensive command-line interface for binary analysis and manipulation.
@@ -164,6 +178,42 @@ cumpyl binary.exe --run-analysis --report-format html --report-output analysis.h
 ```
 
 Run comprehensive analysis with HTML report output.
+
+### Assembly Operations
+
+Generate machine code from assembly instructions using keystone-engine:
+
+```bash
+# Assemble inline assembly
+cumpyl --assemble "mov rax, 0x42; mov rbx, 0x1337; nop" --assemble-arch x86 --assemble-mode 64
+
+# Assemble from file
+cumpyl --assemble-file shellcode.s --assemble-arch x86 --assemble-mode 64 --assemble-output shellcode.bin
+
+# Different architectures
+cumpyl --assemble "mov r0, #0x42" --assemble-arch arm --assemble-mode arm
+```
+
+### Disassembly Operations
+
+Disassemble raw bytes or binary sections using capstone:
+
+```bash
+# Disassemble hex bytes
+cumpyl --disassemble-bytes "48c7c042000000" --disassemble-arch x86 --disassemble-mode 64
+
+# Disassemble a section from a binary
+cumpyl binary.exe --disassemble-section-raw .text --disassemble-arch x86 --disassemble-mode 32
+
+# Specify base address for disassembly
+cumpyl --disassemble-bytes "909090" --disassemble-arch x86 --disassemble-mode 64 --disassemble-address 0x400000
+```
+
+**Supported Architectures:**
+- **x86**: 16-bit, 32-bit, 64-bit modes
+- **ARM**: ARM and Thumb modes
+- **ARM64**: 64-bit mode
+- **MIPS**: 32-bit and 64-bit modes
 
 ## Binary Analysis
 
@@ -388,6 +438,130 @@ strings obfuscated.exe | grep SECRET
 ```
 
 **For detailed usage and troubleshooting**, see `docs/STRING_OBFUSCATOR_V3_QUICKSTART.md`
+
+### Windowbrick String Obfuscation ✅ **FULLY INTEGRATED**
+
+The Windowbrick plugin provides advanced multi-layered string obfuscation using XOR, rotation, and substitution techniques with dynamic key generation. It's designed for advanced malware research and security analysis applications.
+
+#### Quick Usage
+
+```bash
+# Run windowbrick analysis (runs ALL plugins, including windowbrick)
+cumpyl binary.exe --run-analysis
+
+# Or use the interactive menu
+cumpyl binary.exe --start-menu
+# Navigate to: Build-a-Binary → Option 8 (Windowbrick Obfuscation)
+```
+
+#### Multi-layered Obfuscation Methods
+
+Windowbrick applies three obfuscation layers in sequence:
+
+1. **XOR Cipher**: Standard XOR-based encryption with dynamic keys
+2. **Bit Rotation**: Left/right rotation with configurable amounts (0-7 bits)
+3. **Substitution Cipher**: Byte substitution with proper permutation table
+4. **Full Mode**: Combines all three techniques for maximum obfuscation
+
+#### Configuration Options
+
+The windowbrick plugin accepts several configuration parameters:
+
+**Via command line:**
+The current CLI does not support running specific plugins individually. The `--run-analysis` flag runs all loaded plugins.
+
+**Configuration Parameters:**
+- `rotation_amount`: Number of bits to rotate (0-7, default: 3)
+- `obfuscation_mode`: XOR, rotation, substitution, or full (default: full)
+- `enable_anti_analysis`: Enable timing-based anti-analysis (default: False)
+
+**Configuration File:**
+Configure windowbrick settings in your `cumpyl.yaml` configuration file:
+
+```yaml
+plugins:
+  windowbrick_analysis:
+    rotation_amount: 5
+    obfuscation_mode: full
+    enable_anti_analysis: false
+  windowbrick_transform:
+    rotation_amount: 5
+    obfuscation_mode: full
+    enable_anti_analysis: false
+```
+
+#### Interactive Menu Features
+
+The Build-a-Binary menu provides comprehensive windowbrick functionality:
+
+1. **Windowbrick Analysis**: Analyze strings and recommend obfuscation opportunities
+2. **Interactive String Browser**: Browse and select strings for obfuscation
+3. **Preview Obfuscation**: See simulated results before applying transformations
+4. **Custom Settings**: Configure rotation, mode, and anti-analysis features
+5. **Apply Obfuscation**: Transform selected strings with windowbrick techniques
+
+#### What Happens During Analysis
+
+1. **String Detection Phase**:
+   - Scans all binary sections for strings
+   - Identifies high-interest strings for obfuscation
+   - Generates dynamic obfuscation keys using system entropy
+
+2. **Analysis & Recommendation**:
+   - Evaluates strings for obfuscation suitability
+   - Provides risk assessment and recommendations
+   - Displays interactive string browser for selection
+
+3. **Transformation (when applied)**:
+   - Applies multi-layered obfuscation techniques
+   - Maintains reversible operations for proper functionality
+   - Updates binary structure as needed
+
+#### Security Features
+
+- **Reversible Operations**: All obfuscation is fully reversible
+- **Dynamic Keys**: System entropy prevents static analysis
+- **Proper Permutations**: Substitution cipher uses true permutation table
+- **Configurable Layers**: Choose which obfuscation layers to apply
+
+#### Example Output
+
+```
+[+] Starting Windowbrick Analysis...
+[*] Rotation amount: 3
+[*] Obfuscation mode: full (XOR + Rotation + Substitution)
+[+] Found 23 strings for potential obfuscation
+
+[*] Selected strings:
+    [+] API_Call: LoadLibraryA
+    [+] Network: http://example.com
+    [+] Credential: admin_password
+    [+] File_Path: C:\Windows\System32\
+
+[*] Generating dynamic key from system entropy...
+[+] Dynamic key: 0x7A generated successfully
+
+[+] Applied multi-layered obfuscation to 4 strings
+[+] ✓ Windowbrick analysis complete!
+```
+
+#### Verification
+
+```bash
+# Before obfuscation
+strings original.exe | grep password
+# Output: admin_password
+
+# After analysis/obfuscation
+strings obfuscated.exe | grep password
+# Output: (nothing - string is now obfuscated!)
+
+# Binary still functions normally
+./obfuscated.exe
+# Program executes with transparent deobfuscation
+```
+
+**For detailed usage**, see `docs/CUMPYL_DEVELOPER_GUIDE.md` and `README.md`
 
 ## Reporting
 

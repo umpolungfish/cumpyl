@@ -1,5 +1,6 @@
 import lief
 import capstone
+import keystone
 import binascii
 import codecs
 import os
@@ -88,6 +89,74 @@ class BinaryRewriter:
             md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
             instructions = []
             for i in md.disasm(bytes(section.content), section.virtual_address):
+                instructions.append(f"{i.mnemonic} {i.op_str}")
+            return instructions
+        except Exception as e:
+            print(f"[-] Disassembly failed: {e}")
+            return []
+
+    def assemble_code(self, assembly_code: str, arch: str = "x86", mode: str = "64") -> bytes:
+        """𐑩𐑕𐑕𐑧𐑥𐑚𐑤 𐑩 𐑕𐑐𐑧𐑕𐑦𐑓𐑦𐑒 𐑨𐑕𐑕𐑧𐑥𐑚𐑤 𐑩𐑯𐑛 𐑮𐑧𐑑𐑻𐑯 𐑞 𐑥𐑨𐑖𐑰𐑯 𐑒𐑴𐑛 𐑚𐑲𐑑𐑕"""
+        try:
+            # Determine architecture and mode for keystone engine
+            arch_map = {
+                ("x86", "16"): (keystone.KS_ARCH_X86, keystone.KS_MODE_16),
+                ("x86", "32"): (keystone.KS_ARCH_X86, keystone.KS_MODE_32),
+                ("x86", "64"): (keystone.KS_ARCH_X86, keystone.KS_MODE_64),
+                ("arm", "arm"): (keystone.KS_ARCH_ARM, keystone.KS_MODE_ARM),
+                ("arm", "thumb"): (keystone.KS_ARCH_ARM, keystone.KS_MODE_THUMB),
+                ("arm64", "64"): (keystone.KS_ARCH_ARM64, keystone.KS_MODE_LITTLE_ENDIAN),
+                ("mips", "32"): (keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS32),
+                ("mips", "64"): (keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS64),
+            }
+
+            key = (arch.lower(), mode.lower())
+            if key not in arch_map:
+                raise ValueError(f"Unsupported architecture/mode combination: {arch}/{mode}")
+
+            ks_arch, ks_mode = arch_map[key]
+
+            # Initialize keystone engine
+            ks = keystone.Ks(ks_arch, ks_mode)
+
+            # Assemble the code
+            encoding, count = ks.asm(assembly_code)
+
+            # Convert to bytes and return
+            machine_code = bytes(encoding)
+            print(f"[+] Assembled {count} instructions, {len(machine_code)} bytes generated")
+            return machine_code
+        except Exception as e:
+            print(f"[-] Assembly failed: {e}")
+            return b""
+
+    def disassemble_bytes(self, raw_bytes: bytes, arch: str = "x86", mode: str = "64", base_address: int = 0) -> List[str]:
+        """Disassemble raw bytes to assembly instructions"""
+        try:
+            # Determine architecture and mode for capstone engine
+            arch_map = {
+                ("x86", "16"): (capstone.CS_ARCH_X86, capstone.CS_MODE_16),
+                ("x86", "32"): (capstone.CS_ARCH_X86, capstone.CS_MODE_32),
+                ("x86", "64"): (capstone.CS_ARCH_X86, capstone.CS_MODE_64),
+                ("arm", "arm"): (capstone.CS_ARCH_ARM, capstone.CS_MODE_ARM),
+                ("arm", "thumb"): (capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB),
+                ("arm64", "64"): (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM),
+                ("mips", "32"): (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32),
+                ("mips", "64"): (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64),
+            }
+
+            key = (arch.lower(), mode.lower())
+            if key not in arch_map:
+                raise ValueError(f"Unsupported architecture/mode combination: {arch}/{mode}")
+
+            cs_arch, cs_mode = arch_map[key]
+
+            # Initialize capstone engine
+            md = capstone.Cs(cs_arch, cs_mode)
+
+            # Disassemble the bytes
+            instructions = []
+            for i in md.disasm(raw_bytes, base_address):
                 instructions.append(f"{i.mnemonic} {i.op_str}")
             return instructions
         except Exception as e:
@@ -845,11 +914,29 @@ def main():
     parser.add_argument("--encoding", action="append", choices=["hex", "octal", "null", "base64", "compressed_base64"], help="Encoding format")
     parser.add_argument("--print-encoded", action="store_true", help="Print encoded data")
 
+    # 𐑨𐑕𐑕𐑧𐑥𐑚𐑤𐑲 𐑯 𐑛𐑦𐑕𐑩𐑕𐑧𐑥𐑚𐑤𐑲 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕
+    parser.add_argument("--assemble", help="Assembly code to assemble (as a string)")
+    parser.add_argument("--assemble-file", help="File containing assembly code to assemble")
+    parser.add_argument("--assemble-arch", choices=["x86", "arm", "arm64", "mips"], default="x86", help="Architecture for assembly (default: x86)")
+    parser.add_argument("--assemble-mode", choices=["16", "32", "64", "arm", "thumb"], default="64", help="Mode for assembly (default: 64)")
+    parser.add_argument("--assemble-output", help="Output file to save assembled machine code")
+
+    parser.add_argument("--disassemble-bytes", help="Disassemble raw bytes (provide as hex string)")
+    parser.add_argument("--disassemble-section-raw", help="Disassemble specific section with architecture options")
+    parser.add_argument("--disassemble-arch", choices=["x86", "arm", "arm64", "mips"], default="x86", help="Architecture for disassembly (default: x86)")
+    parser.add_argument("--disassemble-mode", choices=["16", "32", "64", "arm", "thumb"], default="64", help="Mode for disassembly (default: 64)")
+    parser.add_argument("--disassemble-address", type=lambda x: int(x, 0), default=0, help="Base address for disassembly (default: 0, supports hex like 0x1000)")
+
     args = parser.parse_args()
     
     # 𐑝𐑨𐑤𐑦𐑛𐑱𐑑 𐑸𐑜𐑿𐑥𐑩𐑯𐑑 𐑒𐑩𐑥𐑚𐑦𐑯𐑱𐑖𐑩𐑯
-    if not args.input and not args.batch_directory and not args.menu:
-        parser.error("Either input file, --batch-directory, or --menu must be provided")
+    # Include assembly, disassembly, and config operations as requiring no input file
+    has_primary_operation = (args.assemble or args.assemble_file or
+                             args.disassemble_bytes or args.disassemble_section_raw or
+                             args.validate_config or args.show_config)
+
+    if not args.input and not args.batch_directory and not args.menu and not has_primary_operation:
+        parser.error("Either input file, --batch-directory, --menu, --assemble, --assemble-file, --disassemble-bytes, --disassemble-section-raw, --validate-config, or --show-config must be provided")
 
     # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑒𐑪𐑯𐑓𐑦𐑜𐑘𐑼𐑱𐑖𐑩𐑯
     config = init_config(args.config)
@@ -895,53 +982,62 @@ def main():
         handle_batch_processing(args, config)
         return
 
-    # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑮𐑦𐑮𐑲𐑜𐑼 𐑢𐑦𐑞 𐑒𐑪𐑯𐑓𐑦𐑜 (𐑴𐑯𐑤𐑦 𐑓𐑹 𐑕𐑦𐑙𐑜𐑩𐑤-𐑓𐑲𐑤 𐑥𐑴𐑛)
-    rewriter = BinaryRewriter(args.input, config)
-    
-    # 𐑩𐑐𐑤𐑲 𐑐𐑮𐑴𐑓𐑲𐑤 𐑒𐑪𐑯𐑓𐑦𐑜 𐑦𐑓 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛
-    if args.profile:
-        profile_config = config.get_profile_config(args.profile)
-        if not profile_config:
-            print(f"[-] Profile '{args.profile}' not found in configuration")
-            return
-        print(f"[*] Using profile: {args.profile}")
-        if config.framework.verbose_logging:
-            print(f"    Profile plugins: {profile_config.get('plugins', [])}")
-            print(f"    Safety checks: {profile_config.get('safety_checks', False)}")
-
-    if not rewriter.load_binary():
-        return
-
-    # 𐑤𐑴𐑛 𐑐𐑤𐑳𐑜𐑦𐑯𐑟 𐑦𐑓 𐑯𐑪𐑑 𐑛𐑦𐑟𐑱𐑚𐑩𐑤𐑛
-    if not args.disable_plugins:
-        loaded_plugins = rewriter.load_plugins()
-        if config.framework.verbose_logging:
-            print(f"[*] Loaded {loaded_plugins} plugin(s)")
-    
-    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑐𐑤𐑳𐑜𐑦𐑯 𐑤𐑦𐑕𐑑𐑦𐑙
-    if args.list_plugins:
-        rewriter.list_loaded_plugins()
-        return
-    
-    # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑝𐑨𐑮𐑦𐑩𐑚𐑩𐑤𐑟 𐑓𐑹 𐑨𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑩𐑯 𐑕𐑩𐑡𐑧𐑕𐑗𐑩𐑯 𐑛𐑱𐑑𐑩
+    # Initialize rewriter only if we have an input file and we aren't doing pure assembly/disassembly operations
+    rewriter = None
     analysis_results = {}
     suggestions = []
 
-    # 𐑮𐑳𐑯 𐑒𐑪𐑥𐑐𐑮𐑦𐑣𐑧𐑯𐑕𐑦𐑝 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
-    if args.run_analysis:
-        analysis_results = rewriter.run_plugin_analysis()
+    # Only create rewriter for operations that require loading a binary
+    needs_rewriter = (args.input or args.list_plugins or args.run_analysis or
+                      args.pe_string_obfuscate or args.analyze_sections or
+                      args.suggest_obfuscation or args.hex_view or
+                      args.encode_section or args.run_transformations or
+                      (args.disassemble_section_raw and args.input))  # disassemble-section-raw with input file needs rewriter
 
-        # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑕
-        console = Console()
-        console.print(Panel("Plugin Analysis Results", style="bold cyan"))
+    if needs_rewriter and args.input:
+        # 𐑦𐑯𐑦𐑖𐑩𐑤𐑲𐑟 𐑮𐑦𐑮𐑲𐑜𐑼 𐑢𐑦𐑞 𐑒𐑪𐑯𐑓𐑦𐑜
+        rewriter = BinaryRewriter(args.input, config)
 
-        for plugin_name, result in analysis_results.items():
-            if result and result.get('error'):
-                console.print(f"[red]❌ {plugin_name}: {result['error']}[/red]")
-            else:
-                console.print(f"[green]✓ {plugin_name}: Analysis completed[/green]")
-                if config.framework.debug_mode and result:
-                    console.print(f"  Result keys: {list(result.keys())}")
+        # 𐑩𐑐𐑤𐑲 𐑐𐑮𐑴𐑓𐑲𐑤 𐑒𐑪𐑯𐑓𐑦𐑜 𐑦𐑓 𐑕𐑐𐑧𐑕𐑦𐑓𐑲𐑛
+        if args.profile:
+            profile_config = config.get_profile_config(args.profile)
+            if not profile_config:
+                print(f"[-] Profile '{args.profile}' not found in configuration")
+                return
+            print(f"[*] Using profile: {args.profile}")
+            if config.framework.verbose_logging:
+                print(f"    Profile plugins: {profile_config.get('plugins', [])}")
+                print(f"    Safety checks: {profile_config.get('safety_checks', False)}")
+
+        if not rewriter.load_binary():
+            return
+
+        # 𐑤𐑴𐑛 𐑐𐑤𐑳𐑜𐑦𐑯𐑟 𐑦𐑓 𐑯𐑪𐑑 𐑛𐑦𐑟𐑱𐑚𐑩𐑤𐑛
+        if not args.disable_plugins:
+            loaded_plugins = rewriter.load_plugins()
+            if config.framework.verbose_logging:
+                print(f"[*] Loaded {loaded_plugins} plugin(s)")
+
+        # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑐𐑤𐑳𐑜𐑦𐑯 𐑤𐑦𐑕𐑑𐑦𐑙
+        if args.list_plugins:
+            rewriter.list_loaded_plugins()
+            return
+
+        # 𐑮𐑳𐑯 𐑒𐑪𐑥𐑐𐑮𐑦𐑣𐑧𐑯𐑕𐑦𐑝 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+        if args.run_analysis:
+            analysis_results = rewriter.run_plugin_analysis()
+
+            # 𐑛𐑦𐑕𐑐𐑤𐑱 𐑩𐑯𐑨𐑤𐑦𐑟𐑦𐑕 𐑮𐑦𐑟𐑳𐑤𐑑𐑕
+            console = Console()
+            console.print(Panel("Plugin Analysis Results", style="bold cyan"))
+
+            for plugin_name, result in analysis_results.items():
+                if result and result.get('error'):
+                    console.print(f"[red]❌ {plugin_name}: {result['error']}[/red]")
+                else:
+                    console.print(f"[green]✓ {plugin_name}: Analysis completed[/green]")
+                    if config.framework.debug_mode and result:
+                        console.print(f"  Result keys: {list(result.keys())}")
 
     # 𐑮𐑳𐑯 𐑐𐑧 𐑕𐑑𐑮𐑦𐑙 𐑴𐑚𐑓𐑩𐑕𐑒𐑱𐑖𐑩𐑯 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
     if args.pe_string_obfuscate:
@@ -1384,8 +1480,99 @@ def main():
 
             print()  # 𐑨𐑛 𐑕𐑐𐑱𐑕𐑦𐑙 𐑚𐑦𐑑𐑢𐑰𐑯 𐑪𐑐𐑼𐑱𐑖𐑩𐑯𐑟
 
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑨𐑕𐑕𐑧𐑥𐑚𐑤𐑲 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    # These operations don't require a loaded binary file
+    if args.assemble or args.assemble_file:
+        # Get assembly code from command line or file
+        assembly_code = args.assemble
+        if args.assemble_file:
+            try:
+                with open(args.assemble_file, 'r') as f:
+                    assembly_code = f.read()
+            except Exception as e:
+                print(f"[-] Failed to read assembly file: {e}")
+                return
+
+        if assembly_code:
+            print(f"[*] Assembling code with arch={args.assemble_arch}, mode={args.assemble_mode}")
+            # Create instance of BinaryRewriter just for assembly (without binary file)
+            temp_rewriter = BinaryRewriter.__new__(BinaryRewriter)
+            temp_rewriter.config = config
+            machine_code = temp_rewriter.assemble_code(assembly_code, args.assemble_arch, args.assemble_mode)
+
+            if machine_code:
+                print(f"[+] Assembly successful: {len(machine_code)} bytes generated")
+
+                # Save to file if requested
+                if args.assemble_output:
+                    try:
+                        with open(args.assemble_output, 'wb') as f:
+                            f.write(machine_code)
+                        print(f"[+] Machine code saved to: {args.assemble_output}")
+                    except Exception as e:
+                        print(f"[-] Failed to save assembly output: {e}")
+                else:
+                    # Print the machine code as hex
+                    hex_output = machine_code.hex()
+                    print(f"Machine code (hex): {hex_output}")
+            else:
+                print("[-] Assembly failed")
+        else:
+            print("[-] No assembly code provided")
+        return  # Return early after assembly to avoid further processing
+
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑛𐑦𐑕𐑩𐑕𐑧𐑥𐑚𐑤𐑲 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕 𐑦𐑓 𐑮𐑦𐑒𐑢𐑧𐑕𐑜𐑦𐑛
+    if args.disassemble_bytes:
+        # Disassemble raw bytes provided as hex string
+        try:
+            raw_bytes = bytes.fromhex(args.disassemble_bytes.replace(' ', '').replace('0x', '').replace(',', ''))
+            print(f"[*] Disassembling {len(raw_bytes)} bytes with arch={args.disassemble_arch}, mode={args.disassemble_mode}")
+            # Create instance of BinaryRewriter just for disassembly (without binary file)
+            temp_rewriter = BinaryRewriter.__new__(BinaryRewriter)
+            temp_rewriter.config = config
+            instructions = temp_rewriter.disassemble_bytes(raw_bytes, args.disassemble_arch, args.disassemble_mode, args.disassemble_address)
+
+            if instructions:
+                print(f"[+] Disassembly successful: {len(instructions)} instructions")
+                for i, instr in enumerate(instructions, 1):
+                    address = args.disassemble_address + (i-1) * 1  # Simplified address calculation
+                    print(f"  0x{address:08x}: {instr}")
+            else:
+                print("[-] Disassembly failed or no instructions found")
+        except ValueError as e:
+            print(f"[-] Invalid hex string for disassembly: {e}")
+        return  # Return early after disassembly to avoid further processing
+
+    # 𐑣𐑨𐑯𐑛𐑩𐑤 𐑛𐑦𐑕𐑩𐑕𐑧𐑥𐑚𐑤𐑲 𐑸𐑜𐑿𐑥𐑩𐑯𐑜𐑕 𐑓𐑹 𐑕𐑧𐑒𐑖𐑩𐑯 𐑬𐑑𐑕𐑲𐑛 𐑚𐑲𐑯𐑩𐑮𐑦
+    if args.disassemble_section_raw and args.input:
+        if rewriter and rewriter.binary is not None:
+            # Disassemble specific section with custom arch settings
+            print(f"[*] Disassembling section '{args.disassemble_section_raw}' with arch={args.disassemble_arch}, mode={args.disassemble_mode}")
+            # Get section data directly and disassemble with specified arch
+            try:
+                section_data = rewriter.get_section_data(args.disassemble_section_raw)
+                if section_data:
+                    instructions = rewriter.disassemble_bytes(section_data, args.disassemble_arch, args.disassemble_mode, args.disassemble_address)
+
+                    if instructions:
+                        print(f"[+] Disassembly successful: {len(instructions)} instructions")
+                        for i, instr in enumerate(instructions, 1):
+                            # Calculate address based on where the section data starts
+                            address = args.disassemble_address + (i-1) * 1  # Simplified address calculation
+                            print(f"  0x{address:08x}: {instr}")
+                    else:
+                        print("[-] Disassembly failed or no instructions found")
+                else:
+                    print(f"[-] Section '{args.disassemble_section_raw}' not found or empty")
+            except Exception as e:
+                print(f"[-] Failed to disassemble section: {e}")
+        else:
+            print("[-] Binary not loaded for section disassembly")
+        return  # Return after section disassembly to avoid further processing
+
     # 𐑐𐑤𐑳𐑜𐑦𐑯-𐑚𐑱𐑕𐑑 𐑩𐑯𐑨𐑤𐑦𐑕𐑦𐑕 (𐑴𐑯𐑤𐑦 𐑦𐑓 𐑢𐑰 𐑣𐑨𐑝 𐑩 𐑝𐑨𐑤𐑦𐑛 𐑚𐑲𐑯𐑩𐑮𐑦)
-    if rewriter.binary is not None:
+    # Only run this if we have a loaded binary after all operations
+    if rewriter and rewriter.binary is not None:
         plugin = RewriterPlugin()
         plugin.analyze(rewriter)
 
@@ -1398,27 +1585,28 @@ def main():
             address=0x1234,
             new_bytes=b"\x90\x90\x90"  # NOP 𐑕𐑤𐑧𐑛 𐑦𐑜𐑟𐑭𐑥𐑐𐑩𐑤
         )
-    else:
-        print("[-] Skipping analysis and modifications due to binary load failure")
-        return
 
-    # 𐑩𐑐𐑤𐑲 𐑐𐑨𐑗𐑦𐑟
-    print("[*] Applying modifications...")
-    if not rewriter.apply_patches():
-        print("[-] Failed to apply all patches")
-        return
+        # 𐑩𐑐𐑤𐑲 𐑐𐑨𐑗𐑦𐑟
+        print("[*] Applying modifications...")
+        if not rewriter.apply_patches():
+            print("[-] Failed to apply all patches")
+            return
 
-    # 𐑝𐑨𐑤𐑦𐑛𐑱𐑑
-    if not rewriter.validate_binary():
-        print("[-] Binary validation failed")
-        return
+        # 𐑝𐑨𐑤𐑦𐑛𐑱𐑑
+        if not rewriter.validate_binary():
+            print("[-] Binary validation failed")
+            return
 
-    # Save
-    output_file = args.output or f"modified_{os.path.basename(args.input)}"
-    if not rewriter.save_binary(output_file):
-        return
+        # Save
+        output_file = args.output or f"modified_{os.path.basename(args.input)}"
+        if not rewriter.save_binary(output_file):
+            return
 
-    print("[+] Binary rewriting complete!")
+        print("[+] Binary rewriting complete!")
+    # If we reach here without a rewriter or binary, it means we performed operations that don't require saving
+    elif not args.assemble and not args.assemble_file and not args.disassemble_bytes and not args.disassemble_section_raw:
+        # This is an edge case - operations requiring a binary were specified but no binary available
+        print("[-] No binary loaded for operations that require one")
 
 
 if __name__ == "__main__":

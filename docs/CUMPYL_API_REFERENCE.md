@@ -49,6 +49,40 @@ Disassemble a specific section of the binary.
 
 **Returns**: `List[str]` - List of disassembled instructions
 
+##### `assemble_code(assembly_code: str, arch: str = "x86", mode: str = "64") -> bytes`
+Assemble assembly code to machine code bytes using keystone-engine.
+
+**Parameters**:
+- `assembly_code`: Assembly code as string to assemble
+- `arch`: Target architecture ("x86", "arm", "arm64", "mips")
+- `mode`: Architecture mode ("16", "32", "64", "arm", "thumb")
+
+**Returns**: `bytes` - Assembled machine code
+
+**Example**:
+```python
+machine_code = rewriter.assemble_code("mov rax, 0x42", "x86", "64")
+print(f"Assembled {len(machine_code)} bytes")
+```
+
+##### `disassemble_bytes(raw_bytes: bytes, arch: str = "x86", mode: str = "64", base_address: int = 0) -> List[str]`
+Disassemble raw bytes to assembly instructions using capstone.
+
+**Parameters**:
+- `raw_bytes`: Raw bytes to disassemble
+- `arch`: Source architecture ("x86", "arm", "arm64", "mips")
+- `mode`: Architecture mode ("16", "32", "64", "arm", "thumb")
+- `base_address`: Base address for instruction addresses
+
+**Returns**: `List[str]` - List of disassembled instructions
+
+**Example**:
+```python
+instructions = rewriter.disassemble_bytes(machine_code, "x86", "64", 0x400000)
+for instr in instructions:
+    print(f"  {instr}")
+```
+
 ##### `run_plugin_analysis() -> Dict[str, Any]`
 Run all enabled analysis plugins on the binary.
 
@@ -341,6 +375,12 @@ Multi-layered string obfuscation analysis plugin using windowbrick techniques.
 - `_apply_rotation(data: bytes, amount: int) -> bytes`: Apply bit rotation (supports negative for right rotation)
 - `_apply_substitution(data: bytes, table: bytes) -> bytes`: Apply substitution cipher
 
+**CLI Integration**:
+- This plugin is loaded automatically when plugins are enabled
+- Use `--run-analysis` to run this plugin along with all others
+- Plugin-specific configuration is available in the configuration file
+- The main CLI does not support running individual plugins directly
+
 #### WindowbrickTransformationPlugin
 Multi-layered string obfuscation transformation plugin using windowbrick techniques.
 
@@ -363,6 +403,12 @@ Multi-layered string obfuscation transformation plugin using windowbrick techniq
 - `_generate_dynamic_key() -> int`: Generate entropy-based obfuscation key
 - `_obfuscate_data(data: bytes, key: int) -> bytes`: Apply multi-layered obfuscation
 - `_get_default_substitution_table() -> bytes`: Get proper permutation table
+
+**CLI Integration**:
+- This plugin is loaded automatically when plugins are enabled
+- Use `--run-transformations` to run this plugin along with all others after analysis
+- Plugin-specific configuration is available in the configuration file
+- The main CLI does not support running individual plugins directly
 
 ### Analysis Utilities
 

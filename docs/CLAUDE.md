@@ -48,6 +48,27 @@ cumpyl sample.exe --suggest-obfuscation
 cumpyl sample.exe --run-analysis --all-plugins --report-format html
 ```
 
+### Assembly/Disassembly Operations
+
+Generate and analyze machine code with keystone and capstone engines:
+
+```bash
+# Assembly: Convert assembly code to machine code
+cumpyl --assemble "mov rax, 0x42; mov rbx, 0x1337" --assemble-arch x86 --assemble-mode 64
+
+# Assembly from file
+cumpyl --assemble-file shellcode.s --assemble-arch x86 --assemble-mode 64 --assemble-output shellcode.bin
+
+# Disassembly: Convert hex bytes back to assembly
+cumpyl --disassemble-bytes "48c7c042000000" --disassemble-arch x86 --disassemble-mode 64
+
+# Disassembly of binary sections
+cumpyl binary.exe --disassemble-section-raw .text --disassemble-arch x86 --disassemble-mode 32
+
+# Cross-architecture assembly
+cumpyl --assemble "mov r0, #0x42" --assemble-arch arm --assemble-mode arm
+```
+
 ### Testing
 ```bash
 # Run all tests

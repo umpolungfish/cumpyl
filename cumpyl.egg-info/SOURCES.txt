@@ -9,13 +9,8 @@ pyproject.toml
 requirements.in
 test_results.txt
 uv.lock
+vmescape.exe_strings_20251127_173833.csv
 .github/FUNDING.yml
-BIG_EXE/.cumpyl_backups/goofygoober_1.exe.20251127_170631.bak
-BIG_EXE/.cumpyl_backups/goofygoober_1.exe.20251127_170631.bak.meta.json
-BIG_EXE/.cumpyl_backups/klogging.exe.20251127_170940.bak
-BIG_EXE/.cumpyl_backups/klogging.exe.20251127_170940.bak.meta.json
-BIG_EXE/.cumpyl_backups/wingaypi.exe.20251127_170412.bak
-BIG_EXE/.cumpyl_backups/wingaypi.exe.20251127_170412.bak.meta.json
 cumpyl.egg-info/PKG-INFO
 cumpyl.egg-info/SOURCES.txt
 cumpyl.egg-info/dependency_links.txt
@@ -47,6 +42,7 @@ cumpyl_package/__pycache__/cumpyl.cpython-39.pyc
 cumpyl_package/__pycache__/plugin_manager.cpython-39.pyc
 cumpyl_package/__pycache__/reporting.cpython-39.pyc
 docs/ARCHITECTURAL_CHANGES_SUMMARY.md
+docs/CLAUDE.md
 docs/CUMPYL_API_REFERENCE.md
 docs/CUMPYL_DEVELOPER_GUIDE.md
 docs/CUMPYL_RELEASE_NOTES.md
@@ -58,6 +54,7 @@ docs/FIXES_SUMMARY.md
 docs/QWEN.md
 docs/README.md
 docs/README.md.bak
+docs/STRING_OBFUSCATION_TEST_SUMMARY.md
 docs/STRING_OBFUSCATOR_IMPROVEMENTS.md
 docs/STRING_OBFUSCATOR_README.md
 docs/STRING_OBFUSCATOR_REVIEW.md
@@ -98,6 +95,7 @@ plugins/test_go_packer_plugin.py
 plugins/test_utils.py
 plugins/transform.py
 plugins/transmuter_plugin.py
+plugins/windowbrick_plugin.py
 plugins/__pycache__/entropy_analysis.cpython-39.pyc
 plugins/__pycache__/string_extraction.cpython-39.pyc
 samples/ca_cheapsuit
@@ -108,8 +106,14 @@ scripts/real_packer.py
 scripts/setup.py
 tests/__init__.py
 tests/comprehensive_test.py
+tests/debug_negative_rotation.py
+tests/debug_obfuscation.py
+tests/debug_rotation.py
+tests/debug_sub_table_check.py
+tests/debug_substitution.py
 tests/final_test.py
 tests/test_all_plugins_fix.py
+tests/test_batch_obfuscation.py
 tests/test_binary_content.py
 tests/test_ca_packer_plugin.py
 tests/test_cgo_packer.py
@@ -130,8 +134,10 @@ tests/test_plugin_config.py
 tests/test_plugin_discovery.py
 tests/test_plugin_manager.py
 tests/test_plugin_packer_menu.py
+tests/test_plugin_registration.py
 tests/test_runner.py
 tests/test_updated_packer.py
+tests/test_windowbrick_plugin.py
 utils/ca_engine.py
 utils/ca_packer.py
 utils/crypto_engine.py

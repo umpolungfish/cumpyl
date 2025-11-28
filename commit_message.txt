@@ -1,181 +1,170 @@
-docs: Comprehensive documentation update for functional PE string obfuscation V3
+docs: Comprehensive documentation for integrated assembly/disassembly functionality
 
-Updates all documentation to reflect the now-functional V3 string obfuscation system
-after critical bug fixes. Adds detailed technical information, test results, usage
-examples, and bug fix documentation across README, CLAUDE.md, user guide, developer
-guide, quickstart, and architecture docs.
+## Summary
+Updates all documentation to comprehensively cover the newly integrated assembly and disassembly features from the private repository. Adds detailed user guides, developer references, API documentation, and usage examples for keystone-engine powered assembly and capstone-powered disassembly capabilities.
 
-## Changes Made
+## Documentation Changes
 
 ### 1. README.md
-**Updated PE String Obfuscation section with:**
-- ✅ Status indicator showing V3 is fully functional
-- Clear distinction between V2 (analysis) and V3 (transformation)
-- List of implemented methods (XOR, ROT13, Reverse) vs placeholders
-- V3 architecture features (stub injection, key storage, code patching)
-- Updated usage examples with correct CLI commands
-- Test results: 100% success rate on 5 binaries (498KB - 6.8MB)
-- Reference to detailed quickstart guide
+**Added Assembly/Disassembly Core Capability:**
+- Updated core capabilities list to include assembly/disassembly support
+- Added new Assembly/Disassembly Features section with collapsible details
+- Documented all new CLI options with explanations:
+  - `--assemble`, `--assemble-file`, `--assemble-arch`, `--assemble-mode`, `--assemble-output`
+  - `--disassemble-bytes`, `--disassemble-section-raw`, `--disassemble-arch`, `--disassemble-mode`, `--disassemble-address`
+- Added comprehensive command-line examples for various use cases
+- Included multi-architecture support documentation (x86, ARM, ARM64, MIPS)
 
-**Before:** Generic description without status or test results
-**After:** Detailed feature list with verified test results and clear usage
+**Before:** No mention of assembly/disassembly capabilities in main documentation
+**After:** Complete feature documentation with examples and architecture support
 
-### 2. CLAUDE.md
-**Updated PE String Obfuscation V3 Architecture section with:**
-- Production-ready status indicator
-- Updated workflow showing V3 receives full analysis results from V2
-- Complete list of bug fixes (2025-11-27) with technical details
-- Clear notes on V2/V3 relationship and dependencies
-- LIEF API fixes documented
+### 2. CUMPYL_DEVELOPER_GUIDE.md
+**Updated BinaryRewriter API Reference:**
+- Added comprehensive documentation for new methods:
+  - `assemble_code(assembly_code, arch, mode)` with parameters and return types
+  - `disassemble_bytes(raw_bytes, arch, mode, base_address)` with parameters and return types
+  - `disassemble_section(section_name)` (existing, but now properly contextualized)
+- Added practical code examples for developers
+- Documented supported architectures and modes for each method
 
-**Before:** Workflow didn't mention plugin data flow issue
-**After:** Clear explanation of V2→V3 data dependency and fixes
+**Before:** No documentation of assembly/disassembly methods
+**After:** Complete developer API reference with examples
 
-### 3. CUMPYL_DEVELOPER_GUIDE.md
-**Added comprehensive PluginManager data flow documentation:**
-- New section: "Transformation Plugin Data Flow (2025-11-27 Update)"
-- Code examples showing old vs new behavior
-- Explanation of why full analysis_results dict is passed
-- Impact on cross-plugin dependencies (V3↔V2)
-- Before/after code comparison
+### 3. CUMPYL_API_REFERENCE.md
+**Added Formal API Documentation:**
+- Added `assemble_code()` method with full signature, parameters, return type, and example
+- Added `disassemble_bytes()` method with full signature, parameters, return type, and example
+- Updated existing `disassemble_section()` documentation for consistency
+- Provided detailed parameter descriptions and usage examples
 
-**Why This Matters:**
-- Documents the critical architectural fix that enabled V3
-- Future plugin developers will understand cross-plugin data access
-- Prevents regression of the bug
+**Before:** Missing API documentation for new assembly/disassembly methods
+**After:** Complete formal API reference with parameter types and examples
 
 ### 4. CUMPYL_USER_GUIDE.md
-**Added new "PE String Obfuscation (V3)" section:**
-- Quick usage examples (CLI and interactive menu)
-- Detailed 3-phase obfuscation process explanation
-- Runtime behavior description
-- List of supported methods
-- Test results with verification examples
-- Console output example showing obfuscation steps
-- Before/after verification commands
+**Added User-Friendly Command Examples:**
+- Created Assembly Operations section with practical examples
+- Created Disassembly Operations section with real-world examples
+- Added multi-architecture examples (x86, ARM, ARM64, MIPS)
+- Documented file-based and inline assembly workflows
+- Included hex string disassembly examples
 
-**Before:** No PE string obfuscation section in user guide
-**After:** Complete user-facing documentation with examples
+**Before:** No user guide documentation for assembly/disassembly features
+**After:** Complete user guide with step-by-step examples
 
-### 5. STRING_OBFUSCATOR_V3_QUICKSTART.md
-**Updated Step 4: Apply V3 Obfuscation:**
-- ✅ Status indicator showing it now works
-- **Method A (NEW):** Single-command CLI usage (simplest)
-- **Method B (UPDATED):** Corrected interactive menu navigation
-- **Method C (FIXED):** Updated Python API example with correct plugin loading
-- Removed outdated factory function approach
-- Added automatic binary saving note
+### 5. CLAUDE.md
+**Enhanced AI Assistant Guidance:**
+- Added Assembly/Disassembly Operations section for AI assistants
+- Included practical command-line examples for keystone/capstone functionality
+- Added cross-architecture assembly examples
+- Documented both basic and advanced usage patterns
 
-**Before:** Complex multi-step Python code that didn't work
-**After:** Simple one-command CLI option plus working alternatives
+**Before:** No guidance for AI assistants on new assembly features
+**After:** Complete AI assistant reference with examples
 
-### 6. STRING_OBFUSCATOR_V3_ARCHITECTURE.md
-**Added comprehensive bug fix documentation:**
-- New "Critical Bug Fixes (2025-11-27)" section
-- Production status with test results
-- Detailed explanation of all 4 bugs:
-  1. Missing `Any` import
-  2. LIEF Section Characteristics API (3 locations)
-  3. LIEF Machine Types API (3 locations)
-  4. Plugin Manager data flow (CRITICAL)
-- Code examples showing old vs new for each bug
-- Impact analysis of plugin data flow fix
+### 6. STRING_OBFUSCATOR_V3_QUICKSTART.md
+**Added Advanced Features Section:**
+- Added "Advanced: Assembly/Disassembly Features" section
+- Provided basic usage examples for both assembly and disassembly
+- Documented supported architectures with examples
+- Included workflow integration guidance
 
-**Why This Matters:**
-- Complete historical record of what was broken
-- Explains why V3 didn't work before 2025-11-27
-- Documents the cross-plugin dependency pattern for future developers
+**Before:** Quickstart focused solely on string obfuscation
+**After:** Addition of advanced assembly/disassembly capabilities
 
 ## Documentation Structure
 
-### User-Facing Docs
+### User-Facing Documentation
 - **README.md**: High-level overview with quick examples
-- **CUMPYL_USER_GUIDE.md**: Complete user-facing documentation
-- **STRING_OBFUSCATOR_V3_QUICKSTART.md**: Step-by-step tutorial
+- **CUMPYL_USER_GUIDE.md**: Complete user-facing documentation with workflows
+- **STRING_OBFUSCATOR_V3_QUICKSTART.md**: Step-by-step tutorial with advanced features
 
-### Developer-Facing Docs
+### Developer-Facing Documentation
+- **CUMPYL_API_REFERENCE.md**: Formal API documentation
+- **CUMPYL_DEVELOPER_GUIDE.md**: Plugin development and usage patterns
 - **CLAUDE.md**: AI assistant reference for codebase navigation
-- **CUMPYL_DEVELOPER_GUIDE.md**: Plugin development and architecture
-- **STRING_OBFUSCATOR_V3_ARCHITECTURE.md**: Deep technical implementation details
 
 ## Key Information Added
 
-### Test Results (Verified 2025-11-27)
-- **Binaries Tested:** 5 diverse samples (498KB to 6.8MB)
-- **Success Rate:** 100% (5/5 binaries execute correctly)
-- **Strings Obfuscated:** 10-19 per binary
-- **Size Overhead:** +12KB (.stub + .xdata sections)
-- **Methods Used:** XOR, ROT13, String Reversal
-- **Validation:** All binaries passed PE validation
+### Assembly Capabilities Documented
+- **Inline assembly**: `--assemble "mov rax, 0x42"` with architecture flags
+- **File-based assembly**: `--assemble-file shellcode.s --assemble-output shellcode.bin`
+- **Multi-architecture support**: x86, ARM, ARM64, MIPS with 16/32/64-bit modes
+- **Machine code generation**: Direct conversion to binary output files
+
+### Disassembly Capabilities Documented
+- **Raw bytes disassembly**: `--disassemble-bytes "48c7c0..."` with arch flags
+- **Section disassembly**: `--disassemble-section-raw .text` with custom arch
+- **Address mapping**: `--disassemble-address 0x400000` for proper address display
+- **Cross-architecture support**: Same architecture modes as assembly
 
 ### Usage Patterns Documented
 ```bash
-# Simplest usage (new in docs)
-cumpyl binary.exe --pe-string-obfuscate
+# Assembly: Generate machine code
+cumpyl --assemble "mov rax, 0x42" --assemble-arch x86 --assemble-mode 64
 
-# Interactive menu path (clarified)
-cumpyl --start-menu
-# Build-a-Binary → Option 9 → Option 6
+# Assembly from file: Create shellcode binaries
+cumpyl --assemble-file code.s --assemble-arch arm64 --assemble-mode 64 --assemble-output shellcode.bin
 
-# Verification commands (new)
-strings original.exe | grep SECRET  # Visible
-strings obfuscated.exe | grep SECRET  # Hidden!
-./obfuscated.exe  # Still works!
+# Disassembly: Convert hex to assembly
+cumpyl --disassemble-bytes "48c7c042000000" --disassemble-arch x86 --disassemble-mode 64
+
+# Cross-architecture: Multiple platform support
+cumpyl --assemble "mov r0, #0x42" --assemble-arch arm --assemble-mode arm
 ```
 
 ### Technical Details Added
-- Cross-plugin data dependency pattern (V3→V2)
-- LIEF API evolution (old paths → new paths)
-- Plugin manager data flow architecture
-- Runtime deobfuscation mechanism
-- Stub injection process with RVAs
-- Key storage in .xdata section
+- Architecture mapping tables (x86/ARM/ARM64/MIPS with modes)
+- Parameter descriptions with valid values
+- Return type specifications
+- Integration with existing BinaryRewriter workflow
+- Validation behavior for assembly operations
 
 ## Impact
 
 ### For Users
-- Clear understanding of what V3 can do
-- Simple usage instructions
-- Confidence in production readiness (100% test success)
-- Troubleshooting guidance
+- Clear understanding of assembly/disassembly capabilities
+- Practical usage examples for different architectures
+- Integration with existing workflows documented
+- Multi-architecture support clearly explained
 
 ### For Developers
-- Understanding of plugin data flow
-- Knowledge of LIEF API migration
-- Historical context of bug fixes
-- Architecture pattern for cross-plugin dependencies
+- Complete API reference for new methods
+- Integration patterns with existing classes
+- Architecture support guidelines
+- Example implementations for custom plugins
 
 ### For AI Assistants (Claude)
-- CLAUDE.md updated with recent fixes
-- Clear V2/V3 relationship explanation
-- Bug fix documentation for troubleshooting
+- CLAUDE.md updated with new functionality reference
+- Clear usage examples for automated assistance
+- Integration patterns for code generation
 
 ## Verification
 
 All documentation changes verified against:
-- ✅ Actual code implementation
-- ✅ Test results from batch_obfuscation.py
-- ✅ Bug fixes committed in previous commit
-- ✅ Current LIEF API (0.12+)
+- ✅ Actual code implementation in `cumpyl_package/cumpyl.py`
+- ✅ Command-line argument parsing
+- ✅ Architecture and mode support
+- ✅ Example command execution
+- ✅ Cross-referencing between documentation files
 
 ## Related
 
-Updates documentation for:
-- Previous commit: "fix: Enable functional PE string obfuscation by fixing LIEF API and plugin data flow"
-- f7782ee: "fix: Save obfuscated binary to disk after PE string transformation"
-- 9b79b53: "fix: Enable V3 plugin and update menu warnings"
-- 6024c55: "feat: Implement functional PE string obfuscation V3 architecture"
+Updates documentation for commit:
+- Previous: "feat: Integrate assembly and disassembly functionality into main cumpyl repository"
+- Implements comprehensive documentation for keystone-engine/capstone integration
 
 ## Files Modified
 
-- README.md
-- CLAUDE.md
-- docs/CUMPYL_DEVELOPER_GUIDE.md
-- docs/CUMPYL_USER_GUIDE.md
-- docs/STRING_OBFUSCATOR_V3_QUICKSTART.md
-- docs/STRING_OBFUSCATOR_V3_ARCHITECTURE.md
+- README.md: Core capabilities and CLI examples
+- docs/CUMPYL_DEVELOPER_GUIDE.md: API reference and developer guidance
+- docs/CUMPYL_API_REFERENCE.md: Formal API documentation
+- docs/CUMPYL_USER_GUIDE.md: User workflows and examples
+- docs/CLAUDE.md: AI assistant guidance
+- docs/STRING_OBFUSCATOR_V3_QUICKSTART.md: Advanced features section
 
-**Total Lines Changed:** ~400 lines of documentation added/updated
+**Total Lines Changed:** ~450 lines of comprehensive documentation added
+**Total New Sections:** 6 major documentation sections added
+**Total Architecture Support:** 4 architectures (x86, ARM, ARM64, MIPS) with mode documentation
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 

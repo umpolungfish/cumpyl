@@ -468,6 +468,39 @@ strings binary_obfuscated.exe | grep password
 
 ---
 
+## Advanced: Assembly/Disassembly Features
+
+Cumpyl also provides direct assembly and disassembly capabilities for advanced binary manipulation:
+
+### Assembly (Assembly to Machine Code)
+```bash
+# Inline assembly
+cumpyl --assemble "mov rax, 0x42; nop; nop" --assemble-arch x86 --assemble-mode 64
+
+# Assembly from file to binary output
+cumpyl --assemble-file shellcode.s --assemble-arch arm64 --assemble-mode 64 --assemble-output shellcode.bin
+
+# Multi-architecture support
+cumpyl --assemble "mov r0, #0x42" --assemble-arch arm --assemble-mode arm
+```
+
+### Disassembly (Machine Code to Assembly)
+```bash
+# Disassemble hex bytes
+cumpyl --disassemble-bytes "48c7c042000000" --disassemble-arch x86 --disassemble-mode 64
+
+# Disassemble specific sections from binaries
+cumpyl binary.exe --disassemble-section-raw .text --disassemble-arch x86 --disassemble-mode 32
+```
+
+**Supported Architectures:**
+- **x86**: 16-bit, 32-bit, 64-bit
+- **ARM**: ARM and Thumb modes
+- **ARM64**: 64-bit
+- **MIPS**: 32-bit, 64-bit
+
+---
+
 **Happy Obfuscating! 🎉**
 
 For issues or questions, check:

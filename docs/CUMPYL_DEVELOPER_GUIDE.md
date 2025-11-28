@@ -291,6 +291,13 @@ The Windowbrick plugin (`plugins/windowbrick_plugin.py`) serves as a comprehensi
 - String detection and analysis capabilities
 - Integration with the build-a-binary menu system
 
+#### CLI Integration Notes
+Current CLI limitations:
+- The main CLI does not support running individual plugins by name
+- The `--run-analysis` flag runs all loaded plugins, not specific ones
+- Plugin-specific configuration is handled through the configuration file (`cumpyl.yaml`)
+- For individual plugin development and testing, use the interactive menu system or direct Python API calls
+
 ## Core Framework Components
 
 ### BinaryRewriter
@@ -304,12 +311,45 @@ rewriter = BinaryRewriter("binary.exe", config)
 if rewriter.load_binary():
     # Perform analysis
     analysis_results = rewriter.run_plugin_analysis()
-    
+
     # Apply transformations
     rewriter.run_plugin_transformations(analysis_results)
-    
+
     # Save modified binary
     rewriter.save_binary("modified.exe")
+```
+
+### Assembly and Disassembly Methods
+
+BinaryRewriter includes methods for assembly and disassembly operations:
+
+**Assembly:**
+- `assemble_code(assembly_code: str, arch: str = "x86", mode: str = "64") -> bytes`
+  - Converts assembly code to machine code bytes
+  - Supports architectures: x86, ARM, ARM64, MIPS
+  - Supports modes: 16, 32, 64, arm, thumb
+
+**Raw Byte Disassembly:**
+- `disassemble_bytes(raw_bytes: bytes, arch: str = "x86", mode: str = "64", base_address: int = 0) -> List[str]`
+  - Disassembles raw bytes to assembly instructions
+  - Supports same architecture/mode combinations as assembly
+  - Returns list of instruction strings
+
+**Section Disassembly (inherited functionality):**
+- `disassemble_section(section_name: str) -> List[str]`
+  - Disassembles a specific section of the loaded binary
+  - Uses default x86-64 mode
+
+**Example usage:**
+```python
+# Assembly code to machine code
+machine_code = rewriter.assemble_code("mov rax, 0x42", "x86", "64")
+
+# Disassemble raw bytes
+instructions = rewriter.disassemble_bytes(machine_code, "x86", "64", 0x400000)
+
+# Disassemble a section of loaded binary
+text_instructions = rewriter.disassemble_section(".text")
 ```
 
 ### ConfigManager
