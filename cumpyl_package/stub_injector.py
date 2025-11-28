@@ -86,9 +86,9 @@ class StubInjector:
             # Set properties
             stub_section.virtual_size = 0x2000  # 8KB should be enough for stubs
             stub_section.characteristics = (
-                lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
-                lief.PE.SECTION_CHARACTERISTICS.MEM_EXECUTE |
-                lief.PE.SECTION_CHARACTERISTICS.CNT_CODE
+                lief.PE.Section.CHARACTERISTICS.MEM_READ |
+                lief.PE.Section.CHARACTERISTICS.MEM_EXECUTE |
+                lief.PE.Section.CHARACTERISTICS.CNT_CODE
             )
 
             # Initialize with zeros
@@ -113,8 +113,8 @@ class StubInjector:
             # Set properties
             xdata_section.virtual_size = 0x1000  # 4KB for keys and parameters
             xdata_section.characteristics = (
-                lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
-                lief.PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA
+                lief.PE.Section.CHARACTERISTICS.MEM_READ |
+                lief.PE.Section.CHARACTERISTICS.CNT_INITIALIZED_DATA
             )
 
             # Initialize with zeros
@@ -176,7 +176,7 @@ class StubInjector:
             ])
 
             # Determine architecture
-            if self.binary.header.machine == lief.PE.MACHINE_TYPES.I386:
+            if self.binary.header.machine == lief.PE.Header.MACHINE_TYPES.I386:
                 stub_code = xor_stub_x86
             else:  # x64
                 stub_code = xor_stub_x64

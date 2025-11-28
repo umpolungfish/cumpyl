@@ -259,6 +259,38 @@ Recent improvements to the plugin packer menu include:
 - Support for dry run mode to test transformations without modifying files
 - Enhanced plugin loading and factory function detection
 
+### Windowbrick Plugin Integration
+
+The Windowbrick plugin has been fully integrated into the Cumpyl framework and represents a comprehensive example of a multi-layered obfuscation plugin. It demonstrates advanced plugin development concepts:
+
+#### Architecture
+- **Analysis Plugin**: `WindowbrickAnalysisPlugin` for detecting strings and recommending obfuscation
+- **Transformation Plugin**: `WindowbrickTransformationPlugin` for applying multi-layered obfuscation
+- **Reversible Operations**: All transformations can be reversed to restore original content
+- **Dynamic Key Generation**: Uses system entropy (timestamp, PID, random) for key generation
+
+#### Key Features
+- **XOR Cipher**: Standard XOR-based encryption with dynamic keys
+- **Bit Rotation**: Left/right rotation with configurable amounts (0-7 bits)
+- **Substitution Cipher**: Proper permutation table ensuring reversible substitution
+- **Multi-layered**: Full method combines all three techniques in a reversible sequence
+
+#### Plugin Development Patterns Demonstrated
+1. **Proper Permutation Table**: Fixed the substitution cipher to use a proper permutation for reversibility
+2. **Negative Rotation Handling**: Properly handles negative rotation amounts as right rotations
+3. **Configuration Management**: Uses plugin-specific configuration with fallbacks
+4. **Factory Functions**: Implements both analysis and transformation factory functions
+5. **Integration Points**: Shows how to integrate with framework menus and registry
+
+#### Example Implementation
+The Windowbrick plugin (`plugins/windowbrick_plugin.py`) serves as a comprehensive example of plugin development, demonstrating:
+- Proper inheritance from AnalysisPlugin and TransformationPlugin
+- Factory functions for plugin registration
+- Configuration handling and validation
+- Reversible cryptographic operations
+- String detection and analysis capabilities
+- Integration with the build-a-binary menu system
+
 ## Core Framework Components
 
 ### BinaryRewriter
@@ -299,8 +331,52 @@ Manages plugin discovery and execution:
 from cumpyl_package.plugin_manager import PluginManager
 
 plugin_manager = PluginManager(config)
-plugin_manager.load_all_plugins()
+
+# Discover and load plugins
+discovered = plugin_manager.discover_plugins()
+for plugin_name in discovered:
+    plugin_manager.load_plugin(plugin_name)
+
+# Run analysis phase
 analysis_results = plugin_manager.execute_analysis_phase(rewriter)
+
+# Run transformation phase
+# NOTE: Transformation plugins receive FULL analysis_results dict
+# This allows cross-plugin dependencies (e.g., V3 needs V2's analysis)
+success = plugin_manager.execute_transformation_phase(rewriter, analysis_results)
+```
+
+#### Important: Transformation Plugin Data Flow (2025-11-27 Update)
+
+Transformation plugins receive the **complete analysis results dictionary**, not just their own analysis. This enables cross-plugin dependencies.
+
+**Example:**
+```python
+# In execute_transformation_phase (plugin_manager.py:327)
+for plugin in transformation_plugins:
+    if plugin.enabled:
+        # Pass FULL analysis_results, not just plugin's own data
+        success = plugin.transform(rewriter, analysis_results)
+```
+
+**Why This Matters:**
+- V3 string obfuscation plugin depends on V2 analysis plugin's results
+- Transformation plugins can access any analysis plugin's output
+- Enables complex multi-stage transformation pipelines
+
+**Previous Behavior (INCORRECT - before 2025-11-27):**
+```python
+# Old code only passed individual plugin's analysis
+plugin_analysis = analysis_results.get(plugin.name, {})
+success = plugin.transform(rewriter, plugin_analysis)
+# Result: V3 received empty dict, couldn't find strings!
+```
+
+**Current Behavior (CORRECT):**
+```python
+# New code passes full analysis_results
+success = plugin.transform(rewriter, analysis_results)
+# Result: V3 can access pe_string_obfuscation analysis data
 ```
 
 ## API Reference

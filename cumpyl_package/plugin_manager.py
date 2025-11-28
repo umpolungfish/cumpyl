@@ -328,12 +328,13 @@ class PluginManager:
         """𐑮𐑳𐑯 𐑑𐑮𐑨𐑯𐑕𐑓𐑼𐑥𐑱𐑖𐑩𐑯 𐑓𐑱𐑟 𐑓𐑹 𐑷𐑤 𐑐𐑤𐑳𐑜𐑦𐑯𐑟"""
         transformation_plugins = self.get_transformation_plugins()
         all_success = True
-        
+
         for plugin in transformation_plugins:
             if plugin.enabled:
                 try:
-                    plugin_analysis = analysis_results.get(plugin.name, {})
-                    success = plugin.transform(rewriter, plugin_analysis)
+                    # Pass full analysis_results to transformation plugins
+                    # This allows them to access other plugins' analysis data
+                    success = plugin.transform(rewriter, analysis_results)
                     if not success:
                         all_success = False
                     if self.config.framework.verbose_logging:
@@ -342,7 +343,7 @@ class PluginManager:
                 except Exception as e:
                     print(f"[-] Transformation failed for plugin {plugin.name}: {e}")
                     all_success = False
-        
+
         return all_success
     
     def list_plugins(self) -> List[Dict[str, Any]]:

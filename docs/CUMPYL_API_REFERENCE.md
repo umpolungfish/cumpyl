@@ -316,6 +316,54 @@ CGO-aware Go binary packer analysis plugin.
 **Methods**:
 - `analyze(rewriter) -> Dict[str, Any]`: Analyze CGO-enabled Go binary
 
+#### WindowbrickAnalysisPlugin
+Multi-layered string obfuscation analysis plugin using windowbrick techniques.
+
+**Capabilities**:
+- String detection across all binary sections
+- Dynamic key generation using system entropy
+- Configurable obfuscation methods (XOR, rotation, substitution, full)
+- Obfuscation opportunity recommendations
+- Reversible cryptographic operations
+
+**Configuration Options**:
+- `rotation_amount`: Number of bits to rotate (0-7, default: 3)
+- `enable_anti_analysis`: Enable timing-based anti-analysis (default: False)
+- `obfuscation_mode`: XOR, rotation, substitution, or full (default: full)
+
+**Methods**:
+- `analyze(rewriter) -> Dict[str, Any]`: Analyze binary for string obfuscation opportunities
+- `_generate_dynamic_key() -> int`: Generate entropy-based obfuscation key
+- `_obfuscate_data(data: bytes, key: int) -> bytes`: Apply multi-layered obfuscation
+- `_deobfuscate_data(data: bytes, key: int) -> bytes`: Reverse obfuscation operations
+- `_get_default_substitution_table() -> bytes`: Get proper permutation table
+- `_apply_xor(data: bytes, key: int) -> bytes`: Apply XOR cipher
+- `_apply_rotation(data: bytes, amount: int) -> bytes`: Apply bit rotation (supports negative for right rotation)
+- `_apply_substitution(data: bytes, table: bytes) -> bytes`: Apply substitution cipher
+
+#### WindowbrickTransformationPlugin
+Multi-layered string obfuscation transformation plugin using windowbrick techniques.
+
+**Capabilities**:
+- Apply XOR, rotation, and substitution obfuscation to strings
+- Integrate with binary modification pipeline
+- Track modifications for proper binary structure maintenance
+- Dynamic key generation for obfuscation
+
+**Configuration Options**:
+- `rotation_amount`: Number of bits to rotate (0-7, default: 3)
+- `enable_anti_analysis`: Enable timing-based anti-analysis (default: False)
+- `obfuscation_mode`: XOR, rotation, substitution, or full (default: full)
+- `custom_substitution_table`: Custom substitution table (default: None)
+
+**Methods**:
+- `analyze(rewriter) -> Dict[str, Any]`: Prepare for transformation
+- `transform(rewriter, analysis_result: Dict[str, Any]) -> bool`: Apply string obfuscation transformations
+- `_get_strings_from_analysis(analysis_result: Dict[str, Any]) -> List[Dict[str, Any]]`: Extract strings from analysis results
+- `_generate_dynamic_key() -> int`: Generate entropy-based obfuscation key
+- `_obfuscate_data(data: bytes, key: int) -> bytes`: Apply multi-layered obfuscation
+- `_get_default_substitution_table() -> bytes`: Get proper permutation table
+
 ### Analysis Utilities
 
 #### Entropy Analysis

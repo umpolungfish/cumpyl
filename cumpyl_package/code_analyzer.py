@@ -5,7 +5,8 @@ Analyzes code sections to find string references and patch them
 """
 
 import lief
-from typing import Dict, List, Tuple, Optional, Set
+import struct
+from typing import Dict, List, Tuple, Optional, Set, Any
 from dataclasses import dataclass
 import logging
 
@@ -58,7 +59,7 @@ class CodeAnalyzer:
         self.string_rvas = set()  # Known string RVAs
 
         # Determine architecture
-        self.is_x64 = (binary.header.machine == lief.PE.MACHINE_TYPES.AMD64)
+        self.is_x64 = (binary.header.machine == lief.PE.Header.MACHINE_TYPES.AMD64)
 
         # Initialize Capstone if available
         if CAPSTONE_AVAILABLE:
@@ -91,7 +92,7 @@ class CodeAnalyzer:
 
             # Find code sections
             code_sections = [s for s in self.binary.sections
-                           if s.characteristics & lief.PE.SECTION_CHARACTERISTICS.CNT_CODE]
+                           if s.characteristics & lief.PE.Section.CHARACTERISTICS.CNT_CODE]
 
             if not code_sections:
                 logger.warning("No code sections found")

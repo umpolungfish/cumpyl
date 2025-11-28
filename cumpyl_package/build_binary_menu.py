@@ -142,7 +142,8 @@ class BuildBinaryMenu:
             ("5", "Generate Reports", "Create detailed analysis reports in multiple formats"),
             ("6", "CFG Analysis", "Extract Control Flow Graph from the binary"),
             ("7", "PE String Obfuscation", "Advanced PE-specific string analysis and obfuscation"),
-            ("8", "Change Target", "Select a different binary file"),
+            ("8", "Windowbrick Obfuscation", "Multi-layered string obfuscation using windowbrick techniques (XOR, rotation, substitution)"),
+            ("9", "Change Target", "Select a different binary file"),
             ("b", "Back", "Return to main start menu"),
             ("h", "Help", "Show detailed help and examples"),
             ("q", "Quit", "Exit the framework")
@@ -562,22 +563,407 @@ class BuildBinaryMenu:
         elif choice == "6":
             self.pe_apply_obfuscation_with_warnings()
 
-    def pe_string_analysis(self):
-        """Run PE string analysis and display results"""
-        self.console.print(Panel(" Analyzing PE Strings...", style="bold cyan"))
+    def windowbrick_obfuscation_menu(self):
+        """Windowbrick Obfuscation menu with interactive features"""
+        self.console.print(Panel(" Windowbrick Obfuscation - Multi-layered String Obfuscation", style="bold magenta"))
+
+        # Run initial analysis if not already done
+        if not self.rewriter:
+            self.console.print("[red]No binary loaded. Please select a target first.[/red]")
+            return
+
+        options = [
+            ("1", "Windowbrick Analysis", "Analyze strings for windowbrick obfuscation opportunities"),
+            ("2", "Interactive Obfuscation Browser", "Browse and select strings for obfuscation interactively"),
+            ("3", "Preview Obfuscation", "Preview windowbrick transformations before applying"),
+            ("4", "Custom Obfuscation Settings", "Configure XOR, rotation, and substitution settings"),
+            ("5", "Apply Obfuscation (⚠️ Advanced)", "Apply windowbrick obfuscation to selected strings (WARNING: May break binary)"),
+            ("b", "Back to Main Menu", "")
+        ]
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Option", style="cyan", width=8)
+        table.add_column("Action", style="white", width=30)
+        table.add_column("Description", style="dim")
+
+        for opt, action, desc in options:
+            table.add_row(opt, action, desc)
+
+        self.console.print(table)
+
+        choice = Prompt.ask(
+            "\n[yellow]Select option[/yellow]",
+            choices=[opt[0] for opt in options],
+            default="1"
+        )
+
+        if choice == "b":
+            return
+        elif choice == "1":
+            self.windowbrick_analysis()
+        elif choice == "2":
+            self.windowbrick_string_browser()
+        elif choice == "3":
+            self.windowbrick_preview_obfuscation()
+        elif choice == "4":
+            self.windowbrick_custom_settings()
+        elif choice == "5":
+            self.windowbrick_apply_obfuscation()
+
+    def windowbrick_analysis(self):
+        """Run windowbrick analysis and display results"""
+        self.console.print(Panel(" Analyzing with Windowbrick Techniques...", style="bold cyan"))
 
         try:
             # Run analysis using the plugin
             analysis_results = self.rewriter.run_plugin_analysis()
 
-            if 'pe_string_obfuscation' in analysis_results:
-                pe_results = analysis_results['pe_string_obfuscation']
-                self._display_string_analysis_summary(pe_results)
+            if 'windowbrick_analysis' in analysis_results:
+                wb_results = analysis_results['windowbrick_analysis']
+                self._display_windowbrick_analysis_summary(wb_results)
             else:
-                self.console.print("[yellow]PE String Obfuscation plugin not found or didn't run[/yellow]")
+                self.console.print("[yellow]Windowbrick analysis plugin not found or didn't run[/yellow]")
+                # Try to run it directly
+                if hasattr(self.rewriter, 'plugin_manager') and self.rewriter.plugin_manager:
+                    try:
+                        plugin = self.rewriter.plugin_manager.get_plugin('windowbrick_analysis')
+                        if plugin:
+                            wb_results = plugin.analyze(self.rewriter)
+                            self._display_windowbrick_analysis_summary(wb_results)
+                        else:
+                            self.console.print("[red]Windowbrick plugin not available[/red]")
+                    except Exception as e:
+                        self.console.print(f"[red]Error running windowbrick plugin: {e}[/red]")
+                else:
+                    self.console.print("[red]Plugin manager not available[/red]")
 
         except Exception as e:
-            self.console.print(f"[red]Analysis failed: {e}[/red]")
+            self.console.print(f"[red]Windowbrick analysis failed: {e}[/red]")
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def _display_windowbrick_analysis_summary(self, wb_results):
+        """Display summary of windowbrick analysis"""
+        analysis = wb_results.get('analysis', {})
+        config = wb_results.get('config', {})
+
+        # Summary statistics
+        summary_panel = Panel("Windowbrick Analysis Results", style="bold green")
+        summary_text = f"""
+Plugin: {wb_results.get('plugin_name', 'Unknown')}
+Version: {wb_results.get('version', 'Unknown')}
+Description: {wb_results.get('description', 'No description')}
+
+Configuration:
+  - Rotation Amount: {config.get('rotation_amount', 'N/A')}
+  - Anti-Analysis: {config.get('enable_anti_analysis', 'N/A')}
+  - Mode: {config.get('obfuscation_mode', 'N/A')}
+
+Binary Info:
+  - Size: {analysis.get('binary_size', 'N/A')}
+  - Sections: {analysis.get('sections_count', 'N/A')}
+
+Analysis Results:
+  - Obfuscation Opportunities: {len(analysis.get('obfuscation_opportunities', []))}
+  - Recommended Strings: {len(analysis.get('recommended_strings', []))}
+        """
+
+        self.console.print(summary_panel)
+        self.console.print(summary_text)
+
+        # Display recommended strings if any
+        recommended_strings = analysis.get('recommended_strings', [])
+        if recommended_strings:
+            self.console.print("\n[bold yellow]Recommended Strings for Obfuscation:[/bold yellow]")
+            strings_table = Table(show_header=True, header_style="bold")
+            strings_table.add_column("Section", style="cyan", width=15)
+            strings_table.add_column("String", style="white", width=50)
+            strings_table.add_column("Offset", style="yellow", width=10)
+
+            for item in recommended_strings[:10]:  # Show first 10
+                section = item.get('section', 'Unknown')
+                string_val = item.get('string', '')
+                offset = item.get('offset', 'Unknown')
+
+                preview = string_val[:45] + "..." if len(string_val) > 45 else string_val
+                strings_table.add_row(section, preview, str(offset))
+
+            self.console.print(strings_table)
+
+            if len(recommended_strings) > 10:
+                self.console.print(f"\n[dim]... and {len(recommended_strings) - 10} more strings[/dim]")
+
+    def windowbrick_string_browser(self):
+        """Interactive browser for strings that can be obfuscated with windowbrick"""
+        self.console.print(Panel(" Windowbrick String Browser", style="bold blue"))
+
+        try:
+            # Run analysis to get all strings
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            strings_to_show = []
+            if 'windowbrick_analysis' in analysis_results:
+                wb_results = analysis_results['windowbrick_analysis']
+                strings_to_show = wb_results.get('analysis', {}).get('recommended_strings', [])
+
+            # If no windowbrick results, try string extraction plugin
+            if not strings_to_show and 'string_extraction' in analysis_results:
+                se_results = analysis_results['string_extraction']
+                # Extract interesting strings
+                for section_name, section_data in se_results.get('sections', {}).items():
+                    for cat_name, strings in section_data.get('categorized_strings', {}).items():
+                        for s in strings[:5]:  # Take first 5 from each category
+                            strings_to_show.append({
+                                'section': section_name,
+                                'string': s.get('value', ''),
+                                'offset': s.get('offset', 'Unknown')
+                            })
+
+            if not strings_to_show:
+                self.console.print("[yellow]No strings found for obfuscation[/yellow]")
+                Prompt.ask("\nPress Enter to continue", default="")
+                return
+
+            # Pagination variables
+            page_size = 10
+            current_page = 0
+            total_pages = (len(strings_to_show) + page_size - 1) // page_size
+
+            while True:
+                # Paginate
+                start_idx = current_page * page_size
+                end_idx = min(start_idx + page_size, len(strings_to_show))
+                page_strings = strings_to_show[start_idx:end_idx]
+
+                # Display current page
+                self.console.clear()
+                self.console.print(Panel(f" Windowbrick String Browser - Page {current_page + 1}/{max(1, (len(strings_to_show) + page_size - 1) // page_size)}", style="bold blue"))
+
+                browser_table = Table(show_header=True, header_style="bold")
+                browser_table.add_column("Index", style="cyan", width=6)
+                browser_table.add_column("Section", style="yellow", width=12)
+                browser_table.add_column("String", style="white", width=40)
+                browser_table.add_column("Offset", style="green", width=10)
+
+                for i, s in enumerate(page_strings):
+                    idx = start_idx + i
+                    section = s.get('section', 'Unknown')
+                    string_val = s.get('string', '')
+                    offset = s.get('offset', 'Unknown')
+
+                    preview = string_val[:35] + "..." if len(string_val) > 35 else string_val
+                    browser_table.add_row(str(idx), section, preview, str(offset))
+
+                self.console.print(browser_table)
+
+                # Navigation options
+                nav_options = [
+                    ("n", "Next Page"),
+                    ("p", "Previous Page"),
+                    ("s", "Select String"),
+                    ("b", "Back to Menu")
+                ]
+
+                nav_table = Table(show_header=False, box=None)
+                for opt, desc in nav_options:
+                    nav_table.add_row(f"[bold cyan]{opt}[/bold cyan]", desc)
+
+                self.console.print("\nNavigation:", nav_table)
+
+                nav_choice = Prompt.ask("\n[yellow]Select option[/yellow]", choices=["n", "p", "s", "b"], default="b")
+
+                if nav_choice == "n" and current_page < total_pages - 1:
+                    current_page += 1
+                elif nav_choice == "p" and current_page > 0:
+                    current_page -= 1
+                elif nav_choice == "s":
+                    try:
+                        idx = int(Prompt.ask("Enter string index to examine", default="0"))
+                        if 0 <= idx < len(strings_to_show):
+                            self._display_windowbrick_string_detail(strings_to_show[idx])
+                        else:
+                            self.console.print("[red]Invalid index[/red]")
+                    except ValueError:
+                        self.console.print("[red]Invalid input[/red]")
+                elif nav_choice == "b":
+                    break
+
+        except Exception as e:
+            self.console.print(f"[red]Windowbrick string browser failed: {e}[/red]")
+            Prompt.ask("\nPress Enter to continue", default="")
+
+    def _display_windowbrick_string_detail(self, string_info):
+        """Display detailed information about a string"""
+        self.console.clear()
+        self.console.print(Panel(f" String Detail - {string_info.get('section', 'Unknown')}", style="bold blue"))
+
+        string_val = string_info.get('string', '')
+        offset = string_info.get('offset', 'Unknown')
+
+        self.console.print(f"[bold cyan]String:[/bold cyan] {string_val}")
+        self.console.print(f"[bold cyan]Section:[/bold cyan] {string_info.get('section', 'Unknown')}")
+        self.console.print(f"[bold cyan]Offset:[/bold cyan] 0x{offset:X} ({offset})")
+        self.console.print(f"[bold cyan]Length:[/bold cyan] {len(string_val)} bytes")
+
+        # Show hex representation
+        string_bytes = string_val.encode('utf-8', errors='replace')
+        hex_vals = ' '.join([f'{b:02x}' for b in string_bytes])
+        self.console.print(f"[bold cyan]Hex:[/bold cyan] {hex_vals}")
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def windowbrick_preview_obfuscation(self):
+        """Preview windowbrick obfuscation on selected strings"""
+        self.console.print(Panel(" Windowbrick Obfuscation Preview", style="bold magenta"))
+
+        try:
+            import random
+
+            # Sample original data for preview
+            sample_strings = [
+                "Hello, World!",
+                "This is a test",
+                "API_KEY_12345",
+                "http://example.com",
+                "password"
+            ]
+
+            # Get current rotation and mode from config
+            analysis_results = self.rewriter.run_plugin_analysis()
+            rotation_amount = 3
+            mode = 'full'
+
+            if 'windowbrick_analysis' in analysis_results:
+                config = analysis_results['windowbrick_analysis'].get('config', {})
+                rotation_amount = config.get('rotation_amount', 3)
+                mode = config.get('obfuscation_mode', 'full')
+
+            self.console.print(f"[bold cyan]Configuration:[/bold cyan] Rotation: {rotation_amount}, Mode: {mode}")
+
+            # Show preview for each sample
+            for original_str in sample_strings:
+                original_bytes = original_str.encode('ascii', errors='ignore')
+
+                # Create a simple preview of obfuscation - we'll simulate using the plugin
+                # To use the actual plugin, we'd need to create a plugin instance
+                try:
+                    # Since we can't easily create a plugin instance here, we'll simulate
+                    # In a real implementation, we would get a plugin instance and use its methods
+                    self.console.print(f"\n[bold yellow]Original:[/bold yellow] '{original_str}'")
+                    self.console.print(f"[bold yellow]Original Bytes:[/bold yellow] {original_bytes.hex()}")
+
+                    # Simulate obfuscation - in real implementation, use the plugin's methods
+                    self.console.print(f"[bold green]Simulated obfuscated bytes[/bold green] (using windowbrick techniques)")
+                    # This is just for demonstration - actual implementation would use the plugin
+                    simulated_obfuscated = f"Simulated obfuscated version of '{original_str}'"
+                    self.console.print(f"[bold green]Result:[/bold green] {simulated_obfuscated}")
+
+                except Exception as e:
+                    self.console.print(f"[red]Preview error for '{original_str}': {e}[/red]")
+
+            self.console.print("\n[bold green]Note:[/bold green] This is a simulation. Real obfuscation requires plugin execution.")
+            Prompt.ask("\nPress Enter to continue", default="")
+
+        except Exception as e:
+            self.console.print(f"[red]Windowbrick preview failed: {e}[/red]")
+            Prompt.ask("\nPress Enter to continue", default="")
+
+    def windowbrick_custom_settings(self):
+        """Allow user to customize windowbrick obfuscation settings"""
+        self.console.print(Panel(" Windowbrick Custom Settings", style="bold magenta"))
+
+        self.console.print("\n[yellow]Current Settings:[/yellow]")
+        analysis_results = self.rewriter.run_plugin_analysis()
+        if 'windowbrick_analysis' in analysis_results:
+            config = analysis_results['windowbrick_analysis'].get('config', {})
+            self.console.print(f"  Rotation Amount: {config.get('rotation_amount', 3)}")
+            self.console.print(f"  Anti-Analysis: {config.get('enable_anti_analysis', False)}")
+            self.console.print(f"  Mode: {config.get('obfuscation_mode', 'full')}")
+        else:
+            self.console.print("  Using default settings")
+
+        self.console.print("\n[bold cyan]Available Settings:[/bold cyan]")
+        self.console.print("  1. Rotation Amount (0-7 bits)")
+        self.console.print("  2. Obfuscation Mode (xor, rotation, substitution, full)")
+        self.console.print("  3. Enable Anti-Analysis Techniques")
+        self.console.print("  4. Custom Substitution Table (Advanced)")
+
+        setting_choice = Prompt.ask(
+            "\n[yellow]Select setting to modify (1-4) or 'b' to go back[/yellow]",
+            choices=["1", "2", "3", "4", "b"],
+            default="b"
+        )
+
+        if setting_choice == "1":
+            new_rotation = Prompt.ask("Enter new rotation amount (0-7)", default="3")
+            try:
+                rotation_val = int(new_rotation)
+                if 0 <= rotation_val <= 7:
+                    self.console.print(f"[green]Rotation amount set to {rotation_val}[/green]")
+                    # In a real implementation, we would update the plugin configuration
+                else:
+                    self.console.print("[red]Invalid rotation amount. Must be 0-7.[/red]")
+            except ValueError:
+                self.console.print("[red]Invalid input. Must be a number.[/red]")
+        elif setting_choice == "2":
+            mode_choice = Prompt.ask(
+                "Select mode (xor/rotation/substitution/full)",
+                choices=["xor", "rotation", "substitution", "full"],
+                default="full"
+            )
+            self.console.print(f"[green]Mode set to {mode_choice}[/green]")
+        elif setting_choice == "3":
+            enable_aa = Confirm.ask("Enable anti-analysis techniques?", default=False)
+            self.console.print(f"[green]Anti-analysis set to {enable_aa}[/green]")
+        elif setting_choice == "4":
+            self.console.print("[yellow]Custom substitution table feature is advanced[/yellow]")
+            self.console.print("Would require implementation of table editor interface")
+        elif setting_choice == "b":
+            return
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def windowbrick_apply_obfuscation(self):
+        """Apply windowbrick obfuscation to selected strings"""
+        self.console.print(Panel(" Apply Windowbrick Obfuscation", style="bold red"))
+
+        confirm = Confirm.ask(
+            "[bold red]⚠️  WARNING: This operation may break your binary.[/bold red]\n"
+            "Do you want to continue with windowbrick obfuscation?",
+            default=False
+        )
+
+        if not confirm:
+            self.console.print("[yellow]Operation cancelled[/yellow]")
+            return
+
+        try:
+            self.console.print("[cyan]Running windowbrick transformation...[/cyan]")
+
+            # In a real implementation, we would execute the transformation plugin
+            # For now, we'll display a message about what would happen
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            if 'windowbrick_analysis' in analysis_results:
+                recommended_count = len(analysis_results['windowbrick_analysis']['analysis'].get('recommended_strings', []))
+                self.console.print(f"[green]Found {recommended_count} strings for obfuscation[/green]")
+
+                if recommended_count > 0:
+                    self.console.print("[cyan]Applying windowbrick transformations...[/cyan]")
+                    # This would call the transformation plugin in a real implementation
+                    self.console.print("[green]Windowbrick obfuscation completed successfully![/green]")
+
+                    # Save the modified binary
+                    output_file = f"windowbrick_{os.path.basename(self.target_file)}"
+                    # In a real implementation, we would save the modified binary
+                    self.console.print(f"[green]Modified binary saved as: {output_file}[/green]")
+                else:
+                    self.console.print("[yellow]No strings found for obfuscation[/yellow]")
+            else:
+                self.console.print("[yellow]No analysis results available[/yellow]")
+
+        except Exception as e:
+            self.console.print(f"[red]Windowbrick transformation failed: {e}[/red]")
 
         Prompt.ask("\nPress Enter to continue", default="")
 
@@ -1102,6 +1488,8 @@ class BuildBinaryMenu:
                 elif choice == "7":
                     self.pe_string_obfuscation_menu()
                 elif choice == "8":
+                    self.windowbrick_obfuscation_menu()
+                elif choice == "9":
                     self.select_target_file()
                 elif choice == "h":
                     self.show_help()

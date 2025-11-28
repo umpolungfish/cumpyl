@@ -62,6 +62,13 @@ except ImportError:
     get_pe_string_analysis_plugin = None
     get_pe_string_transform_plugin = None
 
+try:
+    from plugins.windowbrick_plugin import get_analysis_plugin as get_windowbrick_analysis_plugin, get_transformation_plugin as get_windowbrick_transform_plugin
+except ImportError:
+    # If we can't import the plugins, don't register them
+    get_windowbrick_analysis_plugin = None
+    get_windowbrick_transform_plugin = None
+
 if get_packer_plugin:
     PluginRegistry.register('analysis', 'packer', get_packer_plugin)
 if get_packer_transform_plugin:
@@ -79,3 +86,8 @@ if get_pe_string_analysis_plugin:
     PluginRegistry.register('analysis', 'pe_string_obfuscation', get_pe_string_analysis_plugin)
 if get_pe_string_transform_plugin:
     PluginRegistry.register('transformation', 'pe_string_obfuscation_transform', get_pe_string_transform_plugin)
+
+if get_windowbrick_analysis_plugin:
+    PluginRegistry.register('analysis', 'windowbrick_analysis', get_windowbrick_analysis_plugin)
+if get_windowbrick_transform_plugin:
+    PluginRegistry.register('transformation', 'windowbrick_transform', get_windowbrick_transform_plugin)

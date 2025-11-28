@@ -109,30 +109,52 @@ You should see strings detected:
 
 ---
 
-### Step 4: Apply V3 Obfuscation
+### Step 4: Apply V3 Obfuscation ✅ **NOW WORKING**
 
-**Method A: Via CLI (Recommended)**
+**Method A: Via CLI (Recommended and Simplest)**
 
 ```bash
-# Apply functional obfuscation with V3
-python -c "
-from cumpyl_package.cumpyl import BinaryRewriter
-from cumpyl_package.config import get_config
+# Apply functional obfuscation with V3 - ONE COMMAND!
+cumpyl test.exe --pe-string-obfuscate
 
-config = get_config()
+# With custom output path
+cumpyl test.exe --pe-string-obfuscate --output test_obfuscated.exe
+```
+
+**Method B: Via Build-a-Binary Interactive Menu**
+
+```bash
+# Launch interactive menu
+cumpyl --start-menu
+
+# Navigate:
+# Build-a-Binary → Select test.exe
+# Option 9: PE String Obfuscation
+# Option 6: Apply Obfuscation (⚠️ Advanced)
+# Confirm warnings → Binary is automatically saved
+```
+
+**Method C: Via Python API (Advanced)**
+
+```bash
+python3 -c "
+from cumpyl_package.cumpyl import BinaryRewriter
+from cumpyl_package.config import ConfigManager
+
+config = ConfigManager()
 rewriter = BinaryRewriter('test.exe', config)
 rewriter.load_binary()
-rewriter.load_plugins()
+
+# Discover and load plugins
+discovered = rewriter.plugin_manager.discover_plugins()
+for plugin_name in discovered:
+    rewriter.plugin_manager.load_plugin(plugin_name)
 
 # Run analysis
 analysis = rewriter.run_plugin_analysis()
 
-# Get V3 plugin
-from plugins.pe_string_obfuscation_v3 import get_plugin
-v3_plugin = get_plugin(config)
-
-# Apply transformation
-success = v3_plugin.transform(rewriter, analysis)
+# Run transformations (V3 plugin auto-detected)
+success = rewriter.run_plugin_transformations(analysis)
 
 if success:
     rewriter.save_binary('test_obfuscated.exe')
@@ -140,18 +162,6 @@ if success:
 else:
     print('[-] Obfuscation failed')
 "
-```
-
-**Method B: Via Build-a-Binary Menu** (if integrated)
-
-```bash
-cumpyl
-
-# Navigate:
-# [1] Build-a-Binary
-# Select test.exe
-# [7] PE String Obfuscation
-# [7] Apply V3 Functional Obfuscation
 ```
 
 ---

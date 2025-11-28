@@ -10,6 +10,12 @@ requirements.in
 test_results.txt
 uv.lock
 .github/FUNDING.yml
+BIG_EXE/.cumpyl_backups/goofygoober_1.exe.20251127_170631.bak
+BIG_EXE/.cumpyl_backups/goofygoober_1.exe.20251127_170631.bak.meta.json
+BIG_EXE/.cumpyl_backups/klogging.exe.20251127_170940.bak
+BIG_EXE/.cumpyl_backups/klogging.exe.20251127_170940.bak.meta.json
+BIG_EXE/.cumpyl_backups/wingaypi.exe.20251127_170412.bak
+BIG_EXE/.cumpyl_backups/wingaypi.exe.20251127_170412.bak.meta.json
 cumpyl.egg-info/PKG-INFO
 cumpyl.egg-info/SOURCES.txt
 cumpyl.egg-info/dependency_links.txt

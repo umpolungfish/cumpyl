@@ -140,7 +140,7 @@ class BinaryRewriter:
                 if hasattr(lief, 'PE') and isinstance(self.binary, lief.PE.Binary):
                     # 𐑿𐑟 𐑞 𐑒𐑻𐑧𐑒𐑑 LIEF PE 𐑥𐑩𐑖𐑰𐑯 𐑑𐑲𐑐 𐑒𐑪𐑯𐑕𐑑𐑩𐑯𐑑𐑕
                     try:
-                        valid_machines = [lief.PE.MACHINE_TYPES.AMD64, lief.PE.MACHINE_TYPES.I386]
+                        valid_machines = [lief.PE.Header.MACHINE_TYPES.AMD64, lief.PE.Header.MACHINE_TYPES.I386]
                         if self.binary.header.machine not in valid_machines:
                             print("[-] Invalid PE architecture")
                             return False
