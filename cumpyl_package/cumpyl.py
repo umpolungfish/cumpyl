@@ -988,6 +988,14 @@ def main():
             success = rewriter.run_plugin_transformations(analysis_results)
             if success:
                 console.print("[green]✓ PE string obfuscation transformation completed successfully[/green]")
+
+                # Save the modified binary
+                output_file = args.output or f"obfuscated_{os.path.basename(args.input)}"
+                print(f"[*] Saving obfuscated binary to: {output_file}")
+                if rewriter.save_binary(output_file):
+                    console.print(f"[green]✓ Binary saved successfully to: {output_file}[/green]")
+                else:
+                    console.print(f"[red]❌ Failed to save binary to: {output_file}[/red]")
             else:
                 console.print("[red]❌ PE string obfuscation transformation failed[/red]")
         else:
