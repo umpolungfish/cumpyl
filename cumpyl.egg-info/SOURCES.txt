@@ -1,6 +1,7 @@
 .gitignore
 LICENSE
 README.md
+batch_chunk_001_of_174_20260205_054829.json
 commit_message.txt
 cumpyl.yaml
 mkdocs.yml

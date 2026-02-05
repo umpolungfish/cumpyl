@@ -3,17 +3,15 @@ import logging
 from typing import Dict, Any
 import angr
 import networkx as nx
-from plugins.base_plugin import BasePlugin
 from cumpyl_package.plugin_manager import AnalysisPlugin
 
 logger = logging.getLogger(__name__)
 
-class CFGExtractorPlugin(AnalysisPlugin, BasePlugin):
+class CFGExtractorPlugin(AnalysisPlugin):
     """CFG extraction plugin for cumpyl framework"""
 
     def __init__(self, config):
-        BasePlugin.__init__(self, config)
-        AnalysisPlugin.__init__(self, config)
+        super().__init__(config)
         self.name = "cfg_extractor"
         self.version = "1.0.0"
         self.description = "Extracts the Control Flow Graph (CFG) from a binary."
