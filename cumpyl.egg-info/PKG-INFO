@@ -708,6 +708,87 @@ cumpyl --assemble "nop; nop" --assemble-arch arm64 --assemble-mode 64
 
 <br>
 
+## AUTONOMOUS AGENT FRAMEWORK (AjintK Integration)
+
+`Cumpyl` includes an integrated autonomous agent framework for AI-powered binary analysis and obfuscation planning. The **AjintK** framework provides specialized agents that can work independently, in parallel swarms, or in sequential pipelines.
+
+### SPECIALIZED AGENTS
+
+| Agent | Purpose |
+|-------|---------|
+| **BinaryAnalysisAgent** | Comprehensive multi-format analysis with LLM-enhanced recommendations |
+| **ObfuscationPlannerAgent** | Creates intelligent obfuscation strategies respecting section safety tiers |
+| **BatchOrchestratorAgent** | Coordinates large-scale batch processing with progress tracking |
+| **QualityAssuranceAgent** | Validates transformed binaries and compares original/modified versions |
+| **ReportingAgent** | Generates executive summaries and technical deep-dive reports |
+| **ThreatIntelAgent** | Extracts IOCs and performs threat assessment |
+
+### AGENT EXECUTION MODES
+
+<details>
+<summary><b>Click to expand agent usage examples</b></summary>
+
+**Single Agent Analysis:**
+```python
+from AjintK.agents.cumpyl_agents import BinaryAnalysisAgent
+
+agent = BinaryAnalysisAgent({
+    "provider": "anthropic",
+    "model": "claude-3-5-sonnet-20241022"
+})
+result = await agent.run(
+    task="Analyze binary",
+    context={"binary_path": "/path/to/binary.exe"}
+)
+```
+
+**Pipeline Mode (Sequential):**
+```python
+from AjintK.framework import AgentOrchestrator
+from AjintK.agents.cumpyl_agents import create_cumpyl_agent
+
+orchestrator = AgentOrchestrator({"max_concurrent_agents": 3})
+orchestrator.register_agent("analyzer", create_cumpyl_agent("analysis", config))
+orchestrator.register_agent("threat", create_cumpyl_agent("threat_intel", config))
+orchestrator.register_agent("reporter", create_cumpyl_agent("reporting", config))
+
+result = await orchestrator.run_pipeline(
+    task="Complete analysis",
+    agent_ids=["analyzer", "threat", "reporter"],
+    initial_context={"binary_path": "/path/to/binary.exe"}
+)
+```
+
+**Swarm Mode (Parallel):**
+```python
+result = await orchestrator.run_swarm(
+    task="Multi-perspective analysis",
+    agent_ids=["analyzer", "threat"],
+    context={"binary_path": "/path/to/binary.exe"}
+)
+```
+
+</details>
+
+### AGENT PIPELINES
+
+Pre-configured workflows for common tasks:
+
+- **Analysis Pipeline**: `BinaryAnalysis → ThreatIntel → Reporting`
+- **Obfuscation Pipeline**: `BinaryAnalysis → ObfuscationPlanner → QA`
+- **Batch Pipeline**: `BatchOrchestrator → Reporting`
+
+### CUMPYL-SPECIFIC TOOLS
+
+The agents have access to 13 specialized tools that interface with cumpyl's CLI:
+- `analyze_binary`, `suggest_obfuscation`, `run_plugin`, `list_plugins`
+- `encode_section`, `generate_report`, `hex_view`, `batch_analyze`
+- `pe_string_obfuscate`, `disassemble`, `validate_binary`, `compare_binaries`, `extract_strings`
+
+**See:** `AjintK/CUMPYL_AGENTS.md` for complete agent documentation
+
+<br>
+
 ## LIMITATIONS AND FUTURE DEVELOPMENT
 
 `Cumpyl` is actively developed with expanding capabilities:
@@ -727,6 +808,7 @@ cumpyl --assemble "nop; nop" --assemble-arch arm64 --assemble-mode 64
 - Performance optimizations for large files
 - Enhanced testing and verification tools
 - Binary diffing and comparison features
+- Extended agent capabilities and workflows
 
 <br>
 

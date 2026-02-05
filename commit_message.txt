@@ -219,5 +219,3 @@ export DEEPSEEK_API_KEY="your-key"    # Optional
 - IOC correlation and risk scoring
 - Batch processing for large sample sets
 - QA validation for transformation safety
-
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
