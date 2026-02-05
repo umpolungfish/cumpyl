@@ -1,0 +1,293 @@
+# Cumpyl Agent Framework Configuration
+# Configuration for specialized binary analysis and obfuscation agents
+
+# LLM API Configuration
+api:
+  # Default provider (anthropic, google, deepseek, qwen, mistral)
+  provider: "anthropic"
+
+  # Default model to use
+  model: "claude-3-5-sonnet-20241022"
+
+  # Maximum tokens in responses
+  max_tokens: 4000
+
+  # Temperature for sampling (0.0 - 1.0)
+  # Lower values = more deterministic, higher = more creative
+  temperature: 0.3
+
+  # Fallback providers in order of preference
+  fallback_providers:
+    - "qwen"
+    - "deepseek"
+    - "mistral"
+
+# Orchestration Settings
+orchestration:
+  # Maximum concurrent agents in swarm mode
+  max_concurrent_agents: 5
+
+  # Default timeout for agent execution (seconds)
+  timeout: 300
+
+  # Retry failed operations
+  retry_count: 3
+  retry_delay: 5
+
+# Cumpyl Integration
+cumpyl:
+  # Path to cumpyl root (relative to AjintK or absolute)
+  root_path: ".."
+
+  # Default config file
+  config_file: "cumpyl.yaml"
+
+  # CLI timeout (seconds)
+  cli_timeout: 120
+
+# Storage Configuration
+storage:
+  # Directory for agent memory
+  memory_dir: ".agent_memory"
+
+  # Directory for inter-agent messages
+  messages_dir: ".agent_messages"
+
+  # Directory for agent artifacts
+  artifacts_dir: "./cumpyl_artifacts"
+
+  # Directory for generated reports
+  reports_dir: "./cumpyl_reports"
+
+# Binary Analysis Agent Configuration
+agents:
+  binary_analysis:
+    enabled: true
+
+    # Analysis-specific settings
+    settings:
+      # Default analysis type (quick, deep, sections, strings, entropy)
+      default_analysis_type: "sections"
+
+      # Output format preference (json, yaml, text)
+      output_format: "json"
+
+      # Include string extraction by default
+      include_strings: true
+
+      # Include entropy analysis
+      include_entropy: true
+
+    # LLM settings override
+    llm:
+      max_tokens: 4000
+      temperature: 0.3
+
+  obfuscation_planner:
+    enabled: true
+
+    settings:
+      # Risk tolerance (conservative, moderate, aggressive)
+      risk_level: "moderate"
+
+      # Always validate section safety
+      enforce_safety_tiers: true
+
+      # Generate dry-run plan first
+      dry_run_default: true
+
+    # Section safety tier definitions
+    safety_tiers:
+      ADVANCED:
+        - ".rdata"
+        - ".rodata"
+        - ".data.rel.ro"
+      INTERMEDIATE:
+        - ".data"
+        - ".bss"
+      BASIC:
+        - ".pdata"
+        - ".xdata"
+        - ".eh_frame"
+      AVOID:
+        - ".text"
+        - ".idata"
+        - ".reloc"
+        - ".edata"
+
+    llm:
+      max_tokens: 4000
+      temperature: 0.2
+
+  batch_orchestrator:
+    enabled: true
+
+    settings:
+      # Maximum files to process in single batch
+      max_batch_size: 100
+
+      # Number of concurrent analysis threads
+      parallel_workers: 5
+
+      # Default file pattern
+      default_pattern: "*.exe"
+
+      # Continue on individual file failure
+      continue_on_error: true
+
+    llm:
+      max_tokens: 3000
+      temperature: 0.3
+
+  qa_agent:
+    enabled: true
+
+    settings:
+      # Validation checks to perform
+      checks:
+        - structure_validation
+        - section_integrity
+        - import_validation
+        - checksum_verification
+
+      # Fail on any validation error
+      strict_mode: false
+
+      # Generate detailed diff on compare
+      detailed_comparison: true
+
+    llm:
+      max_tokens: 2000
+      temperature: 0.1
+
+  reporting_agent:
+    enabled: true
+
+    settings:
+      # Default report formats to generate
+      formats:
+        - "json"
+        - "html"
+
+      # Include executive summary
+      include_executive_summary: true
+
+      # Include technical deep-dive
+      include_technical_report: true
+
+    llm:
+      max_tokens: 4000
+      temperature: 0.2
+
+  threat_intel:
+    enabled: true
+
+    settings:
+      # IOC categories to extract
+      ioc_categories:
+        - urls
+        - ips
+        - domains
+        - file_hashes
+        - registry_keys
+        - mutex_names
+
+      # Threat scoring scale (1-10)
+      severity_threshold: 5
+
+      # Include behavioral analysis
+      behavioral_analysis: true
+
+    llm:
+      max_tokens: 3000
+      temperature: 0.2
+
+# Pipeline Configurations
+pipelines:
+  # Standard analysis pipeline
+  analysis:
+    name: "Binary Analysis Pipeline"
+    description: "Full analysis workflow: Analysis -> Threat Intel -> Report"
+    agents:
+      - binary_analysis
+      - threat_intel
+      - reporting_agent
+    context_passing: true
+
+  # Obfuscation planning pipeline
+  obfuscation:
+    name: "Obfuscation Planning Pipeline"
+    description: "Plan obfuscation: Analysis -> Planning -> QA"
+    agents:
+      - binary_analysis
+      - obfuscation_planner
+      - qa_agent
+    context_passing: true
+
+  # Batch processing pipeline
+  batch:
+    name: "Batch Processing Pipeline"
+    description: "Batch analysis: Batch Orchestrator -> Report"
+    agents:
+      - batch_orchestrator
+      - reporting_agent
+    context_passing: true
+
+  # Quick analysis (single agent)
+  quick:
+    name: "Quick Analysis"
+    description: "Fast single-agent analysis"
+    agents:
+      - binary_analysis
+    context_passing: false
+
+# Swarm Configurations (parallel execution)
+swarms:
+  # Multi-perspective analysis
+  full_analysis:
+    name: "Full Analysis Swarm"
+    description: "Run multiple analysis agents in parallel"
+    agents:
+      - binary_analysis
+      - threat_intel
+    max_concurrent: 2
+    aggregate_results: true
+
+  # Comprehensive review
+  comprehensive:
+    name: "Comprehensive Review Swarm"
+    description: "Full parallel analysis with QA"
+    agents:
+      - binary_analysis
+      - threat_intel
+      - qa_agent
+    max_concurrent: 3
+    aggregate_results: true
+
+# Encoding Methods Available
+encoding:
+  available_methods:
+    - base64
+    - xor
+    - rot13
+    - hex
+    - unicode
+    - reverse
+    - compressed_b64
+    - mixed
+    - compound
+
+  # Default encoding for obfuscation
+  default_method: "xor"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file: "cumpyl_agents.log"
+  console: true
+
+  # Log individual agent actions
+  log_agent_actions: true
+
+  # Log LLM requests/responses (warning: verbose)
+  log_llm_calls: false

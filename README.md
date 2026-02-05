@@ -181,6 +181,7 @@ Specialized plugins for comprehensive analysis:
 - `go_binary_analysis.py` - Specialized Go binary analysis
 - `cgo_analysis.py` - CGO-enabled binary analysis
 - `ca_packer.py` - Cellular Automata-based packing
+- `noseeum_plugin.py` - Unicode-based obfuscation and vulnerability detection (Trojan Source, homoglyphs, invisible characters)
 
 ### 𐑸𐑒𐑦𐑑𐑧𐑒𐑗𐑼 𐑚𐑧𐑯𐑧𐑓𐑦𐑑𐑕 --> ARCHITECTURE BENEFITS
 
@@ -327,6 +328,7 @@ Format-specific analysis and modification:
 - **PEB Traversal** - Windows-specific API resolution
 - **PE String Obfuscation** - Advanced PE-specific string detection and obfuscation
 - **Windowbrick Obfuscation** - Multi-layered string obfuscation using windowbrick techniques (XOR, rotation, substitution)
+- **Noseeum Unicode Obfuscation** - Unicode-based obfuscation techniques (Trojan Source, homoglyphs, invisible characters)
 
 ### PLUGIN MANAGEMENT
 Easy discovery and configuration:
@@ -474,6 +476,25 @@ Cumpyl Main Menu
 ├── 7. Report Generation
 ├── 8. Configuration
 ├── 9. Change Target
+└── 0. Exit
+```
+
+### BUILD-A-BINARY MENU STRUCTURE
+
+The Build-a-Binary menu includes the Noseeum Unicode Obfuscation functionality:
+
+```
+Build-a-Binary Menu
+├── 1. Quick Analysis
+├── 2. Deep Analysis
+├── 3. Interactive Hex Viewer
+├── 4. Encoding Operations
+├── 5. Generate Reports
+├── 6. CFG Analysis
+├── 7. PE String Obfuscation
+├── 8. Windowbrick Obfuscation
+├── 9. Noseeum Unicode Obfuscation
+├──10. Change Target
 └── 0. Exit
 ```
 
@@ -643,6 +664,87 @@ cumpyl --assemble "nop; nop" --assemble-arch arm64 --assemble-mode 64
 
 <br>
 
+## AUTONOMOUS AGENT FRAMEWORK (AjintK Integration)
+
+`Cumpyl` includes an integrated autonomous agent framework for AI-powered binary analysis and obfuscation planning. The **AjintK** framework provides specialized agents that can work independently, in parallel swarms, or in sequential pipelines.
+
+### SPECIALIZED AGENTS
+
+| Agent | Purpose |
+|-------|---------|
+| **BinaryAnalysisAgent** | Comprehensive multi-format analysis with LLM-enhanced recommendations |
+| **ObfuscationPlannerAgent** | Creates intelligent obfuscation strategies respecting section safety tiers |
+| **BatchOrchestratorAgent** | Coordinates large-scale batch processing with progress tracking |
+| **QualityAssuranceAgent** | Validates transformed binaries and compares original/modified versions |
+| **ReportingAgent** | Generates executive summaries and technical deep-dive reports |
+| **ThreatIntelAgent** | Extracts IOCs and performs threat assessment |
+
+### AGENT EXECUTION MODES
+
+<details>
+<summary><b>Click to expand agent usage examples</b></summary>
+
+**Single Agent Analysis:**
+```python
+from AjintK.agents.cumpyl_agents import BinaryAnalysisAgent
+
+agent = BinaryAnalysisAgent({
+    "provider": "anthropic",
+    "model": "claude-3-5-sonnet-20241022"
+})
+result = await agent.run(
+    task="Analyze binary",
+    context={"binary_path": "/path/to/binary.exe"}
+)
+```
+
+**Pipeline Mode (Sequential):**
+```python
+from AjintK.framework import AgentOrchestrator
+from AjintK.agents.cumpyl_agents import create_cumpyl_agent
+
+orchestrator = AgentOrchestrator({"max_concurrent_agents": 3})
+orchestrator.register_agent("analyzer", create_cumpyl_agent("analysis", config))
+orchestrator.register_agent("threat", create_cumpyl_agent("threat_intel", config))
+orchestrator.register_agent("reporter", create_cumpyl_agent("reporting", config))
+
+result = await orchestrator.run_pipeline(
+    task="Complete analysis",
+    agent_ids=["analyzer", "threat", "reporter"],
+    initial_context={"binary_path": "/path/to/binary.exe"}
+)
+```
+
+**Swarm Mode (Parallel):**
+```python
+result = await orchestrator.run_swarm(
+    task="Multi-perspective analysis",
+    agent_ids=["analyzer", "threat"],
+    context={"binary_path": "/path/to/binary.exe"}
+)
+```
+
+</details>
+
+### AGENT PIPELINES
+
+Pre-configured workflows for common tasks:
+
+- **Analysis Pipeline**: `BinaryAnalysis → ThreatIntel → Reporting`
+- **Obfuscation Pipeline**: `BinaryAnalysis → ObfuscationPlanner → QA`
+- **Batch Pipeline**: `BatchOrchestrator → Reporting`
+
+### CUMPYL-SPECIFIC TOOLS
+
+The agents have access to 13 specialized tools that interface with cumpyl's CLI:
+- `analyze_binary`, `suggest_obfuscation`, `run_plugin`, `list_plugins`
+- `encode_section`, `generate_report`, `hex_view`, `batch_analyze`
+- `pe_string_obfuscate`, `disassemble`, `validate_binary`, `compare_binaries`, `extract_strings`
+
+**See:** `AjintK/CUMPYL_AGENTS.md` for complete agent documentation
+
+<br>
+
 ## LIMITATIONS AND FUTURE DEVELOPMENT
 
 `Cumpyl` is actively developed with expanding capabilities:
@@ -662,6 +764,7 @@ cumpyl --assemble "nop; nop" --assemble-arch arm64 --assemble-mode 64
 - Performance optimizations for large files
 - Enhanced testing and verification tools
 - Binary diffing and comparison features
+- Extended agent capabilities and workflows
 
 <br>
 

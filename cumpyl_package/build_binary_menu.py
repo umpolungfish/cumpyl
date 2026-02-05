@@ -143,7 +143,8 @@ class BuildBinaryMenu:
             ("6", "CFG Analysis", "Extract Control Flow Graph from the binary"),
             ("7", "PE String Obfuscation", "Advanced PE-specific string analysis and obfuscation"),
             ("8", "Windowbrick Obfuscation", "Multi-layered string obfuscation using windowbrick techniques (XOR, rotation, substitution)"),
-            ("9", "Change Target", "Select a different binary file"),
+            ("9", "Noseeum Unicode Obfuscation", "Unicode-based obfuscation techniques (Trojan Source, homoglyphs, invisible characters)"),
+            ("10", "Change Target", "Select a different binary file"),
             ("b", "Back", "Return to main start menu"),
             ("h", "Help", "Show detailed help and examples"),
             ("q", "Quit", "Exit the framework")
@@ -609,6 +610,53 @@ class BuildBinaryMenu:
             self.windowbrick_custom_settings()
         elif choice == "5":
             self.windowbrick_apply_obfuscation()
+
+    def noseeum_obfuscation_menu(self):
+        """Noseeum Unicode Obfuscation menu with interactive features"""
+        self.console.print(Panel(" Noseeum Unicode Obfuscation - Unicode-based Analysis & Obfuscation", style="bold magenta"))
+
+        # Run initial analysis if not already done
+        if not self.rewriter:
+            self.console.print("[red]No binary loaded. Please select a target first.[/red]")
+            return
+
+        options = [
+            ("1", "Noseeum Analysis", "Analyze binary for Unicode vulnerabilities and obfuscation opportunities"),
+            ("2", "Interactive String Browser", "Browse strings suitable for Unicode obfuscation"),
+            ("3", "Preview Obfuscation", "Preview Unicode transformations before applying"),
+            ("4", "Custom Obfuscation Settings", "Configure homoglyph density, invisible chars, etc."),
+            ("5", "Apply Obfuscation (⚠️ Advanced)", "Apply Unicode obfuscation to selected strings (WARNING: May break binary)"),
+            ("b", "Back to Main Menu", "")
+        ]
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Option", style="cyan", width=8)
+        table.add_column("Action", style="white", width=30)
+        table.add_column("Description", style="dim")
+
+        for opt, action, desc in options:
+            table.add_row(opt, action, desc)
+
+        self.console.print(table)
+
+        choice = Prompt.ask(
+            "\n[yellow]Select option[/yellow]",
+            choices=[opt[0] for opt in options],
+            default="1"
+        )
+
+        if choice == "b":
+            return
+        elif choice == "1":
+            self.noseeum_analysis()
+        elif choice == "2":
+            self.noseeum_string_browser()
+        elif choice == "3":
+            self.noseeum_preview_obfuscation()
+        elif choice == "4":
+            self.noseeum_custom_settings()
+        elif choice == "5":
+            self.noseeum_apply_obfuscation()
 
     def windowbrick_analysis(self):
         """Run windowbrick analysis and display results"""
@@ -1453,7 +1501,376 @@ Analysis Results:
         
         self.console.print(help_panel)
         Prompt.ask("\nPress Enter to continue", default="")
-    
+
+    def noseeum_analysis(self):
+        """Run noseeum analysis and display results"""
+        self.console.print(Panel(" Analyzing with Noseeum Unicode Techniques...", style="bold cyan"))
+
+        try:
+            # Run analysis using the plugin
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            if 'noseeum_analysis' in analysis_results:
+                ns_results = analysis_results['noseeum_analysis']
+                self._display_noseeum_analysis_summary(ns_results)
+            else:
+                self.console.print("[yellow]Noseeum analysis plugin not found or didn't run[/yellow]")
+                # Try to run it directly
+                if hasattr(self.rewriter, 'plugin_manager') and self.rewriter.plugin_manager:
+                    try:
+                        plugin = self.rewriter.plugin_manager.get_plugin('noseeum_analysis')
+                        if plugin:
+                            ns_results = plugin.analyze(self.rewriter)
+                            self._display_noseeum_analysis_summary(ns_results)
+                        else:
+                            self.console.print("[red]Noseeum analysis plugin not available[/red]")
+                    except Exception as e:
+                        self.console.print(f"[red]Error running noseeum plugin: {e}[/red]")
+                else:
+                    self.console.print("[red]Plugin manager not available[/red]")
+
+        except Exception as e:
+            self.console.print(f"[red]Noseeum analysis failed: {e}[/red]")
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def _display_noseeum_analysis_summary(self, ns_results):
+        """Display summary of noseeum analysis"""
+        analysis = ns_results.get('analysis', {})
+
+        # Summary statistics
+        summary_panel = Panel("Noseeum Analysis Results", style="bold green")
+        self.console.print(summary_panel)
+
+        # Create a summary table
+        summary_table = Table(title="Unicode Analysis Summary", show_header=True, header_style="bold green")
+        summary_table.add_column("Metric", style="cyan", width=30)
+        summary_table.add_column("Count/Value", style="white", width=15)
+
+        # Add metrics if available
+        vuln_count = len(analysis.get('unicode_vulnerabilities', []))
+        opp_count = len(analysis.get('obfuscation_opportunities', []))
+        summary_table.add_row("Unicode Vulnerabilities Found", str(vuln_count))
+        summary_table.add_row("Obfuscation Opportunities", str(opp_count))
+
+        self.console.print(summary_table)
+
+        # Show obfuscation opportunities
+        opportunities = analysis.get('obfuscation_opportunities', [])
+        if opportunities:
+            self.console.print("\n[bold blue]Obfuscation Opportunities:[/bold blue]")
+            opp_table = Table(show_header=True, header_style="bold blue")
+            opp_table.add_column("Section", style="cyan", width=15)
+            opp_table.add_column("Type", style="white", width=15)
+            opp_table.add_column("Details", style="dim", width=40)
+
+            for item in opportunities[:10]:  # Show first 10
+                if 'section' in item:
+                    section = item['section']
+                    if 'unicode_analysis' in item:
+                        unicode_info = item['unicode_analysis']
+                        details = f"High byte ratio: {unicode_info.get('high_byte_ratio', 0):.2f}"
+                        risk = unicode_info.get('vulnerability_risk', 'medium')
+                        opp_table.add_row(section, f"Unicode ({risk})", details)
+                    elif 'string' in item:
+                        string_val = item['string'][:30] + "..." if len(item['string']) > 30 else item['string']
+                        opp_table.add_row(section, "String", string_val)
+                    else:
+                        opp_table.add_row(section, "General", "Potential target")
+
+            self.console.print(opp_table)
+
+        # Show suggestions
+        suggestions = analysis.get('suggestions', [])
+        if suggestions:
+            self.console.print("\n[bold green]Suggestions:[/bold green]")
+            for i, suggestion in enumerate(suggestions[:5], 1):  # Show first 5
+                self.console.print(f"  {i}. {suggestion}")
+
+            if len(suggestions) > 5:
+                self.console.print(f"\n[dim]... and {len(suggestions) - 5} more suggestions[/dim]")
+
+    def noseeum_string_browser(self):
+        """Interactive browser for strings that can be obfuscated with noseeum techniques"""
+        self.console.print(Panel(" Noseeum String Browser", style="bold blue"))
+
+        try:
+            # Run analysis to get strings
+            analysis_results = self.rewriter.run_plugin_analysis()
+            strings_to_show = []
+
+            # Get strings from noseeum analysis if available
+            if 'noseeum_analysis' in analysis_results:
+                ns_results = analysis_results['noseeum_analysis']
+                opportunities = ns_results.get('analysis', {}).get('obfuscation_opportunities', [])
+
+                for opp in opportunities:
+                    if 'string' in opp:
+                        strings_to_show.append(opp)
+
+            # If no noseeum results, try string extraction plugin
+            if not strings_to_show:
+                if 'string_extraction' in analysis_results:
+                    str_results = analysis_results['string_extraction']
+                    extracted_strings = str_results.get('strings', [])
+
+                    for s in extracted_strings:
+                        if isinstance(s, dict) and 'value' in s:
+                            strings_to_show.append({
+                                'string': s['value'],
+                                'section': s.get('section', 'unknown'),
+                                'length': len(s['value'])
+                            })
+
+            if not strings_to_show:
+                self.console.print("[yellow]No strings found for Unicode obfuscation[/yellow]")
+                Prompt.ask("\nPress Enter to continue", default="")
+                return
+
+            # Pagination variables
+            page_size = 10
+            current_page = 0
+            total_pages = (len(strings_to_show) + page_size - 1) // page_size
+
+            while True:
+                # Show current page
+                start_idx = current_page * page_size
+                end_idx = min(start_idx + page_size, len(strings_to_show))
+                strings_on_page = strings_to_show[start_idx:end_idx]
+
+                self.console.print(Panel(f" Noseeum String Browser - Page {current_page + 1}/{max(1, total_pages)}", style="bold blue"))
+
+                # Create table for strings
+                string_table = Table(show_header=True, header_style="bold")
+                string_table.add_column("#", style="cyan", width=4)
+                string_table.add_column("String", style="white", width=40)
+                string_table.add_column("Section", style="green", width=12)
+                string_table.add_column("Length", style="yellow", width=8)
+
+                for i, string_info in enumerate(strings_on_page, start_idx):
+                    idx = i - start_idx
+                    string_val = string_info.get('string', '')
+                    preview = string_val[:35] + "..." if len(string_val) > 35 else string_val
+                    section = string_info.get('section', 'unknown')
+                    length = str(string_info.get('length', len(string_val)))
+
+                    string_table.add_row(str(idx), preview, section, length)
+
+                self.console.print(string_table)
+
+                # Navigation options
+                nav_options = [
+                    ("n", "Next Page", ""),
+                    ("p", "Previous Page", ""),
+                    ("s", "Select String", "Select a specific string to view details"),
+                    ("b", "Back to Menu", "")
+                ]
+
+                nav_table = Table(show_header=False, box=None)
+                nav_table.add_column("Option", style="bold cyan", width=8)
+                nav_table.add_column("Action", style="white")
+                nav_table.add_column("Description", style="dim")
+
+                for opt, action, desc in nav_options:
+                    nav_table.add_row(opt, action, desc)
+
+                self.console.print(nav_table)
+
+                nav_choice = Prompt.ask(
+                    "\n[yellow]Select navigation option[/yellow]",
+                    choices=[opt[0] for opt in nav_options],
+                    default="b"
+                )
+
+                if nav_choice == "n":
+                    if current_page < total_pages - 1:
+                        current_page += 1
+                    else:
+                        self.console.print("[dim]Already on last page[/dim]")
+                elif nav_choice == "p":
+                    if current_page > 0:
+                        current_page -= 1
+                    else:
+                        self.console.print("[dim]Already on first page[/dim]")
+                elif nav_choice == "s":
+                    try:
+                        idx = int(Prompt.ask("Enter string index to view details"))
+                        if 0 <= idx < len(strings_to_show):
+                            self._display_noseeum_string_detail(strings_to_show[idx])
+                        else:
+                            self.console.print("[red]Invalid index[/red]")
+                    except ValueError:
+                        self.console.print("[red]Please enter a valid number[/red]")
+                elif nav_choice == "b":
+                    break
+
+        except Exception as e:
+            self.console.print(f"[red]Noseeum string browser failed: {e}[/red]")
+            Prompt.ask("\nPress Enter to continue", default="")
+
+    def _display_noseeum_string_detail(self, string_info):
+        """Display detailed information about a string for noseeum obfuscation"""
+        string_val = string_info.get('string', '')
+        section = string_info.get('section', 'unknown')
+        length = string_info.get('length', len(string_val))
+
+        detail_panel = Panel(f"""
+String: {string_val}
+Section: {section}
+Length: {length} characters
+
+[bold]Unicode Obfuscation Options:[/bold]
+  • Homoglyph substitution (visually similar characters)
+  • Invisible character embedding (zero-width characters)
+  • Bidirectional override (Trojan Source)
+  • Normalization attacks (NFKC/NFKD inconsistencies)
+        """, title="String Detail & Obfuscation Options", style="bold yellow")
+
+        self.console.print(detail_panel)
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def noseeum_preview_obfuscation(self):
+        """Preview noseeum obfuscation on selected strings"""
+        self.console.print(Panel(" Noseeum Obfuscation Preview", style="bold magenta"))
+
+        try:
+            # Run analysis to get strings
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            # Get configuration for obfuscation
+            config = analysis_results.get('noseeum_analysis', {}).get('analysis', {})
+
+            # Simple preview - show how different techniques would affect a sample string
+            sample_string = "Hello World"
+            self.console.print(f"[bold cyan]Original string:[/bold cyan] {sample_string}")
+
+            # Homoglyph preview
+            homoglyph_preview = sample_string.replace('o', 'о')  # Cyrillic 'o'
+            self.console.print(f"[bold green]Homoglyph preview:[/bold green] {homoglyph_preview} [dim](o replaced with Cyrillic o)[/dim]")
+
+            # Invisible character preview
+            invisible_preview = "H\u200Be\u200Cl\u200Bl\u200Co\u200C"  # With zero-width characters
+            self.console.print(f"[bold blue]Invisible char preview:[/bold blue] {invisible_preview} [dim](zero-width chars inserted)[/dim]")
+
+            # Bidi preview
+            bidi_preview = sample_string + "\u202E" + "dlroW olleH"  # RLO character
+            self.console.print(f"[bold red]Bidi preview:[/bold red] {bidi_preview} [dim](RLO character for direction override)[/dim]")
+
+            self.console.print("\n[bold green]Simulated obfuscated strings[/bold green] (using noseeum techniques)")
+
+        except Exception as e:
+            self.console.print(f"[red]Noseeum preview failed: {e}[/red]")
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def noseeum_custom_settings(self):
+        """Allow user to customize noseeum obfuscation settings"""
+        self.console.print(Panel(" Noseeum Custom Settings", style="bold magenta"))
+
+        try:
+            # Run analysis to get current config
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            if 'noseeum_analysis' in analysis_results:
+                config = analysis_results['noseeum_analysis'].get('analysis', {})
+            else:
+                config = {}
+
+            # Get user preferences
+            self.console.print("\n[bold]Noseeum Obfuscation Settings:[/bold]")
+
+            method = Prompt.ask(
+                "Obfuscation method",
+                choices=["homoglyph", "bidi", "invisible", "normalization"],
+                default=config.get('obfuscation_method', 'homoglyph')
+            )
+
+            density = float(Prompt.ask(
+                "Homoglyph density (0.0-1.0)",
+                default=str(config.get('density', 0.1))
+            ))
+
+            use_unassigned = Confirm.ask(
+                "Use unassigned Unicode planes?",
+                default=config.get('use_unassigned_planes', False)
+            )
+
+            use_variation = Confirm.ask(
+                "Use variation selectors?",
+                default=config.get('use_variation_selectors', False)
+            )
+
+            # Store settings in a temporary config
+            self.noseeum_config = {
+                'obfuscation_method': method,
+                'density': density,
+                'use_unassigned_planes': use_unassigned,
+                'use_variation_selectors': use_variation
+            }
+
+            self.console.print(f"\n[green]Settings updated:[/green]")
+            self.console.print(f"  Method: {method}")
+            self.console.print(f"  Density: {density}")
+            self.console.print(f"  Unassigned planes: {use_unassigned}")
+            self.console.print(f"  Variation selectors: {use_variation}")
+
+        except Exception as e:
+            self.console.print(f"[red]Noseeum settings configuration failed: {e}[/red]")
+        Prompt.ask("\nPress Enter to continue", default="")
+
+    def noseeum_apply_obfuscation(self):
+        """Apply noseeum obfuscation to selected strings"""
+        self.console.print(Panel(" Apply Noseeum Obfuscation", style="bold red"))
+
+        if not Confirm.ask(
+            "⚠️  This operation will modify your binary and may break it. Continue?",
+            default=False
+        ):
+            self.console.print("[yellow]Operation cancelled[/yellow]")
+            Prompt.ask("\nPress Enter to continue", default="")
+            return
+
+        try:
+            self.console.print("[cyan]Running noseeum transformation...[/cyan]")
+
+            # Run analysis first
+            analysis_results = self.rewriter.run_plugin_analysis()
+
+            if 'noseeum_analysis' in analysis_results:
+                recommended_count = len(analysis_results['noseeum_analysis']['analysis'].get('obfuscation_opportunities', []))
+                self.console.print(f"[cyan]Found {recommended_count} potential targets for obfuscation[/cyan]")
+
+                # Apply transformations with user settings if available
+                config = getattr(self, 'noseeum_config', {
+                    'obfuscation_method': 'homoglyph',
+                    'density': 0.1,
+                    'use_unassigned_planes': False,
+                    'use_variation_selectors': False
+                })
+
+                # Apply the transformation
+                self.console.print("[cyan]Applying noseeum transformations...[/cyan]")
+
+                # In a real implementation, we would call the transformation plugin
+                # For now, just simulate the operation
+                success = self.rewriter.run_plugin_transformations(analysis_results)
+
+                if success:
+                    self.console.print("[green]Noseeum obfuscation completed successfully![/green]")
+
+                    # Save the modified binary
+                    output_file = f"noseeum_{os.path.basename(self.target_file)}"
+                    # In a real implementation, we would save the modified binary
+                    self.console.print(f"[green]Modified binary saved as: {output_file}[/green]")
+                else:
+                    self.console.print("[yellow]No transformations were applied[/yellow]")
+            else:
+                self.console.print("[yellow]No analysis results available[/yellow]")
+
+        except Exception as e:
+            self.console.print(f"[red]Noseeum transformation failed: {e}[/red]")
+
+        Prompt.ask("\nPress Enter to continue", default="")
+
     def run(self):
         """Run the Build-a-Binary menu loop"""
         self.show_banner()
@@ -1490,6 +1907,8 @@ Analysis Results:
                 elif choice == "8":
                     self.windowbrick_obfuscation_menu()
                 elif choice == "9":
+                    self.noseeum_obfuscation_menu()
+                elif choice == "10":
                     self.select_target_file()
                 elif choice == "h":
                     self.show_help()

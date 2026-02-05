@@ -1,0 +1,13 @@
+feat: Integrate enhanced multi-provider LLM system from qwender into AjintK
+
+- Add new LLM provider system supporting Anthropic, Google, DeepSeek, Qwen, and Mistral
+- Implement intelligent model routing based on task requirements
+- Update BaseAgent to use multi-provider architecture with call_llm method
+- Modify example agents to work with new provider system
+- Add response caching for improved performance and cost savings
+- Update documentation (README.md, QUICKSTART.md, METHODOLOGY.md) to reflect multi-provider support
+- Enhance requirements.txt with new dependencies for multi-provider support
+- Add ModelRouter for automatic provider selection based on task type
+- Implement fallback mechanisms for provider reliability
+- Update configuration examples to include provider selection options
+- Add comprehensive testing for integrated provider system

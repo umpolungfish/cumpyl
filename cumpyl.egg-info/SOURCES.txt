@@ -7,9 +7,13 @@ integration_summary.txt
 mkdocs.yml
 pyproject.toml
 requirements.in
+test_asm.s
 test_results.txt
 uv.lock
-vmescape.exe_strings_20251127_173833.csv
+.cumpyl_backups/gumewurm.exe.20251128_000152.bak
+.cumpyl_backups/gumewurm.exe.20251128_000152.bak.meta.json
+.cumpyl_backups/skeeterspit.exe.20251127_235935.bak
+.cumpyl_backups/skeeterspit.exe.20251127_235935.bak.meta.json
 .github/FUNDING.yml
 cumpyl.egg-info/PKG-INFO
 cumpyl.egg-info/SOURCES.txt
@@ -85,6 +89,7 @@ plugins/format_strategies.py
 plugins/format_utils.py
 plugins/go_packer_plugin.py
 plugins/logging_config.py
+plugins/noseeum_plugin.py
 plugins/packer_plugin.py
 plugins/pe_string_obfuscation.py
 plugins/pe_string_obfuscation_v3.py

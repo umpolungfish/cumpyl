@@ -4,8 +4,8 @@
 # Framework Settings
 framework:
   version: "0.3.0"
-  debug_mode: false
-  verbose_logging: false
+  debug_mode: true
+  verbose_logging: true
   max_file_size_mb: 100
   temp_directory: "/tmp/cumpyl"
   
@@ -160,7 +160,7 @@ formats:
     
   elf:
     enabled: true
-    preserve_debug_info: true
+    preserve_debug_info: false
     handle_stripped_binaries: true
     
   macho:

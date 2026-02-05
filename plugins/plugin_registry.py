@@ -69,6 +69,13 @@ except ImportError:
     get_windowbrick_analysis_plugin = None
     get_windowbrick_transform_plugin = None
 
+try:
+    from plugins.noseeum_plugin import get_analysis_plugin as get_noseeum_analysis_plugin, get_transformation_plugin as get_noseeum_transform_plugin
+except ImportError:
+    # If we can't import the plugins, don't register them
+    get_noseeum_analysis_plugin = None
+    get_noseeum_transform_plugin = None
+
 if get_packer_plugin:
     PluginRegistry.register('analysis', 'packer', get_packer_plugin)
 if get_packer_transform_plugin:
@@ -91,3 +98,8 @@ if get_windowbrick_analysis_plugin:
     PluginRegistry.register('analysis', 'windowbrick_analysis', get_windowbrick_analysis_plugin)
 if get_windowbrick_transform_plugin:
     PluginRegistry.register('transformation', 'windowbrick_transform', get_windowbrick_transform_plugin)
+
+if get_noseeum_analysis_plugin:
+    PluginRegistry.register('analysis', 'noseeum_analysis', get_noseeum_analysis_plugin)
+if get_noseeum_transform_plugin:
+    PluginRegistry.register('transformation', 'noseeum_transform', get_noseeum_transform_plugin)

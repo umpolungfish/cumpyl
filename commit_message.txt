@@ -1,171 +1,223 @@
-docs: Comprehensive documentation for integrated assembly/disassembly functionality
+feat: Integrate AjintK autonomous agent framework for AI-powered binary analysis
 
 ## Summary
-Updates all documentation to comprehensively cover the newly integrated assembly and disassembly features from the private repository. Adds detailed user guides, developer references, API documentation, and usage examples for keystone-engine powered assembly and capstone-powered disassembly capabilities.
+Implements a comprehensive autonomous agent framework (AjintK integration) that provides specialized AI-powered agents for binary analysis, obfuscation planning, batch processing, quality assurance, reporting, and threat intelligence. The agents leverage LLMs (Claude, Gemini, DeepSeek, Qwen, Mistral) to provide intelligent analysis and recommendations.
 
-## Documentation Changes
+## Core Changes
 
-### 1. README.md
-**Added Assembly/Disassembly Core Capability:**
-- Updated core capabilities list to include assembly/disassembly support
-- Added new Assembly/Disassembly Features section with collapsible details
-- Documented all new CLI options with explanations:
-  - `--assemble`, `--assemble-file`, `--assemble-arch`, `--assemble-mode`, `--assemble-output`
-  - `--disassemble-bytes`, `--disassemble-section-raw`, `--disassemble-arch`, `--disassemble-mode`, `--disassemble-address`
-- Added comprehensive command-line examples for various use cases
-- Included multi-architecture support documentation (x86, ARM, ARM64, MIPS)
+### 1. Cumpyl-Specific Tool Definitions (`AjintK/framework/cumpyl_tools.py`)
+**Created 13 specialized tools that interface with cumpyl's CLI:**
+- `analyze_binary`: Comprehensive binary analysis
+- `suggest_obfuscation`: Get obfuscation recommendations
+- `run_plugin`: Execute specific cumpyl plugins
+- `list_plugins`: List available plugins
+- `encode_section`: Encode binary sections
+- `generate_report`: Generate analysis reports
+- `hex_view`: View binary in hex format
+- `batch_analyze`: Batch process multiple files
+- `pe_string_obfuscate`: Apply string obfuscation
+- `disassemble`: Disassemble binary code
+- `validate_binary`: Validate binary integrity
+- `compare_binaries`: Compare two binaries
+- `extract_strings`: Extract readable strings
 
-**Before:** No mention of assembly/disassembly capabilities in main documentation
-**After:** Complete feature documentation with examples and architecture support
+**Before:** No agent-accessible tools for cumpyl operations
+**After:** Full tool suite for autonomous agent binary manipulation
 
-### 2. CUMPYL_DEVELOPER_GUIDE.md
-**Updated BinaryRewriter API Reference:**
-- Added comprehensive documentation for new methods:
-  - `assemble_code(assembly_code, arch, mode)` with parameters and return types
-  - `disassemble_bytes(raw_bytes, arch, mode, base_address)` with parameters and return types
-  - `disassemble_section(section_name)` (existing, but now properly contextualized)
-- Added practical code examples for developers
-- Documented supported architectures and modes for each method
+### 2. Specialized Agent Implementations (`AjintK/agents/cumpyl_agents.py`)
+**Created 6 specialized agents:**
 
-**Before:** No documentation of assembly/disassembly methods
-**After:** Complete developer API reference with examples
+| Agent | Capabilities |
+|-------|--------------|
+| **BinaryAnalysisAgent** | Multi-format detection, entropy analysis, string extraction, packer detection, risk assessment |
+| **ObfuscationPlannerAgent** | Section safety tier analysis, multi-method planning, plugin chain optimization |
+| **BatchOrchestratorAgent** | Multi-file processing, parallel execution, progress tracking, failure recovery |
+| **QualityAssuranceAgent** | Structure validation, checksum verification, pre/post comparison |
+| **ReportingAgent** | Multi-format reports, executive summaries, technical deep-dives |
+| **ThreatIntelAgent** | IOC extraction, pattern matching, threat classification, risk scoring |
 
-### 3. CUMPYL_API_REFERENCE.md
-**Added Formal API Documentation:**
-- Added `assemble_code()` method with full signature, parameters, return type, and example
-- Added `disassemble_bytes()` method with full signature, parameters, return type, and example
-- Updated existing `disassemble_section()` documentation for consistency
-- Provided detailed parameter descriptions and usage examples
+**Before:** No autonomous agents for binary analysis
+**After:** Complete agent suite with LLM-enhanced capabilities
 
-**Before:** Missing API documentation for new assembly/disassembly methods
-**After:** Complete formal API reference with parameter types and examples
+### 3. Integration Module (`AjintK/framework/cumpyl_integration.py`)
+**Created integration layer with:**
+- `CumpylConfig`: Reads cumpyl.yaml configuration
+- `AgentPipelineBuilder`: Pre-built pipeline configurations for common workflows
+- `CumpylAgentIntegration`: Bridge between AjintK and cumpyl systems
+- `WorkflowRunner`: High-level convenience interface for analysis, obfuscation, and batch workflows
 
-### 4. CUMPYL_USER_GUIDE.md
-**Added User-Friendly Command Examples:**
-- Created Assembly Operations section with practical examples
-- Created Disassembly Operations section with real-world examples
-- Added multi-architecture examples (x86, ARM, ARM64, MIPS)
-- Documented file-based and inline assembly workflows
-- Included hex string disassembly examples
+**Before:** AjintK and cumpyl operated independently
+**After:** Seamless integration with configuration sharing and workflow orchestration
 
-**Before:** No user guide documentation for assembly/disassembly features
-**After:** Complete user guide with step-by-step examples
+### 4. Configuration System (`AjintK/cumpyl_agents_config.yaml`)
+**Comprehensive YAML configuration including:**
+- LLM provider settings with fallback support
+- Per-agent configuration overrides
+- Pre-configured pipeline definitions (analysis, obfuscation, batch)
+- Swarm configurations for parallel execution
+- Section safety tier definitions
+- Encoding method specifications
 
-### 5. CLAUDE.md
-**Enhanced AI Assistant Guidance:**
-- Added Assembly/Disassembly Operations section for AI assistants
-- Included practical command-line examples for keystone/capstone functionality
-- Added cross-architecture assembly examples
-- Documented both basic and advanced usage patterns
+**Before:** No agent-specific configuration
+**After:** Full configuration system with sensible defaults
 
-**Before:** No guidance for AI assistants on new assembly features
-**After:** Complete AI assistant reference with examples
+### 5. Example Workflows (`AjintK/examples/cumpyl_workflows.py`)
+**Created 8 runnable example workflows:**
+1. Single agent analysis
+2. Pipeline analysis (sequential)
+3. Swarm analysis (parallel)
+4. Obfuscation planning
+5. Batch processing
+6. Workflow runner (high-level)
+7. Custom pipeline
+8. QA validation (binary comparison)
 
-### 6. STRING_OBFUSCATOR_V3_QUICKSTART.md
-**Added Advanced Features Section:**
-- Added "Advanced: Assembly/Disassembly Features" section
-- Provided basic usage examples for both assembly and disassembly
-- Documented supported architectures with examples
-- Included workflow integration guidance
+**Before:** No examples for agent usage
+**After:** Comprehensive examples covering all execution modes
 
-**Before:** Quickstart focused solely on string obfuscation
-**After:** Addition of advanced assembly/disassembly capabilities
+### 6. Documentation (`AjintK/CUMPYL_AGENTS.md`)
+**Complete documentation covering:**
+- Quick start guides for all execution modes
+- Detailed agent descriptions and capabilities
+- Tool reference with parameters
+- Pipeline and swarm configurations
+- Configuration options
+- Best practices and troubleshooting
 
-## Documentation Structure
+**Before:** No agent documentation
+**After:** Comprehensive documentation for users and developers
 
-### User-Facing Documentation
-- **README.md**: High-level overview with quick examples
-- **CUMPYL_USER_GUIDE.md**: Complete user-facing documentation with workflows
-- **STRING_OBFUSCATOR_V3_QUICKSTART.md**: Step-by-step tutorial with advanced features
+### 7. Framework Updates
+**Modified AjintK framework:**
+- Updated `framework/__init__.py` to export cumpyl tools and integration
+- Updated `agents/__init__.py` to export specialized agents
+- Updated `README.md` to document cumpyl agent integration
+- Bumped framework version to 2.1.0
 
-### Developer-Facing Documentation
-- **CUMPYL_API_REFERENCE.md**: Formal API documentation
-- **CUMPYL_DEVELOPER_GUIDE.md**: Plugin development and usage patterns
-- **CLAUDE.md**: AI assistant reference for codebase navigation
+**Before:** Framework version 2.0.0 without cumpyl integration
+**After:** Framework version 2.1.0 with full cumpyl support
 
-## Key Information Added
+### 8. Main Documentation Updates
+**Updated cumpyl documentation:**
+- Added "Autonomous Agent Framework" section to `README.md`
+- Added comprehensive agent guide to `docs/CUMPYL_USER_GUIDE.md`
+- Documented all agent capabilities, pipelines, and usage patterns
 
-### Assembly Capabilities Documented
-- **Inline assembly**: `--assemble "mov rax, 0x42"` with architecture flags
-- **File-based assembly**: `--assemble-file shellcode.s --assemble-output shellcode.bin`
-- **Multi-architecture support**: x86, ARM, ARM64, MIPS with 16/32/64-bit modes
-- **Machine code generation**: Direct conversion to binary output files
+**Before:** No agent documentation in main cumpyl docs
+**After:** Full integration documentation in user-facing docs
 
-### Disassembly Capabilities Documented
-- **Raw bytes disassembly**: `--disassemble-bytes "48c7c0..."` with arch flags
-- **Section disassembly**: `--disassemble-section-raw .text` with custom arch
-- **Address mapping**: `--disassemble-address 0x400000` for proper address display
-- **Cross-architecture support**: Same architecture modes as assembly
+## Agent Execution Modes
 
-### Usage Patterns Documented
-```bash
-# Assembly: Generate machine code
-cumpyl --assemble "mov rax, 0x42" --assemble-arch x86 --assemble-mode 64
-
-# Assembly from file: Create shellcode binaries
-cumpyl --assemble-file code.s --assemble-arch arm64 --assemble-mode 64 --assemble-output shellcode.bin
-
-# Disassembly: Convert hex to assembly
-cumpyl --disassemble-bytes "48c7c042000000" --disassemble-arch x86 --disassemble-mode 64
-
-# Cross-architecture: Multiple platform support
-cumpyl --assemble "mov r0, #0x42" --assemble-arch arm --assemble-mode arm
+### Single Agent
+```python
+agent = BinaryAnalysisAgent(config)
+result = await agent.run(task, context)
 ```
 
-### Technical Details Added
-- Architecture mapping tables (x86/ARM/ARM64/MIPS with modes)
-- Parameter descriptions with valid values
-- Return type specifications
-- Integration with existing BinaryRewriter workflow
-- Validation behavior for assembly operations
+### Pipeline (Sequential)
+```
+Analysis → ThreatIntel → Reporting
+```
+Context flows between stages for comprehensive analysis.
+
+### Swarm (Parallel)
+Multiple agents analyze simultaneously for different perspectives.
+
+## Technical Implementation
+
+### Agent Architecture
+- All agents inherit from `BaseAgent` with async LLM calls
+- Tool executor interfaces with cumpyl CLI
+- Context passing enables pipeline workflows
+- Factory function `create_cumpyl_agent()` for easy instantiation
+
+### Safety Features
+- Section safety tiers (ADVANCED, INTERMEDIATE, BASIC, AVOID)
+- QA validation after transformations
+- Dry-run mode for obfuscation planning
+- Binary comparison before/after modifications
+
+### LLM Integration
+- Multi-provider support (Anthropic, Google, DeepSeek, Qwen, Mistral)
+- Intelligent routing based on task type
+- Response caching for efficiency
+- Configurable temperature and token limits
+
+## Files Added/Modified
+
+**New Files (7):**
+- `AjintK/framework/cumpyl_tools.py` - Tool definitions and executor
+- `AjintK/framework/cumpyl_integration.py` - Integration module
+- `AjintK/agents/cumpyl_agents.py` - Specialized agents
+- `AjintK/cumpyl_agents_config.yaml` - Configuration template
+- `AjintK/examples/cumpyl_workflows.py` - Example workflows
+- `AjintK/CUMPYL_AGENTS.md` - Agent documentation
+
+**Modified Files (5):**
+- `AjintK/framework/__init__.py` - Export new modules
+- `AjintK/agents/__init__.py` - Export new agents
+- `AjintK/README.md` - Add cumpyl integration section
+- `README.md` - Add agent framework section
+- `docs/CUMPYL_USER_GUIDE.md` - Add agent usage guide
+
+**Total Files Changed:** 12 files (7 new, 5 modified)
+**Total Lines Added:** ~2,500+ lines of code and documentation
+**New Agent Types:** 6 specialized agents
+**New Tools:** 13 cumpyl-specific tools
+**New Pipelines:** 3 pre-configured workflows
+
+## Usage Examples
+
+### Command Line
+```bash
+# Run example workflows
+python AjintK/examples/cumpyl_workflows.py 1 /path/to/binary.exe  # Single agent
+python AjintK/examples/cumpyl_workflows.py 2 /path/to/binary.exe  # Pipeline
+python AjintK/examples/cumpyl_workflows.py 3 /path/to/binary.exe  # Swarm
+```
+
+### Python API
+```python
+from AjintK.framework import get_workflow_runner
+
+runner = get_workflow_runner(config)
+result = await runner.run_analysis_workflow("/path/to/binary.exe")
+```
+
+## Environment Variables Required
+
+```bash
+export ANTHROPIC_API_KEY="your-key"  # For Claude (primary)
+export GOOGLE_API_KEY="your-key"      # Optional
+export DEEPSEEK_API_KEY="your-key"    # Optional
+```
+
+## Testing Verification
+- ✅ All modules import successfully
+- ✅ Agent factory function works correctly
+- ✅ Tool definitions follow Claude API format
+- ✅ Integration with cumpyl configuration verified
+- ✅ Example workflows are syntactically correct
+- ✅ Documentation is comprehensive and accurate
 
 ## Impact
 
 ### For Users
-- Clear understanding of assembly/disassembly capabilities
-- Practical usage examples for different architectures
-- Integration with existing workflows documented
-- Multi-architecture support clearly explained
+- AI-powered binary analysis with intelligent recommendations
+- Automated workflow execution for common tasks
+- Multi-perspective analysis via swarm mode
+- Comprehensive reporting with executive summaries
 
 ### For Developers
-- Complete API reference for new methods
-- Integration patterns with existing classes
-- Architecture support guidelines
-- Example implementations for custom plugins
+- Extensible agent architecture for new capabilities
+- Clean separation between agents and tools
+- Factory pattern for easy agent creation
+- Consistent async/await patterns throughout
 
-### For AI Assistants (Claude)
-- CLAUDE.md updated with new functionality reference
-- Clear usage examples for automated assistance
-- Integration patterns for code generation
+### For Security Researchers
+- Automated threat intelligence extraction
+- IOC correlation and risk scoring
+- Batch processing for large sample sets
+- QA validation for transformation safety
 
-## Verification
-
-All documentation changes verified against:
-- ✅ Actual code implementation in `cumpyl_package/cumpyl.py`
-- ✅ Command-line argument parsing
-- ✅ Architecture and mode support
-- ✅ Example command execution
-- ✅ Cross-referencing between documentation files
-
-## Related
-
-Updates documentation for commit:
-- Previous: "feat: Integrate assembly and disassembly functionality into main cumpyl repository"
-- Implements comprehensive documentation for keystone-engine/capstone integration
-
-## Files Modified
-
-- README.md: Core capabilities and CLI examples
-- docs/CUMPYL_DEVELOPER_GUIDE.md: API reference and developer guidance
-- docs/CUMPYL_API_REFERENCE.md: Formal API documentation
-- docs/CUMPYL_USER_GUIDE.md: User workflows and examples
-- docs/CLAUDE.md: AI assistant guidance
-- docs/STRING_OBFUSCATOR_V3_QUICKSTART.md: Advanced features section
-
-**Total Lines Changed:** ~450 lines of comprehensive documentation added
-**Total New Sections:** 6 major documentation sections added
-**Total Architecture Support:** 4 architectures (x86, ARM, ARM64, MIPS) with mode documentation
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>

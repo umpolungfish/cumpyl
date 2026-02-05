@@ -563,6 +563,205 @@ strings obfuscated.exe | grep password
 
 **For detailed usage**, see `docs/CUMPYL_DEVELOPER_GUIDE.md` and `README.md`
 
+## Autonomous Agent Framework
+
+Cumpyl includes an integrated autonomous agent framework (AjintK) for AI-powered binary analysis and obfuscation planning. The agents use LLMs (Claude, Gemini, DeepSeek, etc.) to provide intelligent analysis and recommendations.
+
+### Available Agents
+
+| Agent | Purpose |
+|-------|---------|
+| **BinaryAnalysisAgent** | Comprehensive multi-format analysis with LLM-enhanced recommendations |
+| **ObfuscationPlannerAgent** | Creates intelligent obfuscation strategies respecting safety tiers |
+| **BatchOrchestratorAgent** | Coordinates large-scale batch processing |
+| **QualityAssuranceAgent** | Validates transformed binaries |
+| **ReportingAgent** | Generates executive summaries and technical reports |
+| **ThreatIntelAgent** | Extracts IOCs and performs threat assessment |
+
+### Quick Start with Agents
+
+#### Single Agent Analysis
+
+```python
+import asyncio
+from AjintK.agents.cumpyl_agents import BinaryAnalysisAgent
+
+config = {
+    "provider": "anthropic",
+    "model": "claude-3-5-sonnet-20241022",
+    "max_tokens": 4000,
+    "temperature": 0.3
+}
+
+async def analyze():
+    agent = BinaryAnalysisAgent(config)
+    result = await agent.run(
+        task="Analyze binary structure and strings",
+        context={"binary_path": "/path/to/binary.exe"}
+    )
+    print(result["recommendations"])
+
+asyncio.run(analyze())
+```
+
+#### Pipeline Mode (Sequential Agents)
+
+Run agents in sequence where each agent's output becomes context for the next:
+
+```python
+from AjintK.framework import AgentOrchestrator
+from AjintK.agents.cumpyl_agents import create_cumpyl_agent
+
+async def pipeline_analysis():
+    orchestrator = AgentOrchestrator({"max_concurrent_agents": 3})
+
+    # Register agents for the pipeline
+    orchestrator.register_agent("analyzer", create_cumpyl_agent("analysis", config))
+    orchestrator.register_agent("threat", create_cumpyl_agent("threat_intel", config))
+    orchestrator.register_agent("reporter", create_cumpyl_agent("reporting", config))
+
+    # Run pipeline: Analysis -> Threat Intel -> Report
+    result = await orchestrator.run_pipeline(
+        task="Complete binary analysis",
+        agent_ids=["analyzer", "threat", "reporter"],
+        initial_context={"binary_path": "/path/to/binary.exe"}
+    )
+    return result
+```
+
+#### Swarm Mode (Parallel Agents)
+
+Run multiple agents simultaneously for different perspectives:
+
+```python
+async def swarm_analysis():
+    orchestrator = AgentOrchestrator({"max_concurrent_agents": 3})
+
+    orchestrator.register_agent("analyzer", create_cumpyl_agent("analysis", config))
+    orchestrator.register_agent("threat", create_cumpyl_agent("threat_intel", config))
+
+    # Run in parallel
+    result = await orchestrator.run_swarm(
+        task="Multi-perspective analysis",
+        agent_ids=["analyzer", "threat"],
+        context={"binary_path": "/path/to/binary.exe"}
+    )
+    return result
+```
+
+#### High-Level Workflow Runner
+
+For convenience, use the pre-built workflow runner:
+
+```python
+from AjintK.framework import get_workflow_runner
+
+async def easy_analysis():
+    runner = get_workflow_runner(config)
+
+    # Run complete analysis workflow
+    result = await runner.run_analysis_workflow("/path/to/binary.exe")
+
+    # Or obfuscation planning workflow
+    result = await runner.run_obfuscation_workflow("/path/to/binary.exe")
+
+    # Or batch processing workflow
+    result = await runner.run_batch_workflow("/path/to/directory", "*.exe")
+
+    return result
+```
+
+### Pre-configured Pipelines
+
+| Pipeline | Agents | Purpose |
+|----------|--------|---------|
+| **Analysis** | Analysis → ThreatIntel → Reporting | Full analysis with threat assessment |
+| **Obfuscation** | Analysis → ObfuscationPlanner → QA | Plan and validate obfuscation |
+| **Batch** | BatchOrchestrator → Reporting | Process multiple binaries |
+
+### Agent Tools
+
+The agents have access to 13 cumpyl-specific tools:
+
+- **analyze_binary**: Comprehensive binary analysis
+- **suggest_obfuscation**: Get obfuscation recommendations
+- **run_plugin**: Execute specific cumpyl plugins
+- **list_plugins**: List available plugins
+- **encode_section**: Encode binary sections
+- **generate_report**: Generate analysis reports
+- **hex_view**: View binary in hex format
+- **batch_analyze**: Batch process multiple files
+- **pe_string_obfuscate**: Apply string obfuscation
+- **disassemble**: Disassemble binary code
+- **validate_binary**: Validate binary integrity
+- **compare_binaries**: Compare two binaries
+- **extract_strings**: Extract readable strings
+
+### Running Example Workflows
+
+Use the included example scripts:
+
+```bash
+cd AjintK
+
+# Single agent analysis
+python examples/cumpyl_workflows.py 1 /path/to/binary.exe
+
+# Pipeline analysis (sequential)
+python examples/cumpyl_workflows.py 2 /path/to/binary.exe
+
+# Swarm analysis (parallel)
+python examples/cumpyl_workflows.py 3 /path/to/binary.exe
+
+# Obfuscation planning
+python examples/cumpyl_workflows.py 4 /path/to/binary.exe
+
+# Batch processing
+python examples/cumpyl_workflows.py 5 /path/to/directory "*.exe"
+
+# QA validation (compare binaries)
+python examples/cumpyl_workflows.py 8 /path/to/original.exe /path/to/modified.exe
+```
+
+### Environment Variables
+
+Set API keys for LLM providers:
+
+```bash
+export ANTHROPIC_API_KEY="your-key"    # Required for Claude
+export GOOGLE_API_KEY="your-key"        # Optional for Gemini
+export DEEPSEEK_API_KEY="your-key"      # Optional for DeepSeek
+export QWEN_API_KEY="your-key"          # Optional for Qwen
+export MISTRAL_API_KEY="your-key"       # Optional for Mistral
+```
+
+### Configuration
+
+Configure agents via `AjintK/cumpyl_agents_config.yaml`:
+
+```yaml
+api:
+  provider: "anthropic"
+  model: "claude-3-5-sonnet-20241022"
+  max_tokens: 4000
+  temperature: 0.3
+
+agents:
+  binary_analysis:
+    enabled: true
+    settings:
+      default_analysis_type: "sections"
+      include_strings: true
+
+  obfuscation_planner:
+    enabled: true
+    settings:
+      risk_level: "moderate"
+      enforce_safety_tiers: true
+```
+
+**For complete agent documentation**, see `AjintK/CUMPYL_AGENTS.md`
+
 ## Reporting
 
 Cumpyl generates comprehensive analysis reports in multiple formats.
