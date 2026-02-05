@@ -54,19 +54,22 @@ class BatchJob:
 
 class BatchProcessor:
     """𐑞 𐑥𐑱𐑯 𐑚𐑨𐑗 𐑐𐑮𐑩𐑕𐑧𐑕𐑦𐑙 𐑦𐑯𐑡𐑦𐑯"""
-    
-    def __init__(self, config: ConfigManager, output_dir: str = None):
+
+    def __init__(self, config: ConfigManager = None, output_dir: str = None):
+        # Create a default config if none provided
+        if config is None:
+            config = ConfigManager()
         self.config = config
         self.console = Console()
         self.jobs: List[BatchJob] = []
         self.completed_jobs: List[BatchJob] = []
         self.failed_jobs: List[BatchJob] = []
         self.output_dir = output_dir # Store the output directory
-        
+
         # 𐑞𐑮𐑧𐑛 𐑐𐑵𐑤 𐑒𐑪𐑯𐑓𐑦𐑜
         self.max_workers = self.config.performance.max_worker_threads if self.config.performance.enable_parallel_processing else 1
         self.progress_queue = queue.Queue()
-        
+
         # 𐑚𐑨𐑗 𐑕𐑲𐑟 𐑤𐑦𐑥𐑦𐑑 𐑓𐑹 𐑮𐑦𐑤𐑲𐑩𐑚𐑦𐑤𐑦𐑑𐑦
         self.max_batch_size = getattr(self.config.performance, 'max_batch_size', 10)
     

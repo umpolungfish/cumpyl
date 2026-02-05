@@ -457,27 +457,37 @@ cumpyl --start-menu
   <img src="./images/sexy2.png" alt="Interactive menu" width="600">
 </div>
 
-### MENU STRUCTURE
+### START MENU STRUCTURE
+
+The main entry point when launching `cumpyl --menu`:
 
 ```
-Cumpyl Main Menu
-┌── 1. Quick Analysis
-├── 2. Deep Analysis
-├── 3. Interactive Hex Viewer
-├── 4. Batch Processing
-├── 5. Encoding Operations
-├── 6. Binary Packers
-│   ├── Plugin Packer Menu
-│   │   ├── 1. Analyze binary
-│   │   ├── 2. Transform binary
-│   │   ├── 3. Change binary file
-│   │   └── 4. List available plugins
-│   └── Real Packer Integration
-├── 7. Report Generation
-├── 8. Configuration
-├── 9. Change Target
-└── 0. Exit
+Cumpyl Start Menu
+┌── 1. Build-a-Binary        → Binary editor and obfuscator
+├── 2. Lucky Strikes         → Binary packers and compression tools
+├── 3. Silly String          → Payload and string obfuscation tools
+├── 4. Batch CFG Extraction  → Extract Control Flow Graphs from multiple binaries
+├── h. Help                  → Show detailed help and examples
+└── q. Quit                  → Exit the framework
 ```
+
+### BATCH CFG EXTRACTION
+
+Extract Control Flow Graphs from multiple binary files using angr:
+
+```bash
+# Launch via menu
+cumpyl --menu
+# Select option 4: Batch CFG Extraction
+# Provide input directory with binaries
+# Provide output directory for .dot files
+```
+
+**Features:**
+- Multi-threaded batch processing with progress tracking
+- Outputs DOT format graphs for visualization with Graphviz
+- Supports PE, ELF, and other formats via angr
+- Configurable parallel processing (respects `cumpyl.yaml` settings)
 
 ### BUILD-A-BINARY MENU STRUCTURE
 

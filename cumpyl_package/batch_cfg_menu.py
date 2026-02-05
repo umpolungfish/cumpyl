@@ -24,7 +24,13 @@ class CFGBatchProcessor(BatchProcessor):
     """
     def __init__(self, input_path, output_path, config=None, console=None):
         super().__init__(config, output_dir=output_path)
-        self.cfg_extractor = CFGExtractorPlugin(config if config else {})
+        # CFGExtractorPlugin expects a dict, not a ConfigManager object
+        plugin_config = {}
+        if config and hasattr(config, 'get_plugin_config'):
+            plugin_config = config.get_plugin_config('cfg_extractor') or {}
+        elif isinstance(config, dict):
+            plugin_config = config
+        self.cfg_extractor = CFGExtractorPlugin(plugin_config)
         self.console = console if console else Console()
         logger.info(f"Initialized CFGBatchProcessor with input: {input_path}, output: {output_path}")
 

@@ -70,17 +70,32 @@ Or without a target file:
 cumpyl --menu
 ```
 
-### Menu Options
+### Start Menu Options
+
+The main entry point when launching `cumpyl --menu`:
+
+1. **Build-a-Binary**: Binary editor and obfuscator (Build-a-Binary Menu)
+2. **Lucky Strikes**: Binary packers and compression tools
+3. **Silly String**: Payload and string obfuscation tools
+4. **Batch CFG Extraction**: Extract Control Flow Graphs from multiple binaries
+- **h**: Show detailed help and examples
+- **q**: Exit the framework
+
+### Build-a-Binary Menu Options
+
+Once inside Build-a-Binary:
 
 1. **Quick Analysis**: Fast section analysis and obfuscation suggestions
 2. **Deep Analysis**: Comprehensive plugin-based analysis with reporting
 3. **Interactive Hex Viewer**: Explore binary with interactive hex dump
-4. **Batch Processing**: Process multiple files with automated workflows
-5. **Encoding Operations**: Obfuscate specific sections with various encodings
-6. **Binary Packers**: Analyze and pack binaries with compression and encryption
-7. **Report Generation**: Create detailed analysis reports in multiple formats
-8. **Configuration**: View and modify framework settings
-9. **Change Target**: Select a different binary file
+4. **Encoding Operations**: Obfuscate specific sections with various encodings
+5. **Generate Reports**: Create detailed analysis reports in multiple formats
+6. **CFG Analysis**: Control Flow Graph analysis using angr
+7. **PE String Obfuscation**: Analyze and obfuscate strings in PE binaries
+8. **Windowbrick Obfuscation**: Multi-layered string obfuscation
+9. **Noseeum Unicode Obfuscation**: Unicode-based obfuscation techniques
+10. **Change Target**: Select a different binary file
+- **0**: Exit to Start Menu
 
 ### Plugin-Based Packer Menu
 
@@ -302,6 +317,39 @@ Recursive processing with custom extensions.
 ### Multi-threaded Processing
 
 Cumpyl supports multi-threaded batch processing with configurable worker pools for improved performance.
+
+### Batch CFG Extraction
+
+Extract Control Flow Graphs from multiple binaries using angr. Access via the Start Menu (option 4):
+
+```bash
+# Launch the start menu
+cumpyl --menu
+
+# Select option 4: Batch CFG Extraction
+# Provide input directory with binaries
+# Provide output directory for .dot files
+```
+
+**Features:**
+- Multi-threaded batch processing with progress tracking
+- Outputs DOT format graphs for visualization with Graphviz
+- Supports PE, ELF, and other formats via angr
+- Configurable parallel processing (respects `cumpyl.yaml` performance settings)
+
+**Example Workflow:**
+```bash
+# 1. Launch menu
+cumpyl --menu
+
+# 2. Select "4" for Batch CFG Extraction
+# 3. Enter input path: /path/to/binaries/
+# 4. Enter output path: /path/to/cfg_output/
+
+# Results: DOT files created for each binary
+# Visualize with Graphviz:
+dot -Tpng binary_cfg.dot -o binary_cfg.png
+```
 
 ## Encoding and Obfuscation
 
